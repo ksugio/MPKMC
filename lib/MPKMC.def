@@ -1,0 +1,27 @@
+LIBRARY "MPKMC"
+EXPORTS
+	MP_KMCAlloc
+	MP_KMCFree
+	MP_KMCIndex2Grid
+	MP_KMCGrid2Index
+	MP_KMCClusterIndexes
+	MP_KMCSearchCluster
+	MP_KMCSearchClusterIDs
+	MP_KMCAddCluster
+	MP_KMCAddClusterIDs
+	MP_KMCAddSolute
+	MP_KMCAddSoluteRandom
+	MP_KMCCalcEnergy
+	MP_KMCTotalEnergy
+	MP_KMCJump
+	MP_KMCStepForward
+	MP_KMCStepBackward
+	MP_KMCStepGo
+	MP_KMCWriteTable
+	MP_KMCReadTable
+	MP_KMCSortTable
+	MP_KMCResetTable
+	MP_KMCWrite
+	MP_KMCRead
+	MP_Rand
+	MP_RandGauss

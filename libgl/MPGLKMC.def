@@ -1,0 +1,49 @@
+LIBRARY "MPGLKMC"
+EXPORTS
+	; model
+	MPGL_ModelInit
+	MPGL_ModelZoom
+	MPGL_ModelTranslateZ
+	MPGL_ModelTranslateY
+	MPGL_ModelTranslateX
+	MPGL_ModelRotateZ
+	MPGL_ModelRotateY
+	MPGL_ModelRotateX
+	MPGL_ModelInverse
+	MPGL_ModelSetDirection
+	MPGL_ModelGetDirection
+	MPGL_ModelSetAngle
+	MPGL_ModelGetAngle
+	MPGL_ModelFitCenter
+	MPGL_ModelFitScale
+	MPGL_ModelTransform
+	; text
+	MPGL_TextBitmap
+	; colormap
+	MPGL_ColormapInit
+	MPGL_ColormapColor
+	MPGL_ColormapGrayscale
+	MPGL_ColormapStepColor
+	MPGL_ColormapGradColor
+	MPGL_ColormapDraw
+	; scene
+	MPGL_SceneInit
+	MPGL_SceneLightAdd
+	MPGL_SceneSetup
+	MPGL_SceneResize
+	; kmc
+	MPGL_KMCDrawInit
+	MPGL_KMCDrawSceneInit
+	MPGL_KMCDrawColormapRange
+	MPGL_KMCDrawGrid
+	MPGL_KMCDrawFrame
+	MPGL_KMCDrawAxis
+	MPGL_KMCDrawFit
+	MPGL_KMCDrawDisplay
+	MPGL_KMCDrawReshape
+	MPGL_KMCDrawButton
+	MPGL_KMCDrawMotion
+	; glut
+	MPGL_KMCWindow
+	MPGL_KMCImage
+
