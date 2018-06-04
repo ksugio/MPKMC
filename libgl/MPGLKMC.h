@@ -21,7 +21,6 @@ extern "C" {
 
 #include <GL/gl.h>
 #include <GL/glu.h>
-#include <GL/freeglut.h>
 
 /*--------------------------------------------------
   model typedef and functions
@@ -105,13 +104,6 @@ void MPGL_ColormapDraw(MPGL_Colormap *colormap);
 */
 enum { MPGL_ProjFrustum, MPGL_ProjOrtho };
 
-typedef struct MPGL_SceneAttr {
-	short disp;
-	float color[3];
-	float width;
-	int font;
-} MPGL_SceneAttr;
-
 typedef struct MPGL_SceneLight {
 	float position[4];
 	float specular[4];
@@ -150,7 +142,6 @@ kmc functions
 #define MPGL_KMC_CYLINDER 102
 
 enum { MPGL_KMCKindType, MPGL_KMCKindEnergy };
-enum { MPGL_KMCModeRotate, MPGL_KMCModeTranslate, MPGL_KMCModeZoom };
 
 typedef struct MPGL_KMCDraw {
 #ifndef _DEBUG
@@ -160,10 +151,6 @@ typedef struct MPGL_KMCDraw {
 	int res;
 	float frame_color[3];
 	float frame_width;
-	int width, height;
-	int button_mode;
-	int button_down;
-	int button_x, button_y;
 	int disp[MP_KMC_TYPES_MAX];
 	int shift[3];
 } MPGL_KMCDraw;
@@ -173,27 +160,11 @@ PyTypeObject MPGL_KMCDrawDataPyType;
 #endif
 
 void MPGL_KMCDrawInit(MPGL_KMCDraw *draw);
-void MPGL_KMCDrawSceneInit(MPGL_Scene *scene);
 void MPGL_KMCDrawColormapRange(MPGL_KMCDraw *draw, MP_KMCData *data, MPGL_Colormap *colormap);
 void MPGL_KMCDrawGrid(MPGL_KMCDraw *draw, MP_KMCData *data, MPGL_Colormap *colormap);
 void MPGL_KMCDrawFrame(MPGL_KMCDraw *draw, MP_KMCData *data);
 void MPGL_KMCDrawAxis(int size[]);
-void MPGL_KMCDrawFit(MPGL_KMCDraw *draw, MP_KMCData *data, MPGL_Model *model);
-void MPGL_KMCDrawDisplay(MPGL_KMCDraw *draw, MP_KMCData *data,
-	MPGL_Colormap *colormap, MPGL_Scene *scene, MPGL_Model *model);
-void MPGL_KMCDrawReshape(MPGL_KMCDraw *draw, MPGL_Scene *scene, int width, int height);
-void MPGL_KMCDrawButton(MPGL_KMCDraw *draw, MPGL_Model *model, int x, int y, int down);
-void MPGL_KMCDrawMotion(MPGL_KMCDraw *draw, MPGL_Model *model, int x, int y, int ctrl);
-
-/*--------------------------------------------------
-  glut functions
-*/
-void MPGL_KMCWindow(MP_KMCData *data, MPGL_KMCDraw *draw,
-	MPGL_Colormap *colormap, MPGL_Scene *scene, MPGL_Model *model,
-	int width, int height, void(*func)(void), int argc, char **argv);
-void MPGL_KMCImage(MP_KMCData *data, MPGL_KMCDraw *draw,
-	MPGL_Colormap *colormap, MPGL_Scene *scene, MPGL_Model *model,
-	int width, int height, unsigned char *buffer, int argc, char **argv);
+void MPGL_KMCDrawRegion(MP_KMCData *data, float region[]);
 
 #ifdef __cplusplus
 }

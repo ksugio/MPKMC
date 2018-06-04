@@ -10,30 +10,12 @@ void MPGL_KMCDrawInit(MPGL_KMCDraw *draw)
 	draw->frame_color[1] = 1.0;
 	draw->frame_color[2] = 1.0;
 	draw->frame_width = 1.0;
-	draw->width = 640;
-	draw->height = 480;
-	draw->button_mode = MPGL_KMCModeRotate;
-	draw->button_down = FALSE;
-	draw->button_x = draw->button_y = 0;
 	for (i = 0; i < MP_KMC_TYPES_MAX; i++) {
 		draw->disp[i] = TRUE;
 	}
 	draw->shift[0] = 0;
 	draw->shift[1] = 0;
 	draw->shift[2] = 0;
-}
-
-void MPGL_KMCDrawSceneInit(MPGL_Scene *scene)
-{
-	int i;
-	static float lookat[] = { 10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0 };
-
-	MPGL_SceneInit(scene);
-	for (i = 0; i < 9; i++) {
-		scene->lookat[i] = lookat[i];
-	}
-	MPGL_SceneLightAdd(scene, 1.0, 1.0, 1.0, 0.0);
-	scene->proj = MPGL_ProjFrustum;
 }
 
 void MPGL_KMCDrawColormapRange(MPGL_KMCDraw *draw, MP_KMCData *data, MPGL_Colormap *colormap)
@@ -224,120 +206,14 @@ void MPGL_KMCDrawAxis(int size[])
 	glPopMatrix();
 }
 
-void MPGL_KMCDrawFit(MPGL_KMCDraw *draw, MP_KMCData *data, MPGL_Model *model)
+void MPGL_KMCDrawRegion(MP_KMCData *data, float region[])
 {
-	float region[6];
-
 	region[0] = -0.5f;
 	region[1] = -0.5f;
 	region[2] = -0.5f;
 	region[3] = (float)data->size[0] + 0.5f;
 	region[4] = (float)data->size[1] + 0.5f;
 	region[5] = (float)data->size[2] + 0.5f;
-	MPGL_ModelFitCenter(model, region);
-	MPGL_ModelFitScale(model, region, (float)draw->width/draw->height);
-}
-
-void MPGL_KMCDrawDisplay(MPGL_KMCDraw *draw, MP_KMCData *data,
-	MPGL_Colormap *colormap, MPGL_Scene *scene, MPGL_Model *model)
-{
-	char s[32];
-
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	/* grid draw */
-	glPushMatrix();
-	MPGL_ModelTransform(model);
-	MPGL_KMCDrawGrid(draw, data, colormap);
-	MPGL_KMCDrawFrame(draw, data);
-	glTranslatef(-0.5f, -0.5f, -0.5f);
-	MPGL_KMCDrawAxis(data->size);
-	glPopMatrix();
-	/* colormap draw */
-	glPushMatrix();
-	glRotated(90.0, 0.0, 0.0, 1.0);
-	glRotated(90.0, 1.0, 0.0, 0.0);
-	glTranslated((2.0 - draw->width) / draw->height, -colormap->size[1] / 2, scene->znear - 1.0e-6);
-	MPGL_ColormapDraw(colormap);
-	glPopMatrix();
-	/* step */
-	sprintf(s, "%d step", data->step);
-	glPushAttrib(GL_LIGHTING_BIT);
-	glDisable(GL_LIGHTING);
-	glRasterPos3d(scene->znear - 1.0e-6, (2.0 * 10 - draw->width) / draw->height,
-		2.0*(draw->height - 20) / draw->height - 1.0);
-	glColor3fv(colormap->font_color);
-	MPGL_TextBitmap(s, colormap->font_type);
-	glPopAttrib();
-}
-
-void MPGL_KMCDrawReshape(MPGL_KMCDraw *draw, MPGL_Scene *scene, int width, int height)
-{
-	draw->width = width;
-	draw->height = height;
-	MPGL_SceneResize(scene, width, height);
-}
-
-void MPGL_KMCDrawButton(MPGL_KMCDraw *draw, MPGL_Model *model, int x, int y, int down)
-{
-	draw->button_down = down;
-	if (down) {
-		draw->button_x = x;
-		draw->button_y = y;
-	}
-	else {
-		MPGL_ModelInverse(model);
-	}
-}
-
-void MPGL_KMCDrawMotion(MPGL_KMCDraw *draw, MPGL_Model *model, int x, int y, int ctrl)
-{
-	int w, h;
-	int dx, dy;
-	int cx, cy;
-	float ax, ay, az;
-	float mx, my, mz;
-	float s;
-
-	if (draw->button_down) {
-		w = draw->width;
-		h = draw->height;
-		dx = x - draw->button_x;
-		dy = y - draw->button_y;
-		if (draw->button_mode == MPGL_KMCModeRotate) {
-			if (ctrl) {
-				cx = w / 2, cy = h / 2;
-				if (x <= cx && y <= cy) ax = (float)M_PI * (-dx + dy) / h;
-				else if (x > cx && y <= cy) ax = (float)M_PI * (-dx - dy) / h;
-				else if (x <= cx && y > cy) ax = (float)M_PI * (dx + dy) / h;
-				else if (x > cx && y > cy) ax = (float)M_PI * (dx - dy) / h;
-				MPGL_ModelRotateX(model, -ax);
-			}
-			else {
-				az = (float)M_PI * dx / h;
-				MPGL_ModelRotateZ(model, -az);
-				ay = (float)M_PI * dy / h;
-				MPGL_ModelRotateY(model, -ay);
-			}
-		}
-		else if (draw->button_mode == MPGL_KMCModeTranslate) {
-			if (ctrl) {
-				mx = 2 * (float)dy / h;
-				MPGL_ModelTranslateX(model, -mx);
-			}
-			else {
-				my = 2 * (float)dx / h;
-				MPGL_ModelTranslateY(model, my);
-				mz = 2 * (float)dy / h;
-				MPGL_ModelTranslateZ(model, -mz);
-			}
-		}
-		else if (draw->button_mode == MPGL_KMCModeZoom) {
-			s = 1 - (float)dy / h;
-			MPGL_ModelZoom(model, s);
-		}
-		draw->button_x = x;
-		draw->button_y = y;
-	}
 }
 
 /**********************************************************
@@ -357,18 +233,6 @@ static PyObject *PyNew(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	self = (MPGL_KMCDraw *)type->tp_alloc(type, 0);
 	MPGL_KMCDrawInit(self);
 	return (PyObject *)self;
-}
-
-static PyObject *PyKMCDrawSceneInit(MPGL_KMCDraw *self, PyObject *args, PyObject *kwds)
-{
-	MPGL_Scene *scene;
-	static char *kwlist[] = { "scene", NULL };
-
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O!", kwlist, &MPGL_ScenePyType, &scene)) {
-		return NULL;
-	}
-	MPGL_KMCDrawSceneInit(scene);
-	Py_RETURN_NONE;
 }
 
 static PyObject *PyKMCDrawColormapRange(MPGL_KMCDraw *self, PyObject *args, PyObject *kwds)
@@ -412,9 +276,9 @@ static PyObject *PyKMCDrawFrame(MPGL_KMCDraw *self, PyObject *args, PyObject *kw
 static PyObject *PyKMCDrawAxis(MPGL_KMCDraw *self, PyObject *args, PyObject *kwds)
 {
 	int size[3];
-	static char *kwlist[] = { "sx", "sy", "sz", NULL };
+	static char *kwlist[] = { "size", NULL };
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "iii", kwlist, &(size[0]), &(size[1]), &(size[2]))) {
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "(iii)", kwlist, &(size[0]), &(size[1]), &(size[2]))) {
 		return NULL;
 	}
 	MPGL_KMCDrawAxis(size);
@@ -450,77 +314,21 @@ static PyObject *PyKMCDrawSetDisp(MPGL_KMCDraw *self, PyObject *args, PyObject *
 	Py_RETURN_NONE;
 }
 
-static PyObject *PyKMCDrawFit(MPGL_KMCDraw *self, PyObject *args, PyObject *kwds)
+static PyObject *PyKMCDrawRegion(MPGL_KMCDraw *self, PyObject *args, PyObject *kwds)
 {
 	MP_KMCData *data;
-	MPGL_Model *model;
-	static char *kwlist[] = { "kmc", "model", NULL };
+	static char *kwlist[] = { "kmc", NULL };
+	float region[6];
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "OO!", kwlist, &data, &MPGL_ModelPyType, &model)) {
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O", kwlist, &data)) {
 		return NULL;
 	}
-	MPGL_KMCDrawFit(self, data, model);
-	Py_RETURN_NONE;
-}
-
-static PyObject *PyKMCDrawDisplay(MPGL_KMCDraw *self, PyObject *args, PyObject *kwds)
-{
-	MP_KMCData *data;
-	MPGL_Colormap *cmp;
-	MPGL_Scene *scene;
-	MPGL_Model *model;
-	static char *kwlist[] = { "kmc", "cmp", "scene", "model", NULL };
-
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "OO!O!O!", kwlist, &data,
-		&MPGL_ColormapPyType, &cmp, &MPGL_ScenePyType, &scene, &MPGL_ModelPyType, &model)) {
-		return NULL;
-	}
-	MPGL_KMCDrawDisplay(self, data, cmp, scene, model);
-	Py_RETURN_NONE;
-}
-
-static PyObject *PyKMCDrawReshape(MPGL_KMCDraw *self, PyObject *args, PyObject *kwds)
-{
-	MPGL_Scene *scene;
-	int width, height;
-	static char *kwlist[] = { "scene", "width", "height", NULL };
-
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O!ii", kwlist, &MPGL_ScenePyType, &scene, &width, &height)) {
-		return NULL;
-	}
-	MPGL_KMCDrawReshape(self, scene, width, height);
-	Py_RETURN_NONE;
-}
-
-static PyObject *PyKMCDrawButton(MPGL_KMCDraw *self, PyObject *args, PyObject *kwds)
-{
-	MPGL_Model *model;
-	int x, y, down;
-	static char *kwlist[] = { "model", "x", "y", "down", NULL };
-
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O!iii", kwlist, &MPGL_ModelPyType, &model, &x, &y, &down)) {
-		return NULL;
-	}
-	MPGL_KMCDrawButton(self, model, x, y, down);
-	Py_RETURN_NONE;
-}
-
-static PyObject *PyKMCDrawMotion(MPGL_KMCDraw *self, PyObject *args, PyObject *kwds)
-{
-	MPGL_Model *model;
-	int x, y, ctrl;
-	static char *kwlist[] = { "model", "x", "y", "ctrl", NULL };
-
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O!iii", kwlist, &MPGL_ModelPyType, &model, &x, &y, &ctrl)) {
-		return NULL;
-	}
-	MPGL_KMCDrawMotion(self, model, x, y, ctrl);
-	Py_RETURN_NONE;
+	MPGL_KMCDrawRegion(data, region);
+	return Py_BuildValue("dddddd", region[0], region[1], region[2],
+		region[3], region[4], region[5]);
 }
 
 static PyMethodDef PyMethods[] = {
-	{ "scene_init", (PyCFunction)PyKMCDrawSceneInit, METH_VARARGS | METH_KEYWORDS,
-	"scene_init(scene) : initialize scene" },
 	{ "colormap_range", (PyCFunction)PyKMCDrawColormapRange, METH_VARARGS | METH_KEYWORDS,
 	"colormap_range(kmc, cmp) : set colormap range" },
 	{ "draw_grid", (PyCFunction)PyKMCDrawGrid, METH_VARARGS | METH_KEYWORDS,
@@ -533,16 +341,8 @@ static PyMethodDef PyMethods[] = {
 	"set_disp(id) : get display" },
 	{ "set_disp", (PyCFunction)PyKMCDrawSetDisp, METH_VARARGS | METH_KEYWORDS,
 	"set_disp(id, disp) : set display" },
-	{ "fit", (PyCFunction)PyKMCDrawFit, METH_VARARGS | METH_KEYWORDS,
-	"fit(kmc, model, width, height) : fit model to kmc grid" },
-	{ "display", (PyCFunction)PyKMCDrawDisplay, METH_VARARGS | METH_KEYWORDS,
-	"display(kmc, cmp, scene, model) : display scene" },
-	{ "reshape", (PyCFunction)PyKMCDrawReshape, METH_VARARGS | METH_KEYWORDS,
-	"reshape(scene, width, height) : reshape scene" },
-	{ "button", (PyCFunction)PyKMCDrawButton, METH_VARARGS | METH_KEYWORDS,
-	"button(model, x, y, down) : handle button action" },
-	{ "motion", (PyCFunction)PyKMCDrawMotion, METH_VARARGS | METH_KEYWORDS,
-	"motion(model, x, y, ctrl) : handle mouse motion" },
+	{ "region", (PyCFunction)PyKMCDrawRegion, METH_VARARGS | METH_KEYWORDS,
+	"region(kmc) : return draw region" },
 	{ NULL }  /* Sentinel */
 };
 
@@ -550,12 +350,6 @@ static PyMemberDef PyMembers[] = {
 	{ "kind", T_INT, offsetof(MPGL_KMCDraw, kind), 0, "draw kind, 0:type 1:energy" },
 	{ "res", T_INT, offsetof(MPGL_KMCDraw, res), 0, "resolution of sphere" },
 	{ "frame_width", T_FLOAT, offsetof(MPGL_KMCDraw, frame_width), 0, "frame width" },
-	{ "width", T_INT, offsetof(MPGL_KMCDraw, width), 0, "display width" },
-	{ "height", T_INT, offsetof(MPGL_KMCDraw, height), 0, "display height" },
-	{ "button_mode", T_INT, offsetof(MPGL_KMCDraw, button_mode), 0, "button mode" },
-	{ "button_down", T_INT, offsetof(MPGL_KMCDraw, button_down), 0, "button down flag" },
-	{ "button_x", T_INT, offsetof(MPGL_KMCDraw, button_x), 0, "button pressed position x" },
-	{ "button_y", T_INT, offsetof(MPGL_KMCDraw, button_y), 0, "button pressed position y" },
 	{ NULL }  /* Sentinel */
 };
 

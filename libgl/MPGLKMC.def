@@ -33,17 +33,11 @@ EXPORTS
 	MPGL_SceneResize
 	; kmc
 	MPGL_KMCDrawInit
-	MPGL_KMCDrawSceneInit
 	MPGL_KMCDrawColormapRange
 	MPGL_KMCDrawGrid
 	MPGL_KMCDrawFrame
 	MPGL_KMCDrawAxis
-	MPGL_KMCDrawFit
-	MPGL_KMCDrawDisplay
-	MPGL_KMCDrawReshape
-	MPGL_KMCDrawButton
-	MPGL_KMCDrawMotion
-	; glut
-	MPGL_KMCWindow
-	MPGL_KMCImage
+	MPGL_KMCDrawRegion
+
+
 

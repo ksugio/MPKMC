@@ -491,6 +491,33 @@ static PyObject *PyGetAngle(MPGL_Model *self, PyObject *args)
 	return Py_BuildValue("ddd", angle[0], angle[1], angle[2]);
 }
 
+static PyObject *PyFitCenter(MPGL_Model *self, PyObject *args, PyObject *kwds)
+{
+	float region[6];
+	static char *kwlist[] = { "region", NULL };
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "(ffffff)", kwlist,
+		&(region[0]), &(region[1]), &(region[2]), &(region[3]), &(region[4]), &(region[5]))) {
+		return NULL;
+	}
+	MPGL_ModelFitCenter(self, region);
+	Py_RETURN_NONE;
+}
+
+static PyObject *PyFitScale(MPGL_Model *self, PyObject *args, PyObject *kwds)
+{
+	float region[6];
+	float aspect;
+	static char *kwlist[] = { "region", "aspect", NULL };
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "(ffffff)f", kwlist,
+		&(region[0]), &(region[1]), &(region[2]), &(region[3]), &(region[4]), &(region[5]), &aspect)) {
+		return NULL;
+	}
+	MPGL_ModelFitScale(self, region, aspect);
+	Py_RETURN_NONE;
+}
+
 static PyObject *PyTransform(MPGL_Model *self, PyObject *args)
 {
 	MPGL_ModelTransform(self);
@@ -524,10 +551,43 @@ static PyMethodDef PyMethods[] = {
 	"set_angle(alpha, beta, gamma) : set angle" },
 	{ "get_angle", (PyCFunction)PyGetAngle, METH_NOARGS,
 	"get_angle() : get angle" },
+	{ "fit_center", (PyCFunction)PyFitCenter, METH_VARARGS | METH_KEYWORDS,
+	"fit_center(region) : fit center" },
+	{ "fit_scale", (PyCFunction)PyFitScale, METH_VARARGS | METH_KEYWORDS,
+	"fit_scale(region, aspect) : fit scale" },
 	{ "transform", (PyCFunction)PyTransform, METH_NOARGS,
 	"transform() : OpenGL transformation" },
 	{ NULL }  /* Sentinel */
 };
+
+static PyObject *PyGetMat(MPGL_Model *self, void *closure)
+{
+	return Py_BuildValue("(dddd)(dddd)(dddd)(dddd)", 
+		self->mat[0][0], self->mat[0][1], self->mat[0][2], self->mat[0][3],
+		self->mat[1][0], self->mat[1][1], self->mat[1][2], self->mat[1][3], 
+		self->mat[2][0], self->mat[2][1], self->mat[2][2], self->mat[2][3], 
+		self->mat[3][0], self->mat[3][1], self->mat[3][2], self->mat[3][3]);
+}
+
+static int PySetMat(MPGL_Model *self, PyObject *value, void *closure)
+{
+	float mat[4][4];
+	int i, j;
+
+	if (!PyArg_ParseTuple(value, "(ffff)(ffff)(ffff)(ffff)",
+		&(mat[0][0]), &(mat[0][1]), &(mat[0][2]), &(mat[0][3]),
+		&(mat[1][0]), &(mat[1][1]), &(mat[1][2]), &(mat[1][3]),
+		&(mat[2][0]), &(mat[2][1]), &(mat[2][2]), &(mat[2][3]),
+		&(mat[3][0]), &(mat[3][1]), &(mat[3][2]), &(mat[3][3]))) {
+		return -1;
+	}
+	for (i = 0; i < 4; i++) {
+		for (j = 0; j < 4; j++) {
+			self->mat[i][j] = mat[i][j];
+		}
+	}
+	return 0;
+}
 
 static PyObject *PyGetCenter(MPGL_Model *self, void *closure)
 {
@@ -545,15 +605,46 @@ static int PySetCenter(MPGL_Model *self, PyObject *value, void *closure)
 	return 0;
 }
 
+static PyObject *PyGetMatInv(MPGL_Model *self, void *closure)
+{
+	return Py_BuildValue("(dddd)(dddd)(dddd)(dddd)",
+		self->mat_inv[0][0], self->mat_inv[0][1], self->mat_inv[0][2], self->mat_inv[0][3],
+		self->mat_inv[1][0], self->mat_inv[1][1], self->mat_inv[1][2], self->mat_inv[1][3],
+		self->mat_inv[2][0], self->mat_inv[2][1], self->mat_inv[2][2], self->mat_inv[2][3],
+		self->mat_inv[3][0], self->mat_inv[3][1], self->mat_inv[3][2], self->mat_inv[3][3]);
+}
+
+static int PySetMatInv(MPGL_Model *self, PyObject *value, void *closure)
+{
+	float mat_inv[4][4];
+	int i, j;
+
+	if (!PyArg_ParseTuple(value, "(ffff)(ffff)(ffff)(ffff)",
+		&(mat_inv[0][0]), &(mat_inv[0][1]), &(mat_inv[0][2]), &(mat_inv[0][3]),
+		&(mat_inv[1][0]), &(mat_inv[1][1]), &(mat_inv[1][2]), &(mat_inv[1][3]),
+		&(mat_inv[2][0]), &(mat_inv[2][1]), &(mat_inv[2][2]), &(mat_inv[2][3]),
+		&(mat_inv[3][0]), &(mat_inv[3][1]), &(mat_inv[3][2]), &(mat_inv[3][3]))) {
+		return -1;
+	}
+	for (i = 0; i < 4; i++) {
+		for (j = 0; j < 4; j++) {
+			self->mat_inv[i][j] = mat_inv[i][j];
+		}
+	}
+	return 0;
+}
+
 static PyGetSetDef PyGetSet[] = {
+	{ "mat", (getter)PyGetMat, (setter)PySetMat, "mat = ((m00, m01, m02, m03), (...), (...), (...))", NULL },
 	{ "center", (getter)PyGetCenter, (setter)PySetCenter, "center = (cx, cy, cz)", NULL },
+	{ "mat_inv", (getter)PyGetMatInv, (setter)PySetMatInv, "mat_inv = ((i00, i01, i02, i03), (...), (...), (...))", NULL },
 	{ NULL }  /* Sentinel */
 };
 
 PyTypeObject MPGL_ModelPyType = {
 	PyObject_HEAD_INIT(NULL)
 	0,							/*ob_size*/
-	"MPGLGrid.model",			/*tp_name*/
+	"MPGLKMC.model",			/*tp_name*/
 	sizeof(MPGL_Model),			/*tp_basicsize*/
 	0,							/*tp_itemsize*/
 	(destructor)PyDealloc,	/*tp_dealloc*/

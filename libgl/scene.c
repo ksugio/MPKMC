@@ -2,18 +2,18 @@
 
 void MPGL_SceneInit(MPGL_Scene *scene)
 {
-	scene->proj = MPGL_ProjOrtho;;
+	scene->proj = MPGL_ProjOrtho;
 	scene->znear = 5;
 	scene->zfar = 15;
-	scene->lookat[0] = 0.0;
+	scene->lookat[0] = 10.0;
 	scene->lookat[1] = 0.0;
-	scene->lookat[2] = 10.0;
+	scene->lookat[2] = 0.0;
 	scene->lookat[3] = 0.0;
 	scene->lookat[4] = 0.0;
 	scene->lookat[5] = 0.0;
 	scene->lookat[6] = 0.0;
-	scene->lookat[7] = 1.0;
-	scene->lookat[8] = 0.0;
+	scene->lookat[7] = 0.0;
+	scene->lookat[8] = 1.0;
 	scene->mat_specular[0] = 0.8f;
 	scene->mat_specular[1] = 0.8f;
 	scene->mat_specular[2] = 0.8f;
@@ -69,7 +69,7 @@ void MPGL_SceneSetup(MPGL_Scene *scene)
 	/* light */
 	if (scene->nlight > 0) {
 		glEnable(GL_LIGHTING);
-		for (i = 0; i < 8; i++) {
+		for (i = 0;i < 8;i++) {
 			if (i < scene->nlight) {
 				glEnable(gl_light[i]);
 				light = &(scene->light[i]);
@@ -110,8 +110,8 @@ void MPGL_SceneResize(MPGL_Scene *scene, int width, int height)
 	}
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	gluLookAt(scene->lookat[0], scene->lookat[1], scene->lookat[2],
-		scene->lookat[3], scene->lookat[4], scene->lookat[5],
+	gluLookAt(scene->lookat[0], scene->lookat[1], scene->lookat[2], 
+		scene->lookat[3], scene->lookat[4], scene->lookat[5], 
 		scene->lookat[6], scene->lookat[7], scene->lookat[8]);
 }
 
@@ -359,10 +359,10 @@ static PyGetSetDef PyGetSet[] = {
 PyTypeObject MPGL_ScenePyType = {
 	PyObject_HEAD_INIT(NULL)
 	0,							/*ob_size*/
-	"MPGLGrid.scene",			/*tp_name*/
-	sizeof(MPGL_Scene),			/*tp_basicsize*/
+	"MPGLKMC.scene",			/*tp_name*/
+	sizeof(MPGL_Scene),	/*tp_basicsize*/
 	0,							/*tp_itemsize*/
-	(destructor)PyDealloc,		/*tp_dealloc*/
+	(destructor)PyDealloc,	/*tp_dealloc*/
 	0,							/*tp_print*/
 	0,							/*tp_getattr*/
 	0,							/*tp_setattr*/

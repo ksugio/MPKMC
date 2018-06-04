@@ -95,6 +95,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ModuleDefinitionFile>MPGLKMC.def</ModuleDefinitionFile>
+      <AdditionalDependencies>opengl32.lib;glu32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -130,6 +131,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ModuleDefinitionFile>MPGLKMC.def</ModuleDefinitionFile>
+      <AdditionalDependencies>opengl32.lib;glu32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <CustomBuildStep>
       <Command>copy $(TargetPath) ..\python\MPGLKMC.pyd</Command>
@@ -166,7 +168,6 @@
   <ItemGroup>
     <ClCompile Include="colormap.c" />
     <ClCompile Include="draw.c" />
-    <ClCompile Include="glut.c" />
     <ClCompile Include="model.c" />
     <ClCompile Include="python.c" />
     <ClCompile Include="scene.c" />

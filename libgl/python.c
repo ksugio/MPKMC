@@ -3,71 +3,6 @@
 #include "MPGLKMC.h"
 #include <numpy/arrayobject.h>
 
-static PyObject *FuncObj;
-
-static void IdleFunc(void)
-{
-	PyObject_CallObject(FuncObj, NULL);
-}
-
-/*
-static PyObject *PyKMCWindow(PyObject *self, PyObject *args, PyObject *kwds)
-{
-	MP_KMCData *data;
-	MPGL_KMCDraw *draw;
-	int width, height;
-	PyObject *func = NULL;
-	static char *kwlist[] = { "kmc", "draw", "width", "height", "func", NULL };
-	int argc = 0;
-	char *argv[1];
-
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "OO!ii|O", kwlist, &data, &MPGL_KMCDrawDataPyType, &draw,
-		&width, &height, &PyTuple_Type, &func)) {
-		return NULL;
-	}
-	if (func == NULL) {
-		MPGL_KMCWindow(data, draw, width, height, NULL, argc, argv);
-	}
-	else {
-		if (!PyCallable_Check(func)) {
-			PyErr_SetString(PyExc_TypeError, "func must be callable");
-			return NULL;
-		}
-		FuncObj = func;
-		MPGL_KMCWindow(data, draw, width, height, IdleFunc, argc, argv);
-	}
-	Py_RETURN_NONE;
-}
-
-static PyObject *PyKMCImage(PyObject *self, PyObject *args, PyObject *kwds)
-{
-	MP_KMCData *data;
-	MPGL_KMCDraw *draw;
-	int width, height;
-	static char *kwlist[] = { "kmc", "draw", "width", "height", NULL };
-	npy_intp dims[1];
-	PyArrayObject *buffer_arr;
-	unsigned char *buffer;
-	int argc = 0;
-	char *argv[1];
-
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "OO!ii", kwlist,
-		&data, &MPGL_KMCDrawDataPyType, &draw, &width, &height)) {
-		return NULL;
-	}
-	dims[0] = 3 * width * height;
-	buffer_arr = (PyArrayObject *)PyArray_SimpleNew(1, dims, NPY_UBYTE);
-	buffer = (unsigned char *)PyArray_DATA(buffer_arr);
-	MPGL_KMCImage(data, draw, width, height, buffer, argc, argv);
-	return (PyObject *)buffer_arr;
-}*/
-
-static PyObject *PyKMCPostRedisplay(PyObject *self, PyObject *args)
-{
-	glutPostRedisplay();
-	Py_RETURN_NONE;
-}
-
 static PyObject *PyKMCTextBitmap(PyObject *self, PyObject *args, PyObject *kwds)
 {
 	const char *string;
@@ -82,12 +17,6 @@ static PyObject *PyKMCTextBitmap(PyObject *self, PyObject *args, PyObject *kwds)
 }
 
 static PyMethodDef MPGLKMCPyMethods[] = {
-//	{ "window", (PyCFunction)PyKMCWindow, METH_VARARGS | METH_KEYWORDS,
-//	"window(kmc, draw, width, height, [func]) : create window for kmc data" },
-//	{ "image", (PyCFunction)PyKMCImage, METH_VARARGS | METH_KEYWORDS,
-//	"image(kmc, draw, width, height) : create image for kmc data" },
-	{ "post_redisplay", (PyCFunction)PyKMCPostRedisplay, METH_NOARGS,
-	"post_redisplay() : post_redisplay" },
 	{ "text_bitmap", (PyCFunction)PyKMCTextBitmap, METH_VARARGS | METH_KEYWORDS,
 	"text_bitmap(string, font_type) : draw text" },
 	{ NULL }  /* Sentinel */
