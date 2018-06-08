@@ -10,13 +10,24 @@ def calcEnergy(kmc, types):
     return energy[count] / kmc.ncol
 
 if __name__ == "__main__":
-    etbfile = 'Al-Si.etb'
-    Kb = 86.1735e-6; # ev/K
-    Ry = 13.6058; # ev
-    Kbry = Kb*Ry
-    T = 1.0;
-    
-    kmc = MPKMC.new(0, 2, 2, 2, 32, 1000)
+    #etbfile = 'Al-Si.etb'
+    #Kb = 86.1735e-6; # ev/K
+    #Ry = 13.6058; # ev
+    #Kbry = Kb*Ry
+    #T = 1.0;
+    uc = ((0, 0, 0), (0.5, 0.5, 0.0), (0.5, 0.0, 0.5), (0.0, 0.5, 0.5))
+    clu = ((0, 0, 0), (0.5, 0.5, 0), (0, 0.5, -0.5), (-0.5, 0, -0.5),\
+        (-0.5, 0.5, 0), (0, 0.5, 0.5), (0.5, 0, 0.5), (0.5, -0.5, 0),\
+        (0, -0.5, 0.5), (-0.5, 0, 0.5), (-0.5, -0.5, 0), (0, -0.5, -0.5),\
+        (0.5, 0, -0.5))
+    kmc = MPKMC.new(4, 2, 2, 2, 13, 1000, 1000, 1000)
+    kmc.set_unitcell(uc)
+    kmc.set_cluster(clu)
+    kmc.calc_rot_index(5.0)
+    kmc.set_solvent(13)
+    kmc.rand_seed = 12345
+    kmc.add_solute_random(3, 14, 1)
+    kmc.write('test.mpkmc', 0)
     #for i in range(64):
     #    x, y, z = kmc.index2grid(i)
     #    print kmc.grid2index(x, y, z), '(', x, y, z, ')'
@@ -25,8 +36,8 @@ if __name__ == "__main__":
     #print kmc.search_cluster(types)
     #kmc.read_table(etbfile)
     #kmc.write_table('Al-Si3.etb')
-    kmc.set_matrix(13)
-    kmc.add_diffuse_random(3, 14)
+    #kmc.set_matrix(13)
+    #kmc.add_diffuse_random(3, 14)
     #for ind in range(kmc.ntot):
     #    ids = kmc.cluster_indexes(ind)
     #    print ind, kmc.search_cluster_ids(ids)
@@ -36,17 +47,17 @@ if __name__ == "__main__":
     #print kmc.htable
     #for i in range(kmc.ntable):
     #    print kmc.get_table(i)
-    for i in range(kmc.ntot):
-        ene, update = kmc.calc_energy(i, calcEnergy)
-        tp, pos, ene = kmc.grid_data(i)
-        if tp == 14:
-            print i, tp, pos, ene
-    print '-----'
-    for i in range(10000):
-        ret, update = kmc.jump(Kbry*T, calcEnergy)
-    for i in range(kmc.ntot):
-        tp, pos, ene = kmc.grid_data(i)
-        if tp == 14:
-            print i, tp, pos, ene
+    #for i in range(kmc.ntot):
+    #    ene, update = kmc.calc_energy(i, calcEnergy)
+    #    tp, pos, ene = kmc.grid_data(i)
+    #    if tp == 14:
+    #        print i, tp, pos, ene
+    #print '-----'
+    #for i in range(10000):
+    #    ret, update = kmc.jump(Kbry*T, calcEnergy)
+    #for i in range(kmc.ntot):
+    #    tp, pos, ene = kmc.grid_data(i)
+    #    if tp == 14:
+    #        print i, tp, pos, ene
     #kmc.write_table('test.etb')
 

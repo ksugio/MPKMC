@@ -1,57 +1,47 @@
 #include "MPKMC.h"
 
-int MP_KMCAlloc(MP_KMCData *data, int lat_type, int nx, int ny, int nz,
-	short solvent, int nsolute_max, int ntable_step, int nevent_step)
+int MP_KMCAlloc(MP_KMCData *data, int nuc, int nx, int ny, int nz, int ncluster,
+	int nsolute_max, int ntable_step, int nevent_step)
 {
 	int i;
-	int x, y, z;
-	static int fcc_pos[][3] = {
-		{ 0, 0, 0 },{ 1, 1, 0 },{ 0, 1, -1 },{ -1, 0, -1 },{ -1, 1, 0 },
-		{ 0, 1, 1 },{ 1, 0, 1 },{ 1, -1, 0 },{ 0, -1, 1 },
-		{ -1, 0, 1 },{ -1, -1, 0 },{ 0, -1, -1 },{ 1, 0, -1 } };
 
-	data->lat_type = lat_type;
-	if (lat_type == MP_KMCFCC) {
-		if (nx % 2 == 1 || ny % 2 == 1 || nz % 2 == 1) {
-			fprintf(stderr, "Error : nx, ny, nz (%d, %d, %d) is odd number.(MP_KMCAlloc)\n", nx, ny, nz);
-			return FALSE;
-		}
-		data->ncol = 13;
-	}
-	else {
-		return FALSE;
-	}
+	if (nuc > MP_KMC_NUC_MAX) return FALSE;
+	if (ncluster > MP_KMC_NCLUSTER_MAX) return FALSE;
+	data->nuc = nuc;
 	data->size[0] = nx, data->size[1] = ny, data->size[2] = nz;
-	data->ntot = nx * ny * nz;
+	data->ntot = nuc * nx * ny * nz;
+	data->ncluster = ncluster;
 	data->grid = (MP_KMCGridItem *)malloc(data->ntot*sizeof(MP_KMCGridItem));
 	data->table = (MP_KMCTableItem *)malloc(ntable_step*sizeof(MP_KMCTableItem));
+	data->table_types = (short *)malloc(ncluster*ntable_step*sizeof(short));
+	data->rot_index = (int **)malloc(MP_KMC_NROT_MAX*sizeof(int *));
+	data->rot_index_et = (int *)malloc(ncluster*MP_KMC_NROT_MAX*sizeof(int));
 	data->solute = (MP_KMCSoluteItem *)malloc(nsolute_max*sizeof(MP_KMCSoluteItem));
 	data->event = (MP_KMCEventItem *)malloc(nevent_step*sizeof(MP_KMCEventItem));
-	data->cluster_pos = (int **)malloc(data->ncol*sizeof(int *));
-	if (data->grid == NULL || data->table == NULL || data->solute == NULL
-		|| data->event == NULL || data->cluster_pos == NULL) return FALSE;
-	if (lat_type == MP_KMCFCC) {
-		for (i = 0; i < data->ncol; i++) {
-			data->cluster_pos[i] = fcc_pos[i];
-		}
-		for (i = 0; i < data->ntot; i++) {
-			MP_KMCIndex2Grid(data, i, &x, &y, &z);
-			if ((x + y + z) % 2 == 0) {
-				data->grid[i].type = solvent;
-			}
-			else {
-				data->grid[i].type = -1;
-			}
-			data->grid[i].energy = 0.0;
-		}
+	if (data->grid == NULL || data->table == NULL || data->table_types == NULL
+		|| data->rot_index == NULL || data->rot_index_et == NULL || data->solute == NULL
+		|| data->event == NULL) return FALSE;
+	for (i = 0; i < nuc; i++) {
+		data->uc[i][0] = 0.0, data->uc[i][1] = 0.0, data->uc[i][2] = 0.0;
 	}
+	for (i = 0; i < data->ntot; i++) {
+		data->grid[i].type = 0;
+		data->grid[i].energy = 0.0;
+	}	
+	for (i = 0; i < MP_KMC_NROT_MAX; i++) {
+		data->rot_index[i] = data->rot_index_et + i*ncluster;
+	}
+	for (i = 0; i < ntable_step; i++) {
+		data->table[i].types = data->table_types + i*ncluster;
+	}
+	data->nrot = 0;
 	data->ntable = 0;
 	data->ntable_max = data->ntable_step = ntable_step;
 	data->htable[0] = '\0';
+	data->solvent = -1;
 	data->nsolute = 0;
 	data->nsolute_max = nsolute_max;
-	data->types[0] = solvent;
-	data->ntypes = 1;
+	data->ntypes = 0;
 	data->nevent = 0;
 	data->nevent_max = data->nevent_step = nevent_step;
 	data->rand_seed = 12061969;
@@ -63,109 +53,142 @@ void MP_KMCFree(MP_KMCData *data)
 {
 	free(data->grid);
 	free(data->table);
+	free(data->table_types);
 	free(data->solute);
 	free(data->event);
-	free(data->cluster_pos);
 }
 
-void MP_KMCIndex2Grid(MP_KMCData *data, int id, int *x, int *y, int *z)
-{
-	int a, b;
-
-	a = data->size[0] * data->size[1];
-	*z = id / a;
-	b = id - *z * a;
-	*y = b / data->size[0];
-	*x = b - *y * data->size[0];
-}
-
-int MP_KMCGrid2Index(MP_KMCData *data, int x, int y, int z)
-{
-	return x + y*data->size[0] + z*data->size[0] * data->size[1];
-}
-
-void MP_KMCClusterIndexes(MP_KMCData *data, int id, int ids[])
+void MP_KMCSetUnitCell(MP_KMCData *data, double uc[][3])
 {
 	int i;
-	int x, y, z;
-	int nx, ny, nz;
 
-	MP_KMCIndex2Grid(data, id, &x, &y, &z);
-	ids[0] = id;
-	for (i = 1; i < data->ncol; i++) {
-		nx = x + data->cluster_pos[i][0];
-		ny = y + data->cluster_pos[i][1];
-		nz = z + data->cluster_pos[i][2];
-		if (nx < 0) {
-			nx += data->size[0];
-		}
-		if (nx >= data->size[0]) {
-			nx -= data->size[0];
-		}
-		if (ny < 0) {
-			ny += data->size[1];
-		}
-		if (ny >= data->size[1]) {
-			ny -= data->size[1];
-		}
-		if (nz < 0) {
-			nz += data->size[2];
-		}
-		if (nz >= data->size[2]) {
-			nz -= data->size[2];
-		}
-		ids[i] = MP_KMCGrid2Index(data, nx, ny, nz);
+	for (i = 0; i < data->nuc; i++) {
+		data->uc[i][0] = uc[i][0];
+		data->uc[i][1] = uc[i][1];
+		data->uc[i][2] = uc[i][2];
 	}
 }
 
-static int SearchClusterFCC(MP_KMCData *data, short types[])
+void MP_KMCSetCluster(MP_KMCData *data, double cluster[][3])
 {
-	int i, j, k;
-	int count;
-	int rot_index[][13] = {
-		{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
-		{0, 6, 5, 4, 9, 8, 7, 12, 11, 10, 3, 2, 1},
-		{0, 7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6},
-		{0, 12, 11, 10, 3, 2, 1, 6, 5, 4, 9, 8, 7},
-		{0, 4, 3, 11, 10, 9, 5, 1, 6, 8, 7, 12, 2},
-		{0, 9, 4, 2, 3, 10, 8, 6, 7, 11, 12, 1, 5},
-		{0, 10, 9, 5, 4, 3, 11, 7, 12, 2, 1, 6, 8},
-		{0, 3, 10, 8, 9, 4, 2, 12, 1, 5, 6, 7, 11},
-		{0, 10, 11, 12, 7, 8, 9, 4, 5, 6, 1, 2, 3},
-		{0, 3, 2, 1, 12, 11, 10, 9, 8, 7, 6, 5, 4},
-		{0, 4, 5, 6, 1, 2, 3, 10, 11, 12, 7, 8, 9},
-		{0, 9, 8, 7, 6, 5, 4, 3, 2, 1, 12, 11, 10},
-		{0, 7, 12, 2, 1, 6, 8, 10, 9, 5, 4, 3, 11},
-		{0, 12, 1, 5, 6, 7, 11, 3, 10, 8, 9, 4, 2},
-		{0, 1, 6, 8, 7, 12, 2, 4, 3, 11, 10, 9, 5},
-		{0, 6, 7, 11, 12, 1, 5, 9, 4, 2, 3, 10, 8},
-		{0, 5, 1, 12, 2, 4, 9, 8, 10, 3, 11, 7, 6},
-		{0, 8, 6, 1, 5, 9, 10, 11, 3, 4, 2, 12, 7},
-		{0, 11, 7, 6, 8, 10, 3, 2, 4, 9, 5, 1, 12},
-		{0, 2, 12, 7, 11, 3, 4, 5, 9, 10, 8, 6, 1},
-		{0, 2, 4, 9, 5, 1, 12, 11, 7, 6, 8, 10, 3},
-		{0, 5, 9, 10, 8, 6, 1, 2, 12, 7, 11, 3, 4},
-		{0, 8, 10, 3, 11, 7, 6, 5, 1, 12, 2, 4, 9},
-		{0, 11, 3, 4, 2, 12, 7, 8, 6, 1, 5, 9, 10} };
+	int i;
 
-	for (i = 0; i < data->ntable; i++) {
-		if (data->table[i].types[0] == types[0]) {
-			for (j = 0; j < 24; j++) {
-				count = 0;
-				for (k = 1; k < 13; k++) {
-					if (data->table[i].types[k] == types[rot_index[j][k]]) count++;
+	for (i = 0; i < data->ncluster; i++) {
+		data->cluster[i][0] = cluster[i][0];
+		data->cluster[i][1] = cluster[i][1];
+		data->cluster[i][2] = cluster[i][2];
+	}
+}
+
+void MP_KMCSetSolvent(MP_KMCData *data, short type)
+{
+	int i;
+
+	for (i = 0; i < data->ntot; i++) {
+		data->grid[i].type = type;
+	}
+	data->solvent = type;
+	data->types[data->ntypes++] = type;
+}
+
+void MP_KMCIndex2Grid(MP_KMCData *data, int id, int *p, int *x, int *y, int *z)
+{
+	int a, b, c, d;
+
+	a = data->nuc * data->size[0] * data->size[1];
+	*z = id / a;
+	b = id - *z * a;
+	c = data->nuc * data->size[0];
+	*y = b / c;
+	d = b - *y * c;
+	*x = d / data->nuc;
+	*p = d - *x * data->nuc;
+}
+
+int MP_KMCGrid2Index(MP_KMCData *data, int p, int x, int y, int z)
+{
+	return p + x*data->nuc + y*(data->nuc*data->size[0]) + z*(data->nuc*data->size[0]*data->size[1]);
+}
+
+static int SearchNeigh(MP_KMCData *data, int cp, int p, int x, int y, int z, int *np, int *nx, int *ny, int *nz)
+{
+	int i, j;
+	double dx, dy, dz;
+	int neigh[27][3] = {
+		{ 0, 0, 0 },{ 1, 0, 0 },{ -1, 0, 0 },{ 0, 1, 0 },{ 0, -1, 0 },{ 1, 1, 0 },
+		{ 1, -1, 0 },{ -1, 1, 0 },{ -1, -1, 0 },{ 0, 0, 1 },{ 1, 0, 1 },{ -1, 0, 1 },
+		{ 0, 1, 1 },{ 0, -1, 1 },{ 1, 1, 1 },{ 1, -1, 1 },{ -1, 1, 1 },{ -1, -1, 1 },
+		{ 0, 0, -1 },{ 1, 0, -1 },{ -1, 0, -1 },{ 0, 1, -1 },{ 0, -1, -1 },{ 1, 1, -1 },
+		{ 1, -1, -1 },{ -1, 1, -1 },{ -1, -1, -1 } };
+
+	for (i = 0; i < 27; i++) {
+		for (j = 0; j < data->nuc; j++) {
+			dx = neigh[i][0] + data->uc[j][0] - data->uc[p][0];
+			dy = neigh[i][1] + data->uc[j][1] - data->uc[p][1];
+			dz = neigh[i][2] + data->uc[j][2] - data->uc[p][2];
+			if (dx == data->cluster[cp][0] && dy == data->cluster[cp][1] && dz == data->cluster[cp][2]) {
+				*np = j;
+				*nx = x + neigh[i][0];
+				*ny = y + neigh[i][1];
+				*nz = z + neigh[i][2];
+				if (*nx < 0) {
+					*nx += data->size[0];
 				}
-				if (count == 12) return i;
+				else if (*nx >= data->size[0]) {
+					*nx -= data->size[0];
+				}
+				if (*ny < 0) {
+					*ny += data->size[1];
+				}
+				else if (*ny >= data->size[1]) {
+					*ny -= data->size[1];
+				}
+				if (*nz < 0) {
+					*nz += data->size[2];
+				}
+				else if (*nz >= data->size[2]) {
+					*nz -= data->size[2];
+				}
+				return TRUE;
 			}
 		}
 	}
-	return -1;
+	return FALSE;
+}
+
+int MP_KMCClusterIndexes(MP_KMCData *data, int id, int ids[])
+{
+	int i;
+	int p, x, y, z;
+	int np, nx, ny, nz;
+
+	MP_KMCIndex2Grid(data, id, &p, &x, &y, &z);
+	for (i = 0; i < data->ncluster; i++) {
+		if (SearchNeigh(data, i, p, x, y, z, &np, &nx, &ny, &nz)) {
+			ids[i] = MP_KMCGrid2Index(data, np, nx, ny, nz);
+		}
+		else {
+			return FALSE;
+		}
+	}
+	return TRUE;
 }
 
 int MP_KMCSearchCluster(MP_KMCData *data, short types[])
 {
-	if (data->lat_type == MP_KMCFCC) {
-		return SearchClusterFCC(data, types);
+	int i, j, k;
+	int count;
+
+	for (i = 0; i < data->ntable; i++) {
+		if (data->table[i].types[0] == types[0]) {
+			for (j = 0; j < data->nrot; j++) {
+				count = 0;
+				for (k = 1; k < data->ncluster; k++) {
+					if (data->table[i].types[k] == types[data->rot_index[j][k]]) count++;
+				}
+				if (count == data->ncluster - 1) return i;
+			}
+		}
 	}
 	return -1;
 }
@@ -173,9 +196,9 @@ int MP_KMCSearchCluster(MP_KMCData *data, short types[])
 int MP_KMCSearchClusterIDs(MP_KMCData *data, int ids[])
 {
 	int i;
-	short types[13];
+	short types[MP_KMC_NCLUSTER_MAX];
 
-	for (i = 0; i < data->ncol; i++) {
+	for (i = 0; i < data->ncluster; i++) {
 		types[i] = data->grid[ids[i]].type;
 	}
 	return MP_KMCSearchCluster(data, types);
@@ -190,14 +213,18 @@ int MP_KMCAddCluster(MP_KMCData *data, short types[], double energy, long refcou
 	if (data->ntable >= data->ntable_max) {
 		ntable_max = data->ntable_max + data->ntable_step;
 		data->table = (MP_KMCTableItem *)realloc(data->table, ntable_max*sizeof(MP_KMCTableItem));
-		if (data->table == NULL) {
+		data->table_types = (short *)realloc(data->table_types, data->ncluster*ntable_max*sizeof(short));
+		if (data->table == NULL || data->table_types == NULL) {
 			fprintf(stderr, "Error : allocation failure (MP_KMCAddCluster)\n");
 			return -99;
+		}
+		for (i = 0; i < ntable_max; i++) {
+			data->table[i].types = data->table_types + i*data->ncluster;
 		}
 		data->ntable_max = ntable_max;
 	}
 	tid = data->ntable;
-	for (i = 0; i < data->ncol; i++) {
+	for (i = 0; i < data->ncluster; i++) {
 		data->table[tid].types[i] = types[i];
 	}
 	data->table[tid].energy = energy;
@@ -209,9 +236,9 @@ int MP_KMCAddCluster(MP_KMCData *data, short types[], double energy, long refcou
 int MP_KMCAddClusterIDs(MP_KMCData *data, int ids[], double energy, long refcount)
 {
 	int i;
-	short types[13];
+	short types[MP_KMC_NCLUSTER_MAX];
 
-	for (i = 0; i < data->ncol; i++) {
+	for (i = 0; i < data->ncluster; i++) {
 		types[i] = data->grid[ids[i]].type;
 	}
 	return MP_KMCAddCluster(data, types, energy, refcount);
@@ -229,7 +256,7 @@ int MP_KMCAddSolute(MP_KMCData *data, int id, short type, short jump)
 		fprintf(stderr, "Error : maximum solute atoms is %d.\n", data->nsolute_max);
 		return FALSE;
 	}
-	if (data->grid[id].type == data->types[0]) {
+	if (data->grid[id].type == data->solvent) {
 		data->grid[id].type = type;
 		data->solute[data->nsolute].id = id;
 		data->solute[data->nsolute].type = type;
@@ -260,14 +287,14 @@ void MP_KMCAddSoluteRandom(MP_KMCData *data, int num, short type, short jump)
 double MP_KMCCalcEnergy(MP_KMCData *data, int id, double(*func)(MP_KMCData *, short *), int *update)
 {
 	int i;
-	int ids[13];
-	short types[13];
+	int ids[MP_KMC_NCLUSTER_MAX];
+	short types[MP_KMC_NCLUSTER_MAX];
 	int tid;
 
 	*update = FALSE;
 	if (data->grid[id].type > 0) {
 		MP_KMCClusterIndexes(data, id, ids);
-		for (i = 0; i < data->ncol; i++) {
+		for (i = 0; i < data->ncluster; i++) {
 			types[i] = data->grid[ids[i]].type;
 		}
 		tid = MP_KMCSearchCluster(data, types);
@@ -382,17 +409,20 @@ int MP_KMCJump(MP_KMCData *data, double kt, double(*func)(MP_KMCData *, short *)
 	int j, k;
 	int dp, cp;
 	int id0, id1;
-	int ids0[13], ids1[13], ids2[26], ids3[13];
-	short types3[13];
+	int ids0[MP_KMC_NCLUSTER_MAX];
+	int ids1[MP_KMC_NCLUSTER_MAX];
+	int ids2[MP_KMC_NCLUSTER_MAX * 2];
+	int ids3[MP_KMC_NCLUSTER_MAX];
+	short types3[MP_KMC_NCLUSTER_MAX];
 	int nncol;
 	int tid;
 	double energy[26];
 	double cle0, cle1, clde;
 
 	dp = (int)(MP_Rand(&(data->rand_seed)) * data->nsolute);
-	cp = (int)(MP_Rand(&(data->rand_seed)) * (data->ncol - 1)) + 1;
+	cp = (int)(MP_Rand(&(data->rand_seed)) * (data->ncluster - 1)) + 1;
 	*update = FALSE;
-	if (dp >= data->nsolute || cp >= data->ncol) return FALSE;
+	if (dp >= data->nsolute || cp >= data->ncluster) return FALSE;
 	if (!data->solute[dp].jump) return FALSE;
 	id0 = data->solute[dp].id;
 	MP_KMCClusterIndexes(data, id0, ids0);
@@ -401,13 +431,13 @@ int MP_KMCJump(MP_KMCData *data, double kt, double(*func)(MP_KMCData *, short *)
 		return FALSE;
 	}
 	MP_KMCClusterIndexes(data, id1, ids1);
-	nncol = UniteIndexes(data->ncol, ids0, ids1, ids2);
+	nncol = UniteIndexes(data->ncluster, ids0, ids1, ids2);
 	cle0 = GridClusterEnergy(data, nncol, ids2);
 	SwapType(data, id0, id1);
 	for (j = 0; j < nncol; j++) {
 		if (data->grid[ids2[j]].type > 0) {
 			MP_KMCClusterIndexes(data, ids2[j], ids3);
-			for (k = 0; k < data->ncol; k++) {
+			for (k = 0; k < data->ncluster; k++) {
 				types3[k] = data->grid[ids3[k]].type;
 			}
 			tid = MP_KMCSearchCluster(data, types3);
@@ -503,9 +533,9 @@ void MP_KMCWriteTable(MP_KMCData *data, char *filename)
 		return;
 	}
 	fprintf(fp, "%s\n", data->htable);
-	fprintf(fp, "%d %d\n", data->ntable, data->ncol);
+	fprintf(fp, "%d %d\n", data->ntable, data->ncluster);
 	for (i = 0; i < data->ntable; i++) {
-		for (j = 0; j < data->ncol; j++) {
+		for (j = 0; j < data->ncluster; j++) {
 			fprintf(fp, "%d ", data->table[i].types[j]);
 		}
 		fprintf(fp, "%.15e %d\n", data->table[i].energy, data->table[i].refcount);
@@ -513,14 +543,30 @@ void MP_KMCWriteTable(MP_KMCData *data, char *filename)
 	fclose(fp);
 }
 
+static void ScanTable(char buf[], int ncluster, short types[], double *energy, long *refcount)
+{
+	int i;
+	char *tok;
+
+	tok = strtok(buf, " ");
+	for (i = 0; i < ncluster; i++) {
+		types[i] = atoi(tok);
+		tok = strtok(NULL, " ");
+	}
+	*energy = atof(tok);
+	tok = strtok(NULL, " ");
+	*refcount = atol(tok);
+}
+
 void MP_KMCReadTable(MP_KMCData *data, char *filename)
 {
 	FILE *fp;
-	int ntable, ncol;
-	short types[13];
+	int ntable, ncluster;
+	short types[MP_KMC_NCLUSTER_MAX];
 	double energy;
 	long refcount;
 	char *p;
+	char buf[256];
 	int i;
 
 	if ((fp = fopen(filename, "rb")) == NULL) {
@@ -530,18 +576,14 @@ void MP_KMCReadTable(MP_KMCData *data, char *filename)
 	fgets(data->htable, 256, fp);
 	p = strchr(data->htable, '\n');
 	if (p != NULL) *p = '\0';
-	fscanf(fp, "%d %d\n", &ntable, &ncol);
-	if (ncol != data->ncol) {
+	fscanf(fp, "%d %d\n", &ntable, &ncluster);
+	if (ncluster != data->ncluster) {
 		fprintf(stderr, "Error : incompatible format, %s.(MP_KMCReadTable)\n", filename);
 	}
-	if (ncol == 13) {
-		for (i = 0; i < ntable;i++) {
-			fscanf(fp, "%hd %hd %hd %hd %hd %hd %hd %hd %hd %hd %hd %hd %hd %le %ld",
-			&(types[0]), &(types[1]), &(types[2]), &(types[3]), &(types[4]),
-			&(types[5]), &(types[6]), &(types[7]), &(types[8]), &(types[9]),
-			&(types[10]), &(types[11]), &(types[12]), &energy, &refcount);
-			MP_KMCAddCluster(data, types, energy, refcount);
-		}
+	for (i = 0; i < ntable;i++) {
+		fgets(buf, 256, fp);
+		ScanTable(buf, ncluster, types, &energy, &refcount);
+		MP_KMCAddCluster(data, types, energy, refcount);
 	}
 }
 
@@ -580,18 +622,32 @@ int MP_KMCWrite(MP_KMCData *data, char *filename, int comp)
 		fprintf(stderr, "Error : can't open %s.(MP_KMCWrite)\n", filename);
 		return FALSE;
 	}
-	gzprintf(gfp, "lat_type %d\n", data->lat_type);
+	gzprintf(gfp, "nuc %d\n", data->nuc);
+	for (i = 0; i < data->nuc; i++) {
+		gzprintf(gfp, "%.15e %.15e %.15e\n", data->uc[i][0], data->uc[i][1], data->uc[i][2]);
+	}
 	gzprintf(gfp, "size %d %d %d\n", data->size[0], data->size[1], data->size[2]);
-	gzprintf(gfp, "solvent %d\n", data->types[0]);
+	gzprintf(gfp, "ncluster %d\n", data->ncluster);
+	for (i = 0; i < data->ncluster; i++) {
+		gzprintf(gfp, "%.15e %.15e %.15e\n", data->cluster[i][0], data->cluster[i][1], data->cluster[i][2]);
+	}
 	gzprintf(gfp, "nsolute_max %d\n", data->nsolute_max);
 	gzprintf(gfp, "ntable_step %d\n", data->ntable_step);
 	gzprintf(gfp, "nevent_step %d\n", data->nevent_step);
+	gzprintf(gfp, "solvent %d\n", data->solvent);
+	gzprintf(gfp, "nrot %d\n", data->nrot);
+	for (i = 0; i < data->nrot; i++) {
+		for (j = 0; j < data->ncluster; j++) {
+			gzprintf(gfp, "%d ", data->rot_index[i][j]);
+		}
+		gzprintf(gfp, "\n");
+	}
 	gzprintf(gfp, "rand_seed %d\n", data->rand_seed);
 	gzprintf(gfp, "step %d\n", data->step);
 	gzprintf(gfp, "%s\n", data->htable);
 	gzprintf(gfp, "ntable %d\n", data->ntable);
 	for (i = 0; i < data->ntable; i++) {
-		for (j = 0; j < data->ncol; j++) {
+		for (j = 0; j < data->ncluster; j++) {
 			gzprintf(gfp, "%d ", data->table[i].types[j]);
 		}
 		gzprintf(gfp, "%.15e %d\n", data->table[i].energy, data->table[i].refcount);
@@ -608,18 +664,37 @@ int MP_KMCWrite(MP_KMCData *data, char *filename, int comp)
 	return TRUE;
 }
 
-int MP_KMCRead(MP_KMCData *data, char *filename)
+static void ScanRotIndex(char buf[], int ncluster, int ids[])
 {
+	int i;
+	char *tok;
+
+	tok = strtok(buf, " ");
+	for (i = 0; i < ncluster; i++) {
+		ids[i] = atoi(tok);
+		tok = strtok(NULL, " ");
+	}
+}
+
+int MP_KMCRead(MP_KMCData *data, char *filename)
+{	
+	int i;
 	gzFile gfp;
 	char buf[256], dum[256];
-	int lat_type;
+	char *p;
+	int nuc;
+	double uc[MP_KMC_NUC_MAX][3];
 	int nx, ny, nz;
-	short solvent;
+	int ncluster;
+	double cluster[MP_KMC_NCLUSTER_MAX][3];
 	int nsolute_max;
 	int ntable_step;
 	int nevent_step;
+	short solvent;
+	int nrot;
+	int ids[MP_KMC_NCLUSTER_MAX];
 	int ntable;
-	short types[13];
+	short types[MP_KMC_NCLUSTER_MAX];
 	double energy;
 	long refcount;
 	int nsolute;
@@ -627,26 +702,44 @@ int MP_KMCRead(MP_KMCData *data, char *filename)
 	int id;
 	short type, jump;
 	int dp, id0, id1;
-	char *p;
-	int i;
 
 	if ((gfp = gzopen(filename, "rb")) == NULL) {
 		fprintf(stderr, "Error : can't open %s.(MP_KMCRead)\n", filename);
 		return FALSE;
 	}
 	gzgets(gfp, buf, 256);
-	sscanf(buf, "%s %d", dum, &lat_type);
+	sscanf(buf, "%s %d", dum, &nuc);
+	for (i = 0; i < nuc; i++) {
+		gzgets(gfp, buf, 256);
+		sscanf(buf, "%le %le %le", &(uc[i][0]), &(uc[i][1]), &(uc[i][2]));
+	}
 	gzgets(gfp, buf, 256);
 	sscanf(buf, "%s %d %d %d", dum, &nx, &ny, &nz);
 	gzgets(gfp, buf, 256);
-	sscanf(buf, "%s %hd", dum, &solvent);
+	sscanf(buf, "%s %d", dum, &ncluster);
+	for (i = 0; i < ncluster; i++) {
+		gzgets(gfp, buf, 256);
+		sscanf(buf, "%le %le %le", &(cluster[i][0]), &(cluster[i][1]), &(cluster[i][2]));
+	}
 	gzgets(gfp, buf, 256);
 	sscanf(buf, "%s %d", dum, &nsolute_max);
 	gzgets(gfp, buf, 256);
 	sscanf(buf, "%s %d", dum, &ntable_step);
 	gzgets(gfp, buf, 256);
 	sscanf(buf, "%s %d", dum, &nevent_step);
-	if (!MP_KMCAlloc(data, lat_type, nx, ny, nz, solvent, nsolute_max, ntable_step, nevent_step)) return FALSE;
+	if (!MP_KMCAlloc(data, nuc, nx, ny, nz, ncluster, nsolute_max, ntable_step, nevent_step)) return FALSE;
+	MP_KMCSetUnitCell(data, uc);
+	MP_KMCSetCluster(data, cluster);
+	gzgets(gfp, buf, 256);
+	sscanf(buf, "%s %hd", dum, &solvent);
+	MP_KMCSetSolvent(data, solvent);
+	gzgets(gfp, buf, 256);
+	sscanf(buf, "%s %d", dum, &nrot);
+	for (i = 0; i < nrot; i++) {
+		gzgets(gfp, buf, 256);
+		ScanRotIndex(buf, ncluster, ids);
+		MP_KMCAddRotIndex(data, ids);
+	}
 	gzgets(gfp, buf, 256);
 	sscanf(buf, "%s %ld", dum, &(data->rand_seed));
 	gzgets(gfp, buf, 256);
@@ -656,16 +749,10 @@ int MP_KMCRead(MP_KMCData *data, char *filename)
 	if (p != NULL) *p = '\0';
 	gzgets(gfp, buf, 256);
 	sscanf(buf, "%s %d", dum, &ntable);
-	if (lat_type == MP_KMCFCC) {
-		for (i = 0; i < ntable; i++) {
-			gzgets(gfp, buf, 256);
-			sscanf(buf, "%hd %hd %hd %hd %hd %hd %hd %hd %hd %hd %hd %hd %hd %le %ld",
-				&(types[0]), &(types[1]), &(types[2]), &(types[3]), &(types[4]),
-				&(types[5]), &(types[6]), &(types[7]), &(types[8]), &(types[9]),
-				&(types[10]), &(types[11]), &(types[12]), &energy, &refcount);
-			MP_KMCAddCluster(data, types, energy, refcount);
-		}
-
+	for (i = 0; i < ntable; i++) {
+		gzgets(gfp, buf, 256);
+		ScanTable(buf, ncluster, types, &energy, &refcount);
+		MP_KMCAddCluster(data, types, energy, refcount);
 	}
 	gzgets(gfp, buf, 256);
 	sscanf(buf, "%s %d", dum, &nsolute);

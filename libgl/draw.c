@@ -50,15 +50,18 @@ static void SphereList(int res)
 	gluDeleteQuadric(quadObj);
 }
 
-static void Index2Grid(MPGL_KMCDraw *draw, MP_KMCData *data, int id, int *x, int *y, int *z)
+static void Index2Grid(MPGL_KMCDraw *draw, MP_KMCData *data, int id, int *p, int *x, int *y, int *z)
 {
-	int a, b;
+	int a, b, c, d;
 
-	a = data->size[0] * data->size[1];
+	a = data->nuc * data->size[0] * data->size[1];
 	*z = id / a;
 	b = id - *z * a;
-	*y = b / data->size[0];
-	*x = b - *y * data->size[0];
+	c = data->nuc * data->size[0];
+	*y = b / c;
+	d = b - *y * c;
+	*x = d / data->nuc;
+	*p = d - *x * data->nuc;
 	/* shift */
 	*x += draw->shift[0];
 	if (*x < 0) {
@@ -87,7 +90,8 @@ static void DrawSphere(MPGL_KMCDraw *draw, MP_KMCData *data, MPGL_Colormap *colo
 {
 	int i, j;
 	short type;
-	int x, y, z;
+	int p, x, y, z;
+	double ax, ay, az;
 	float color[3];
 
 	for (i = 0; i < data->ntot; i++) {
@@ -98,8 +102,11 @@ static void DrawSphere(MPGL_KMCDraw *draw, MP_KMCData *data, MPGL_Colormap *colo
 			}
 			if (draw->disp[j]) {
 				glPushMatrix();
-				Index2Grid(draw, data, i, &x, &y, &z);
-				glTranslated(x, y, z);
+				Index2Grid(draw, data, i, &p, &x, &y, &z);
+				ax = x + data->uc[p][0];
+				ay = y + data->uc[p][1];
+				az = z + data->uc[p][2];
+				glTranslated(ax, ay, az);
 				glScaled(0.25, 0.25, 0.25);
 				if (draw->kind == MPGL_KMCKindType) {
 					MPGL_ColormapStepColor(colormap, j, color);

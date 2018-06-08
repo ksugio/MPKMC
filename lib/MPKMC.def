@@ -2,6 +2,9 @@ LIBRARY "MPKMC"
 EXPORTS
 	MP_KMCAlloc
 	MP_KMCFree
+	MP_KMCSetUnitCell
+	MP_KMCSetCluster
+	MP_KMCSetSolvent
 	MP_KMCIndex2Grid
 	MP_KMCGrid2Index
 	MP_KMCClusterIndexes
@@ -23,5 +26,10 @@ EXPORTS
 	MP_KMCResetTable
 	MP_KMCWrite
 	MP_KMCRead
+	MP_KMCAddRotIndex
+	MP_KMCCalcRotIndex
 	MP_Rand
 	MP_RandGauss
+	; fsfcc
+	MP_FSFCCCu
+	MP_FSFCCEnergy

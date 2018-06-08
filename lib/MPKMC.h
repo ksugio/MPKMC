@@ -48,12 +48,15 @@ extern "C" {
 /*--------------------------------------------------
 * kmc typedef and functions
 */
-#define MP_KMC_TYPES_MAX 128
+#define MP_KMC_NUC_MAX 32
+#define MP_KMC_NCLUSTER_MAX 64
+#define MP_KMC_NROT_MAX 64
+#define MP_KMC_TYPES_MAX 64
 
 enum {MP_KMCFCC};
 
 typedef struct MP_KMCTableItem {
-	short types[13];
+	short *types;
 	double energy;
 	long refcount;
 } MP_KMCTableItem;
@@ -80,17 +83,23 @@ typedef struct MP_KMCData {
 	PyObject_HEAD
 	PyObject *pyfunc;
 #endif
-	int lat_type;
+	int nuc;
+	double uc[MP_KMC_NUC_MAX][3];
 	int size[3];
 	int ntot;
 	MP_KMCGridItem *grid;
+	int ncluster;
+	double cluster[MP_KMC_NCLUSTER_MAX][3];
+	int nrot;
+	int **rot_index;
+	int *rot_index_et;
 	int ntable;
-	int ncol;
 	int ntable_step;
 	int ntable_max;
 	char htable[256];
 	MP_KMCTableItem *table;
-	int **cluster_pos;
+	short *table_types;
+	short solvent;
 	int nsolute;
 	int nsolute_max;
 	MP_KMCSoluteItem *solute;
@@ -104,12 +113,15 @@ typedef struct MP_KMCData {
 	long step;
 } MP_KMCData;
 
-int MP_KMCAlloc(MP_KMCData *data, int lat_type, int nx, int ny, int nz,
-	short solvent, int nsolute_max, int ntable_step, int nevent_step);
+int MP_KMCAlloc(MP_KMCData *data, int nuc, int nx, int ny, int nz, int ncluster,
+	int nsolute_max, int ntable_step, int nevent_step);
 void MP_KMCFree(MP_KMCData *data);
-void MP_KMCIndex2Grid(MP_KMCData *data, int id, int *x, int *y, int *z);
-int MP_KMCGrid2Index(MP_KMCData *data, int x, int y, int z);
-void MP_KMCClusterIndexes(MP_KMCData *data, int id, int ids[]);
+void MP_KMCSetUnitCell(MP_KMCData *data, double uc[][3]);
+void MP_KMCSetCluster(MP_KMCData *data, double cluster[][3]);
+void MP_KMCSetSolvent(MP_KMCData *data, short type);
+void MP_KMCIndex2Grid(MP_KMCData *data, int id, int *p, int *x, int *y, int *z);
+int MP_KMCGrid2Index(MP_KMCData *data, int p, int x, int y, int z);
+int MP_KMCClusterIndexes(MP_KMCData *data, int id, int ids[]);
 int MP_KMCSearchCluster(MP_KMCData *data, short types[]);
 int MP_KMCSearchClusterIDs(MP_KMCData *data, int ids[]);
 int MP_KMCAddCluster(MP_KMCData *data, short types[], double energy, long refcount);
@@ -130,10 +142,36 @@ int MP_KMCWrite(MP_KMCData *data, char *filename, int comp);
 int MP_KMCRead(MP_KMCData *data, char *filename);
 
 /*--------------------------------------------------
+* rotindex functions
+*/
+int MP_KMCAddRotIndex(MP_KMCData *data, int ids[]);
+int MP_KMCCalcRotIndex(MP_KMCData *data, double step);
+
+/*--------------------------------------------------
 * rand functions
 */
 float MP_Rand(long *rand_seed);
 float MP_RandGauss(long *rand_seed);
+
+/*--------------------------------------------------
+* fs typedef and functions
+*/
+
+typedef struct MP_FSFCCParm {
+#ifndef _DEBUG
+	PyObject_HEAD
+		PyObject *pyfunc;
+#endif
+	short type;
+	double lc;
+	double a[6];
+	double R[2];
+	double A[2];
+	double r[6];
+} MP_FSFCCParm;
+
+void MP_FSFCCCu(MP_FSFCCParm *parm);
+double MP_FSFCCEnergy(MP_FSFCCParm *parm, MP_KMCData *data, short types[]);
 
 #ifdef __cplusplus
 }

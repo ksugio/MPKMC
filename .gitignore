@@ -147,6 +147,7 @@ ModelManifest.xml
 Thumbs.db
 ehthumbs.db
 *.VC.db
+.vs/
 
 # Folder config file
 Desktop.ini
@@ -160,6 +161,7 @@ $RECYCLE.BIN/
 # for python
 *.pyd
 *.mpkmc
+*.etb
 
 # for linux
 *~
