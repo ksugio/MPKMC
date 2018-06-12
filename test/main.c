@@ -83,18 +83,17 @@ static void calcQE(MP_KMCData *data, int nnew, char *etbfile)
 	MP_KMCWriteTable(data, etbfile);
 }
 
-static double calcEnergy(MP_KMCData *data, short types[])
+static double calcFSFCC(MP_KMCData *data, short types[])
 {
-	int i;
-	int count = 0;
-	double energy[] = { -52.3, -55.9, -59.6, -63.3, -67.0, -70.7, -74.4, -78.1, -81.7, -85.4, -89.1, -92.8, -96.4, -100.0 };
+	MP_FSFCCParm parm;
 
-	for (i = 0; i < data->ncluster; i++) {
-		if (types[i] == 14) count++;
-		printf("%d ", types[i]);
+	if (MP_FSFCCSetParm(&parm, types[0])) {
+		return MP_FSFCCEnergy(&parm, data, types);
 	}
-	printf("\n");
-	return energy[count];
+	else {
+		fprintf(stderr, "Error : Can't find type, %d\n", types[0]);
+		return 0.0;
+	}
 }
 
 int main(int argc, char *argv[])
@@ -104,17 +103,15 @@ int main(int argc, char *argv[])
 	//char etbfile[] = {"../python/Al-Si.etb"};
 	int update;
 	MP_KMCData data;
-	MP_FSFCCParm parm;
-	//double tote0, tote1;
-	//int ret;
-	//double Kb = 86.1735e-6; // ev/K
+
+	double tote0, tote1;
+	int ret;
+	double Kb = 86.1735e-6; // ev/K
 	//double Ry = 13.6058; // ev
 	//double Kbry = Kb*Ry;
-	//double T = 0.1;
+	double T = 500.0;
 	double ene;
-	short types[] = { 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29 };
-	short types1[] = { 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 0 };
-	short types2[] = { 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 0, 0 };
+
 
 	double uc[][3] = { {0.0, 0.0, 0.0}, {0.5, 0.5, 0.0}, {0.5, 0.0, 0.5}, {0.0, 0.5, 0.5} };
 	double cluster[][3] = {{ 0, 0, 0 }, { 0.5, 0.5, 0 }, { 0, 0.5, -0.5 }, { -0.5, 0, -0.5 }, { -0.5, 0.5, 0 },
@@ -123,35 +120,28 @@ int main(int argc, char *argv[])
 
 	//MP_KMCRead(&data, "Al-V1.kmc");
 	MP_KMCAlloc(&data, 4, 2, 2, 2, 13, 1000, 1000, 1000);
+	data.rand_seed = 12345;
 	MP_KMCSetUnitCell(&data, uc);
 	MP_KMCSetCluster(&data, cluster);
 	MP_KMCCalcRotIndex(&data, 5.0);
-	MP_KMCSetSolvent(&data, 13);
+	MP_KMCSetSolvent(&data, 29);
 
-	MP_FSFCCCu(&parm);
-	ene = MP_FSFCCEnergy(&parm, &data, types);
-	printf("%f\n", ene);
-
-	ene = MP_FSFCCEnergy(&parm, &data, types1);
-	printf("%f\n", ene);
-
-	ene = MP_FSFCCEnergy(&parm, &data, types2);
-	printf("%f\n", ene);
-//	MP_KMCAddSoluteRandom(&data, 3, 0, TRUE);
-//	for (i = 0; i < data.ntot; i++) {
-//		MP_KMCCalcEnergy(&data, i, calcFS, &update);
-//	}
+	//MP_KMCAddSoluteRandom(&data, 10, 0, TRUE);
+	for (i = 0; i < data.ntot; i++) {
+		ene = MP_KMCCalcEnergy(&data, i, calcFSFCC, &update);
+		printf("%f\n", ene);
+	}
 //	MP_KMCWriteTable(&data, "test.etb");
-	//tote0 = MP_KMCTotalEnergy(&data);
-	//printf("tote0 = %f\n", tote0);
-	//for (i = 0; i < 1000;i++) {
-	//	ret = MP_KMCJump(&data, Kbry*T, calcEnergy, &update);
-	//	if (ret) {
-	//		tote1 = MP_KMCTotalEnergy(&data);
-	//		printf("diff = %f\n", tote1 - tote0);
-	//	}
-	//}
-	//printf("tote1 = %f\n", tote1);
+//	tote0 = MP_KMCTotalEnergy(&data);
+//	printf("tote0 = %f\n", tote0);
+//	for (i = 0; i < 10000;i++) {
+//		ret = MP_KMCJump(&data, Kb*T, calcFSFCC, &update);
+//		if (ret) {
+//			tote1 = MP_KMCTotalEnergy(&data);
+//			printf("diff = %f\n", tote1 - tote0);
+//		}
+//	}
+//	printf("tote1 = %f\n", tote1);
 //	for (i = 0; i < data.nevent; i++) {
 //		printf("%d, %d, %d\n", data.event[i].dp, data.event[i].id0, data.event[i].id1);
 //	}
@@ -161,9 +151,7 @@ int main(int argc, char *argv[])
 //	MP_KMCStepBackward(&data, 2);
 //	MP_KMCStepForward(&data, 2);
 //	MP_KMCStepForward(&data);
-//	MP_KMCRead(&data, "test.mpkmc");
-//	MP_KMCWrite(&data, "test2.mpkmc", 0);
-	//GLWindow(&data, argc, argv);
+	MP_KMCWrite(&data, "test.mpkmc", 0);
 	//MP_KMCWriteTable(&data, "test.etb");
 	MP_KMCFree(&data);
 }

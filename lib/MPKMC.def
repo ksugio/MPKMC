@@ -31,5 +31,5 @@ EXPORTS
 	MP_Rand
 	MP_RandGauss
 	; fsfcc
-	MP_FSFCCCu
+	MP_FSFCCSetParm
 	MP_FSFCCEnergy

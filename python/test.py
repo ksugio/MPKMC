@@ -1,13 +1,9 @@
 import MPKMC
 
-def calcEnergy(kmc, types):
-    energy = [-52.3, -55.9, -59.6, -63.3, -67.0, -70.7, -74.4, -78.1, -81.7, -85.4, -89.1, -92.8, -96.4, -100.0]
-    count = 0
-    for tp in types:
-        if tp == 14:
-            count = count + 1
-    #print count, types, energy[count]
-    return energy[count] / kmc.ncol
+def FSFCCEnergy(kmc, types):
+    fsfcc = MPKMC.fsfcc()
+    fsfcc.set_parm(types[0])
+    return fsfcc.energy(kmc, types)
 
 if __name__ == "__main__":
     #etbfile = 'Al-Si.etb'
@@ -24,15 +20,10 @@ if __name__ == "__main__":
     kmc.set_unitcell(uc)
     kmc.set_cluster(clu)
     kmc.calc_rot_index(5.0)
-    kmc.set_solvent(13)
+    kmc.set_solvent(29)
     kmc.rand_seed = 12345
-    kmc.add_solute_random(3, 14, 1)
-    kmc.write('test.mpkmc', 0)
-    #for i in range(64):
-    #    x, y, z = kmc.index2grid(i)
-    #    print kmc.grid2index(x, y, z), '(', x, y, z, ')'
-    #print kmc.cluster_indexes(17)
-    #types = (13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13)
+    #kmc.add_solute_random(3, 14, 1)
+    #kmc.write('test.mpkmc', 0)
     #print kmc.search_cluster(types)
     #kmc.read_table(etbfile)
     #kmc.write_table('Al-Si3.etb')
@@ -47,8 +38,9 @@ if __name__ == "__main__":
     #print kmc.htable
     #for i in range(kmc.ntable):
     #    print kmc.get_table(i)
-    #for i in range(kmc.ntot):
-    #    ene, update = kmc.calc_energy(i, calcEnergy)
+    for i in range(kmc.ntot):
+        ene, update = kmc.calc_energy(i, FSFCCEnergy)
+        print i, ene, update
     #    tp, pos, ene = kmc.grid_data(i)
     #    if tp == 14:
     #        print i, tp, pos, ene

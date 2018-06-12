@@ -691,18 +691,15 @@ PyMODINIT_FUNC initMPKMC(void)
 
 	if (PyType_Ready(&PyKMCNewType) < 0) return;
 	if (PyType_Ready(&PyKMCReadType) < 0) return;
-//	if (PyType_Ready(&PyGridCopyType) < 0) return;
-//	if (PyType_Ready(&PyGridCloneType) < 0) return;
+	if (PyType_Ready(&MP_FSFCCPyType) < 0) return;
 	m = Py_InitModule3("MPKMC", MPKMCPyMethods, "MPKMC extention");
 	if (m == NULL) return;
 	Py_INCREF(&PyKMCNewType);
 	PyModule_AddObject(m, "new", (PyObject *)&PyKMCNewType);
 	Py_INCREF(&PyKMCReadType);
 	PyModule_AddObject(m, "read", (PyObject *)&PyKMCReadType);
-//	Py_INCREF(&PyGridCopyType);
-//	PyModule_AddObject(m, "copy", (PyObject *)&PyGridCopyType);
-//	Py_INCREF(&PyGridCloneType);
-//	PyModule_AddObject(m, "clone", (PyObject *)&PyGridCloneType);
+	Py_INCREF(&MP_FSFCCPyType);
+	PyModule_AddObject(m, "fsfcc", (PyObject *)&MP_FSFCCPyType);
 }
 
 #endif /* _DEBUG */

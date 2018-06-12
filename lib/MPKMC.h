@@ -163,14 +163,17 @@ typedef struct MP_FSFCCParm {
 		PyObject *pyfunc;
 #endif
 	short type;
-	double lc;
 	double a[6];
 	double R[2];
 	double A[2];
 	double r[6];
 } MP_FSFCCParm;
 
-void MP_FSFCCCu(MP_FSFCCParm *parm);
+#ifndef _DEBUG
+PyTypeObject MP_FSFCCPyType;
+#endif
+
+int MP_FSFCCSetParm(MP_FSFCCParm *parm, short type);
 double MP_FSFCCEnergy(MP_FSFCCParm *parm, MP_KMCData *data, short types[]);
 
 #ifdef __cplusplus
