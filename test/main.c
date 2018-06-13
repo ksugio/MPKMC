@@ -87,7 +87,7 @@ static double calcFSFCC(MP_KMCData *data, short types[])
 {
 	MP_FSFCCParm parm;
 
-	if (MP_FSFCCSetParm(&parm, types[0])) {
+	if (MP_FSFCCInit(&parm, types[0])) {
 		return MP_FSFCCEnergy(&parm, data, types);
 	}
 	else {
@@ -103,15 +103,12 @@ int main(int argc, char *argv[])
 	//char etbfile[] = {"../python/Al-Si.etb"};
 	int update;
 	MP_KMCData data;
-
-	double tote0, tote1;
-	int ret;
+	int njump;
 	double Kb = 86.1735e-6; // ev/K
 	//double Ry = 13.6058; // ev
 	//double Kbry = Kb*Ry;
-	double T = 500.0;
-	double ene;
-
+	double T = 300.0;
+	//double ehist[100];
 
 	double uc[][3] = { {0.0, 0.0, 0.0}, {0.5, 0.5, 0.0}, {0.5, 0.0, 0.5}, {0.0, 0.5, 0.5} };
 	double cluster[][3] = {{ 0, 0, 0 }, { 0.5, 0.5, 0 }, { 0, 0.5, -0.5 }, { -0.5, 0, -0.5 }, { -0.5, 0.5, 0 },
@@ -125,33 +122,25 @@ int main(int argc, char *argv[])
 	MP_KMCSetCluster(&data, cluster);
 	MP_KMCCalcRotIndex(&data, 5.0);
 	MP_KMCSetSolvent(&data, 29);
-
-	//MP_KMCAddSoluteRandom(&data, 10, 0, TRUE);
-	for (i = 0; i < data.ntot; i++) {
-		ene = MP_KMCCalcEnergy(&data, i, calcFSFCC, &update);
-		printf("%f\n", ene);
-	}
-//	MP_KMCWriteTable(&data, "test.etb");
-//	tote0 = MP_KMCTotalEnergy(&data);
-//	printf("tote0 = %f\n", tote0);
-//	for (i = 0; i < 10000;i++) {
-//		ret = MP_KMCJump(&data, Kb*T, calcFSFCC, &update);
-//		if (ret) {
-//			tote1 = MP_KMCTotalEnergy(&data);
-//			printf("diff = %f\n", tote1 - tote0);
-//		}
+	MP_KMCAddSoluteRandom(&data, 3, 0, TRUE);
+	MP_KMCTotalEnergy(&data, calcFSFCC, &update);
+	printf("i %f %d\n", data.tote, update);
+//	for (i = 0; i < 100;i++) {
+		njump = MP_KMCJump(&data, 1000, Kb*T, calcFSFCC, &update);
+		if (njump > 0) {
+			printf("%d %f %d\n", data.step, data.tote, update);
+		}
 //	}
-//	printf("tote1 = %f\n", tote1);
-//	for (i = 0; i < data.nevent; i++) {
-//		printf("%d, %d, %d\n", data.event[i].dp, data.event[i].id0, data.event[i].id1);
-//	}
+	MP_KMCTotalEnergy(&data, calcFSFCC, &update);
+	printf("f %f %d\n", data.tote, update);
+//	MP_KMCStepBackward(&data, 9);
 //	MP_KMCStepGo(&data, 0);
-//	MP_KMCStepGo(&data, 2);
-//	MP_KMCStepGo(&data, 6);
-//	MP_KMCStepBackward(&data, 2);
-//	MP_KMCStepForward(&data, 2);
-//	MP_KMCStepForward(&data);
-	MP_KMCWrite(&data, "test.mpkmc", 0);
-	//MP_KMCWriteTable(&data, "test.etb");
+//	printf("cur %d %f\n", data.step, data.tote);
+//	MP_KMCEnergyHistory(&data, 100, ehist);
+//	for (i = 0; i <= data.nevent; i++) {
+//		printf("%d %f\n", i, ehist[i]);
+//	}
+//	MP_KMCWrite(&data, "test.mpkmc", 0);
+//	MP_KMCWriteTable(&data, "test.etb");
 	MP_KMCFree(&data);
 }

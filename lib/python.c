@@ -1,6 +1,7 @@
 #ifndef _DEBUG
 
 #include "MPKMC.h"
+#include <numpy/arrayobject.h>
 
 static void PyKMCDealloc(MP_KMCData* self)
 {
@@ -59,6 +60,7 @@ static PyMemberDef PyKMCMembers[] = {
 	{ "nevent", T_INT, offsetof(MP_KMCData, nevent), 1, "number of events" },
 	{ "step", T_INT, offsetof(MP_KMCData, step), 1, "step" },
 	{ "rand_seed", T_LONG, offsetof(MP_KMCData, rand_seed), 0, "seed of random number" },
+	{ "tote", T_DOUBLE, offsetof(MP_KMCData, tote), 0, "total energy" },
 	{ NULL }  /* Sentinel */
 };
 
@@ -318,18 +320,12 @@ static PyObject *PyKMCCalcEnergy(MP_KMCData *self, PyObject *args, PyObject *kwd
 
 static PyObject *PyKMCTotalEnergy(MP_KMCData *self, PyObject *args, PyObject *kwds)
 {
-	return Py_BuildValue("d", MP_KMCTotalEnergy(self));
-}
-
-static PyObject *PyKMCJump(MP_KMCData *self, PyObject *args, PyObject *kwds)
-{
-	double kt;
 	PyObject *func;
-	static char *kwlist[] = { "kt", "func", NULL };
-	int ret;
+	static char *kwlist[] = { "func", NULL };
+	double ene;
 	int update;
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "dO", kwlist, &kt, &func)) {
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O", kwlist, &func)) {
 		return NULL;
 	}
 	if (!PyCallable_Check(func)) {
@@ -337,8 +333,29 @@ static PyObject *PyKMCJump(MP_KMCData *self, PyObject *args, PyObject *kwds)
 		return NULL;
 	}
 	self->pyfunc = func;
-	ret = MP_KMCJump(self, kt, calcEnergy, &update);
-	return Py_BuildValue("ii", ret, update);
+	ene = MP_KMCTotalEnergy(self, calcEnergy, &update);
+	return Py_BuildValue("di", ene, update);
+}
+
+static PyObject *PyKMCJump(MP_KMCData *self, PyObject *args, PyObject *kwds)
+{
+	int ntry;
+	double kt;
+	PyObject *func;
+	static char *kwlist[] = { "ntry", "kt", "func", NULL };
+	int njump;
+	int update;
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "idO", kwlist, &ntry, &kt, &func)) {
+		return NULL;
+	}
+	if (!PyCallable_Check(func)) {
+		PyErr_SetString(PyExc_TypeError, "func must be callable");
+		return NULL;
+	}
+	self->pyfunc = func;
+	njump = MP_KMCJump(self, ntry, kt, calcEnergy, &update);
+	return Py_BuildValue("ii", njump, update);
 }
 
 static PyObject *PyKMCStepForward(MP_KMCData *self, PyObject *args, PyObject *kwds)
@@ -377,6 +394,30 @@ static PyObject *PyKMCStepGo(MP_KMCData *self, PyObject *args, PyObject *kwds)
 	Py_RETURN_NONE;
 }
 
+static PyObject *PyKMCEnergyHistory(MP_KMCData *self, PyObject *args, PyObject *kwds)
+{
+	PyObject *ehist_obj;
+	static char *kwlist[] = { "ehist", NULL };
+	PyArrayObject *ehist_arr;
+	npy_intp nhist;
+	double *ehist;
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O!", kwlist, &PyArray_Type, &ehist_obj)) {
+		return NULL;
+	}
+	ehist_arr = (PyArrayObject *)PyArray_FROM_OTF(ehist_obj, NPY_DOUBLE, NPY_INOUT_ARRAY);
+	if (ehist_arr == NULL) return NULL;
+	if (PyArray_NDIM(ehist_arr) != 1) {
+		Py_XDECREF(ehist_arr);
+		PyErr_SetString(PyExc_ValueError, "invalid ehist data, ndim must be 1");
+		return NULL;
+	}
+	nhist = PyArray_DIM(ehist_arr, 0);
+	ehist = (double *)PyArray_DATA(ehist_arr);
+	MP_KMCEnergyHistory(self, nhist, ehist);
+	Py_RETURN_NONE;
+}
+
 static PyObject *PyKMCWriteTable(MP_KMCData *self, PyObject *args, PyObject *kwds)
 {
 	char *filename;
@@ -385,8 +426,7 @@ static PyObject *PyKMCWriteTable(MP_KMCData *self, PyObject *args, PyObject *kwd
 	if (!PyArg_ParseTupleAndKeywords(args, kwds, "s", kwlist, &filename)) {
 		return NULL;
 	}
-	MP_KMCWriteTable(self, filename);
-	Py_RETURN_NONE;
+	return Py_BuildValue("i", MP_KMCWriteTable(self, filename));
 }
 
 static PyObject *PyKMCReadTable(MP_KMCData *self, PyObject *args, PyObject *kwds)
@@ -397,8 +437,7 @@ static PyObject *PyKMCReadTable(MP_KMCData *self, PyObject *args, PyObject *kwds
 	if (!PyArg_ParseTupleAndKeywords(args, kwds, "s", kwlist, &filename)) {
 		return NULL;
 	}
-	MP_KMCReadTable(self, filename);
-	Py_RETURN_NONE;
+	return Py_BuildValue("i", MP_KMCReadTable(self, filename));
 }
 
 static PyObject *PyKMCSortTable(MP_KMCData *self, PyObject *args)
@@ -533,7 +572,7 @@ static PyMethodDef PyKMCMethods[] = {
 	{ "calc_energy", (PyCFunction)PyKMCCalcEnergy, METH_VARARGS | METH_KEYWORDS,
 	"calc_energy(id, func) : calculate energy" },
 	{ "total_energy", (PyCFunction)PyKMCTotalEnergy, METH_VARARGS | METH_KEYWORDS,
-	"total_energy() : calculate total energy" },
+	"total_energy(func) : calculate total energy" },
 	{ "jump", (PyCFunction)PyKMCJump, METH_VARARGS | METH_KEYWORDS,
 	"jump(ntry, kt, func) : jump diffusions by KMC method" },
 	{ "step_forward", (PyCFunction)PyKMCStepForward, METH_VARARGS | METH_KEYWORDS,
@@ -542,6 +581,8 @@ static PyMethodDef PyKMCMethods[] = {
 	"step_backward(count) : take a step backward" },
 	{ "step_go", (PyCFunction)PyKMCStepGo, METH_VARARGS | METH_KEYWORDS,
 	"step_go(step) : go to step" },
+	{ "energy_history", (PyCFunction)PyKMCEnergyHistory, METH_VARARGS | METH_KEYWORDS,
+	"energy_history(ehist) : setup energy history" },
 	{ "write_table", (PyCFunction)PyKMCWriteTable, METH_VARARGS | METH_KEYWORDS,
 	"write_table(filename) : write energy table" },
 	{ "read_table", (PyCFunction)PyKMCReadTable, METH_VARARGS | METH_KEYWORDS,
@@ -694,6 +735,7 @@ PyMODINIT_FUNC initMPKMC(void)
 	if (PyType_Ready(&MP_FSFCCPyType) < 0) return;
 	m = Py_InitModule3("MPKMC", MPKMCPyMethods, "MPKMC extention");
 	if (m == NULL) return;
+	import_array();
 	Py_INCREF(&PyKMCNewType);
 	PyModule_AddObject(m, "new", (PyObject *)&PyKMCNewType);
 	Py_INCREF(&PyKMCReadType);

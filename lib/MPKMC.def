@@ -20,6 +20,7 @@ EXPORTS
 	MP_KMCStepForward
 	MP_KMCStepBackward
 	MP_KMCStepGo
+	MP_KMCEnergyHistory
 	MP_KMCWriteTable
 	MP_KMCReadTable
 	MP_KMCSortTable
@@ -31,5 +32,5 @@ EXPORTS
 	MP_Rand
 	MP_RandGauss
 	; fsfcc
-	MP_FSFCCSetParm
+	MP_FSFCCInit
 	MP_FSFCCEnergy

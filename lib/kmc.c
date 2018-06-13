@@ -27,7 +27,10 @@ int MP_KMCAlloc(MP_KMCData *data, int nuc, int nx, int ny, int nz, int ncluster,
 	for (i = 0; i < data->ntot; i++) {
 		data->grid[i].type = 0;
 		data->grid[i].energy = 0.0;
-	}	
+	}
+	for (i = 0; i < ncluster; i++) {
+		data->cluster[i][0] = 0.0, data->cluster[i][1] = 0.0, data->cluster[i][2] = 0.0;
+	}
 	for (i = 0; i < MP_KMC_NROT_MAX; i++) {
 		data->rot_index[i] = data->rot_index_et + i*ncluster;
 	}
@@ -46,6 +49,7 @@ int MP_KMCAlloc(MP_KMCData *data, int nuc, int nx, int ny, int nz, int ncluster,
 	data->nevent_max = data->nevent_step = nevent_step;
 	data->rand_seed = 12061969;
 	data->step = 0;
+	data->tote = 0.0;
 	return TRUE;
 }
 
@@ -54,6 +58,8 @@ void MP_KMCFree(MP_KMCData *data)
 	free(data->grid);
 	free(data->table);
 	free(data->table_types);
+	free(data->rot_index);
+	free(data->rot_index_et);
 	free(data->solute);
 	free(data->event);
 }
@@ -319,33 +325,34 @@ double MP_KMCCalcEnergy(MP_KMCData *data, int id, double(*func)(MP_KMCData *, sh
 	return data->grid[id].energy;
 }
 
-double MP_KMCTotalEnergy(MP_KMCData *data)
+double MP_KMCTotalEnergy(MP_KMCData *data, double(*func)(MP_KMCData *, short *), int *update)
 {
 	int i;
-	double tot = 0.0;
+	int tupdate;
 
+	*update = FALSE;
+	data->tote = 0.0;
 	for (i = 0; i < data->ntot; i++) {
-		if (data->grid[i].type >= 0) {
-			tot += data->grid[i].energy;
-		}
+		data->tote += MP_KMCCalcEnergy(data, i, func, &tupdate);
+		if (tupdate) *update = TRUE;
 	}
-	return tot;
+	return data->tote;
 }
 
-static int UniteIndexes(int ncol, int ids0[], int ids1[], int ids2[])
+static int UniteIndexes(int ncluster, int ids0[], int ids1[], int ids2[])
 {
 	int i, j;
-	int count = ncol;
+	int count = ncluster;
 
-	for (i = 0; i < ncol; i++) {
+	for (i = 0; i < ncluster; i++) {
 		ids2[i] = ids0[i];
 	}
 	count = i;
-	for (j = 0; j < ncol; j++) {
-		for (i = 0; i < ncol; i++) {
+	for (j = 0; j < ncluster; j++) {
+		for (i = 0; i < ncluster; i++) {
 			if (ids1[j] == ids0[i]) break;
 		}
-		if (i == ncol) {
+		if (i == ncluster) {
 			ids2[count++] = ids1[j];
 		}
 	}
@@ -361,29 +368,29 @@ static void SwapType(MP_KMCData *data, int id0, int id1)
 	data->grid[id1].type = type0;
 }
 
-static double GridClusterEnergy(MP_KMCData *data, int nncol, int ids[])
+static double GridClusterEnergy(MP_KMCData *data, int nncluster, int ids[])
 {
 	int i;
 	double cle = 0.0;
 
-	for (i = 0; i < nncol; i++) {
+	for (i = 0; i < nncluster; i++) {
 		cle += data->grid[ids[i]].energy;
 	}
 	return cle;
 }
 
-static double ClusterEnergy(MP_KMCData *data, int nncol, double energy[])
+static double ClusterEnergy(MP_KMCData *data, int nncluster, double energy[])
 {
 	int i;
 	double cle = 0.0;
 
-	for (i = 0; i < nncol; i++) {
+	for (i = 0; i < nncluster; i++) {
 		cle += energy[i];
 	}
 	return cle;
 }
 
-static void AddEvent(MP_KMCData *data, int dp, int id0, int id1)
+static void AddEvent(MP_KMCData *data, int dp, int id0, int id1, double de)
 {
 	int nevent_max;
 	int eid;
@@ -401,10 +408,11 @@ static void AddEvent(MP_KMCData *data, int dp, int id0, int id1)
 	data->event[eid].dp = dp;
 	data->event[eid].id0 = id0;
 	data->event[eid].id1 = id1;
+	data->event[eid].de = de;
 	data->nevent++;
 }
 
-int MP_KMCJump(MP_KMCData *data, double kt, double(*func)(MP_KMCData *, short *), int *update)
+static int KMCJump(MP_KMCData *data, double kt, double(*func)(MP_KMCData *, short *), int *update)
 {
 	int j, k;
 	int dp, cp;
@@ -414,7 +422,7 @@ int MP_KMCJump(MP_KMCData *data, double kt, double(*func)(MP_KMCData *, short *)
 	int ids2[MP_KMC_NCLUSTER_MAX * 2];
 	int ids3[MP_KMC_NCLUSTER_MAX];
 	short types3[MP_KMC_NCLUSTER_MAX];
-	int nncol;
+	int nncluster;
 	int tid;
 	double energy[26];
 	double cle0, cle1, clde;
@@ -431,10 +439,10 @@ int MP_KMCJump(MP_KMCData *data, double kt, double(*func)(MP_KMCData *, short *)
 		return FALSE;
 	}
 	MP_KMCClusterIndexes(data, id1, ids1);
-	nncol = UniteIndexes(data->ncluster, ids0, ids1, ids2);
-	cle0 = GridClusterEnergy(data, nncol, ids2);
+	nncluster = UniteIndexes(data->ncluster, ids0, ids1, ids2);
+	cle0 = GridClusterEnergy(data, nncluster, ids2);
 	SwapType(data, id0, id1);
-	for (j = 0; j < nncol; j++) {
+	for (j = 0; j < nncluster; j++) {
 		if (data->grid[ids2[j]].type > 0) {
 			MP_KMCClusterIndexes(data, ids2[j], ids3);
 			for (k = 0; k < data->ncluster; k++) {
@@ -460,14 +468,15 @@ int MP_KMCJump(MP_KMCData *data, double kt, double(*func)(MP_KMCData *, short *)
 			energy[j] = 0.0;
 		}
 	}
-	cle1 = ClusterEnergy(data, nncol, energy);
+	cle1 = ClusterEnergy(data, nncluster, energy);
 	clde = cle1 - cle0;
 	if (clde < 0.0 || MP_Rand(&(data->rand_seed)) < exp(-clde / kt)) {
-		for (j = 0; j < nncol; j++) {
+		for (j = 0; j < nncluster; j++) {
 			data->grid[ids2[j]].energy = energy[j];
 		}
 		data->solute[dp].id = id1;
-		AddEvent(data, dp, id0, id1);
+		AddEvent(data, dp, id0, id1, clde);
+		data->tote += clde;
 		data->step++;
 		return TRUE;
 	}
@@ -475,6 +484,19 @@ int MP_KMCJump(MP_KMCData *data, double kt, double(*func)(MP_KMCData *, short *)
 		SwapType(data, id0, id1);
 		return FALSE;
 	}
+}
+
+int MP_KMCJump(MP_KMCData *data, int ntry, double kt, double(*func)(MP_KMCData *, short *), int *update)
+{
+	int i;
+	int ret;
+	int njump = 0;
+
+	for (i = 0; i < ntry; i++) {
+		ret = KMCJump(data, kt, func, update);
+		if (ret) njump++;
+	}
+	return njump;
 }
 
 void MP_KMCStepForward(MP_KMCData *data, int count)
@@ -491,6 +513,7 @@ void MP_KMCStepForward(MP_KMCData *data, int count)
 		//printf("F %d, %d -> %d\n", id0, data->diffuse[dp].id, id1);
 		SwapType(data, id0, id1);
 		data->solute[dp].id = id1;
+		data->tote += data->event[data->step].de;
 		data->step++;
 	}
 }
@@ -510,6 +533,7 @@ void MP_KMCStepBackward(MP_KMCData *data, int count)
 		//printf("B %d, %d -> %d\n", id1, data->diffuse[dp].id, id0);
 		SwapType(data, id0, id1);
 		data->solute[dp].id = id0;
+		data->tote -= data->event[data->step].de;
 	}
 }
 
@@ -523,17 +547,38 @@ void MP_KMCStepGo(MP_KMCData *data, int step)
 
 }
 
-void MP_KMCWriteTable(MP_KMCData *data, char *filename)
+void MP_KMCEnergyHistory(MP_KMCData *data, int nhist, double ehist[])
+{
+	int i;
+	double te;
+
+	te = data->tote;
+	for (i = data->step - 1; i >= 0; i--) {
+		te -= data->event[i].de;
+		if (i < nhist) ehist[i] = te;
+	}
+	te = data->tote;
+	for (i = data->step; i <= data->nevent; i++) {
+		if (i < nhist) ehist[i] = te;
+		te += data->event[i].de;
+	}
+}
+
+int MP_KMCWriteTable(MP_KMCData *data, char *filename)
 {
 	int i, j;
 	FILE *fp;
 
 	if ((fp = fopen(filename, "wb")) == NULL) {
 		fprintf(stderr, "Error : can't open %s.(MP_KMCWriteTable)\n", filename);
-		return;
+		return FALSE;
 	}
 	fprintf(fp, "%s\n", data->htable);
-	fprintf(fp, "%d %d\n", data->ntable, data->ncluster);
+	fprintf(fp, "ncluster %d\n", data->ncluster);
+	for (i = 0; i < data->ncluster; i++) {
+		fprintf(fp, "%.15e %.15e %.15e\n", data->cluster[i][0], data->cluster[i][1], data->cluster[i][2]);
+	}
+	fprintf(fp, "ntable %d\n", data->ntable);
 	for (i = 0; i < data->ntable; i++) {
 		for (j = 0; j < data->ncluster; j++) {
 			fprintf(fp, "%d ", data->table[i].types[j]);
@@ -541,6 +586,7 @@ void MP_KMCWriteTable(MP_KMCData *data, char *filename)
 		fprintf(fp, "%.15e %d\n", data->table[i].energy, data->table[i].refcount);
 	}
 	fclose(fp);
+	return TRUE;
 }
 
 static void ScanTable(char buf[], int ncluster, short types[], double *energy, long *refcount)
@@ -558,10 +604,11 @@ static void ScanTable(char buf[], int ncluster, short types[], double *energy, l
 	*refcount = atol(tok);
 }
 
-void MP_KMCReadTable(MP_KMCData *data, char *filename)
+int MP_KMCReadTable(MP_KMCData *data, char *filename)
 {
 	FILE *fp;
-	int ntable, ncluster;
+	int ncluster, ntable;
+	double cluster[3];
 	short types[MP_KMC_NCLUSTER_MAX];
 	double energy;
 	long refcount;
@@ -571,20 +618,31 @@ void MP_KMCReadTable(MP_KMCData *data, char *filename)
 
 	if ((fp = fopen(filename, "rb")) == NULL) {
 		fprintf(stderr, "Error : can't open %s.(MP_KMCReadTable)\n", filename);
-		return;
+		return FALSE;
 	}
 	fgets(data->htable, 256, fp);
 	p = strchr(data->htable, '\n');
 	if (p != NULL) *p = '\0';
-	fscanf(fp, "%d %d\n", &ntable, &ncluster);
+	fscanf(fp, "%s %d", buf, &ncluster);
 	if (ncluster != data->ncluster) {
-		fprintf(stderr, "Error : incompatible format, %s.(MP_KMCReadTable)\n", filename);
+		fprintf(stderr, "Error : incompatible number of cluster, %s.(MP_KMCReadTable)\n", filename);
+		return FALSE;
 	}
+	for (i = 0; i < ncluster; i++) {
+		fscanf(fp, "%le %le %le", &(cluster[0]), &(cluster[1]), &(cluster[2]));
+		if (cluster[0] != data->cluster[i][0] || cluster[1] != data->cluster[i][1]
+			|| cluster[2] != data->cluster[i][2]) {
+			fprintf(stderr, "Error : incompatible position of cluster, %s.(MP_KMCReadTable)\n", filename);
+			return FALSE;
+		}
+	}
+	fscanf(fp, "%s %d\n", buf, &ntable);
 	for (i = 0; i < ntable;i++) {
 		fgets(buf, 256, fp);
 		ScanTable(buf, ncluster, types, &energy, &refcount);
 		MP_KMCAddCluster(data, types, energy, refcount);
 	}
+	return TRUE;
 }
 
 static int SortComp(const void *c1, const void *c2)
@@ -644,6 +702,7 @@ int MP_KMCWrite(MP_KMCData *data, char *filename, int comp)
 	}
 	gzprintf(gfp, "rand_seed %d\n", data->rand_seed);
 	gzprintf(gfp, "step %d\n", data->step);
+	gzprintf(gfp, "tote %.15e\n", data->tote);
 	gzprintf(gfp, "%s\n", data->htable);
 	gzprintf(gfp, "ntable %d\n", data->ntable);
 	for (i = 0; i < data->ntable; i++) {
@@ -658,7 +717,7 @@ int MP_KMCWrite(MP_KMCData *data, char *filename, int comp)
 	}
 	gzprintf(gfp, "nevent %d\n", data->nevent);
 	for (i = 0; i < data->nevent; i++) {
-		gzprintf(gfp, "%d %d %d\n", data->event[i].dp, data->event[i].id0, data->event[i].id1);
+		gzprintf(gfp, "%d %d %d %.15e\n", data->event[i].dp, data->event[i].id0, data->event[i].id1, data->event[i].de);
 	}
 	gzclose(gfp);
 	return TRUE;
@@ -702,6 +761,7 @@ int MP_KMCRead(MP_KMCData *data, char *filename)
 	int id;
 	short type, jump;
 	int dp, id0, id1;
+	double de;
 
 	if ((gfp = gzopen(filename, "rb")) == NULL) {
 		fprintf(stderr, "Error : can't open %s.(MP_KMCRead)\n", filename);
@@ -744,6 +804,8 @@ int MP_KMCRead(MP_KMCData *data, char *filename)
 	sscanf(buf, "%s %ld", dum, &(data->rand_seed));
 	gzgets(gfp, buf, 256);
 	sscanf(buf, "%s %ld", dum, &(data->step));
+	gzgets(gfp, buf, 256);
+	sscanf(buf, "%s %le", dum, &(data->tote));
 	gzgets(gfp, data->htable, 256);
 	p = strchr(data->htable, '\n');
 	if (p != NULL) *p = '\0';
@@ -765,8 +827,8 @@ int MP_KMCRead(MP_KMCData *data, char *filename)
 	sscanf(buf, "%s %d", dum, &nevent);
 	for (i = 0; i < nevent; i++) {
 		gzgets(gfp, buf, 256);
-		sscanf(buf, "%d %d %d", &dp, &id0, &id1);
-		AddEvent(data, dp, id0, id1);
+		sscanf(buf, "%d %d %d %le", &dp, &id0, &id1, &de);
+		AddEvent(data, dp, id0, id1, de);
 	}
 	gzclose(gfp);
 	return TRUE;

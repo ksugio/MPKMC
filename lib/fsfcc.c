@@ -59,7 +59,7 @@ static void FSFCCCopyParm(MP_FSFCCParm *parm, struct FSFCCParm p)
 	}
 }
 
-int MP_FSFCCSetParm(MP_FSFCCParm *parm, short type)
+int MP_FSFCCInit(MP_FSFCCParm *parm, short type)
 {
 	if (type == 29) {
 		FSFCCCopyParm(parm, Copper);
@@ -123,9 +123,20 @@ static void PyDealloc(MP_FSFCCParm* self)
 
 static PyObject *PyNew(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
+	short stype;
+	static char *kwlist[] = { "type", NULL };
 	MP_FSFCCParm *self;
 
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "h", kwlist, &stype)) {
+		return NULL;
+	}
 	self = (MP_FSFCCParm *)type->tp_alloc(type, 0);
+	if (self != NULL) {
+		if (!MP_FSFCCInit(self, stype)) {
+			Py_DECREF(self);
+			return NULL;
+		}
+	}
 	return (PyObject *)self;
 }
 
@@ -133,17 +144,6 @@ static PyMemberDef PyMembers[] = {
 	{ "type", T_SHORT, offsetof(MP_FSFCCParm, type), 1, "type" },
 	{ NULL }  /* Sentinel */
 };
-
-static PyObject *PySetParm(MP_FSFCCParm *self, PyObject *args, PyObject *kwds)
-{
-	short type;
-	static char *kwlist[] = { "type", NULL };
-
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "h", kwlist, &type)) {
-		return NULL;
-	}
-	return Py_BuildValue("i", MP_FSFCCSetParm(self, type));
-}
 
 static PyObject *PyEnergy(MP_FSFCCParm *self, PyObject *args, PyObject *kwds)
 {
@@ -163,8 +163,6 @@ static PyObject *PyEnergy(MP_FSFCCParm *self, PyObject *args, PyObject *kwds)
 }
 
 static PyMethodDef PyMethods[] = {
-	{ "set_parm", (PyCFunction)PySetParm, METH_VARARGS | METH_KEYWORDS,
-	"set_parm(type) : set parameter" },
 	{ "energy", (PyCFunction)PyEnergy, METH_VARARGS | METH_KEYWORDS,
 	"energy(kmc, types) : calculate cluster energy" },
 	{ NULL }  /* Sentinel */

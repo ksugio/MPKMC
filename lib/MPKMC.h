@@ -76,6 +76,7 @@ typedef struct MP_KMCEventItem {
 	int dp;
 	int id0;
 	int id1;
+	double de;
 } MP_KMCEventItem;
 
 typedef struct MP_KMCData {
@@ -111,6 +112,7 @@ typedef struct MP_KMCData {
 	MP_KMCEventItem *event;
 	long rand_seed;
 	long step;
+	double tote;
 } MP_KMCData;
 
 int MP_KMCAlloc(MP_KMCData *data, int nuc, int nx, int ny, int nz, int ncluster,
@@ -129,13 +131,14 @@ int MP_KMCAddClusterIDs(MP_KMCData *data, int ids[], double energy, long refcoun
 int MP_KMCAddSolute(MP_KMCData *data, int id, short type, short jump);
 void MP_KMCAddSoluteRandom(MP_KMCData *data, int num, short type, short jump);
 double MP_KMCCalcEnergy(MP_KMCData *data, int id, double(*func)(MP_KMCData *, short *), int *update);
-double MP_KMCTotalEnergy(MP_KMCData *data);
-int MP_KMCJump(MP_KMCData *data, double kt, double(*func)(MP_KMCData *, short *), int *update);
+double MP_KMCTotalEnergy(MP_KMCData *data, double(*func)(MP_KMCData *, short *), int *update);
+int MP_KMCJump(MP_KMCData *data, int ntry, double kt, double(*func)(MP_KMCData *, short *), int *update);
 void MP_KMCStepForward(MP_KMCData *data, int count);
 void MP_KMCStepBackward(MP_KMCData *data, int count);
 void MP_KMCStepGo(MP_KMCData *data, int step);
-void MP_KMCWriteTable(MP_KMCData *data, char *filename);
-void MP_KMCReadTable(MP_KMCData *data, char *filename);
+void MP_KMCEnergyHistory(MP_KMCData *data, int nhist, double ehist[]);
+int MP_KMCWriteTable(MP_KMCData *data, char *filename);
+int MP_KMCReadTable(MP_KMCData *data, char *filename);
 void MP_KMCSortTable(MP_KMCData *data);
 void MP_KMCResetTable(MP_KMCData *data);
 int MP_KMCWrite(MP_KMCData *data, char *filename, int comp);
@@ -173,7 +176,7 @@ typedef struct MP_FSFCCParm {
 PyTypeObject MP_FSFCCPyType;
 #endif
 
-int MP_FSFCCSetParm(MP_FSFCCParm *parm, short type);
+int MP_FSFCCInit(MP_FSFCCParm *parm, short type);
 double MP_FSFCCEnergy(MP_FSFCCParm *parm, MP_KMCData *data, short types[]);
 
 #ifdef __cplusplus

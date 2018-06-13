@@ -427,6 +427,54 @@ class SetShiftDialog(QtGui.QDialog):
     self.accept()
 
 """
+EnergyHistoryDialog
+""" 
+class EnergyHistoryCanvas(FigureCanvas):
+  def __init__(self, parent=None, width=8, height=6, dpi=72):
+    self.fig = Figure(figsize=(width, height), dpi=dpi)
+    self.axes = self.fig.add_subplot(111)
+    self.axes.hold(False)
+    FigureCanvas.__init__(self, self.fig)
+    self.setParent(parent)
+    FigureCanvas.setSizePolicy(self, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
+    FigureCanvas.updateGeometry(self)
+
+  def drawGraph(self, ehist):
+    self.axes.cla()
+    st = np.arange(ehist.shape[0])
+    self.axes.plot(st, ehist, 'k-')
+    self.axes.set_xlabel('Event Step')
+    self.axes.set_ylabel('Total Energy')
+    self.draw()
+
+  def saveGraph(self, fname):
+    self.fig.savefig(fname)
+
+class EnergyHistoryDialog(QtGui.QDialog):
+  def __init__(self, parent, kmc):
+    QtGui.QDialog.__init__(self, parent)
+    self.ehist = np.zeros(kmc.nevent+1, dtype=np.float)
+    kmc.energy_history(self.ehist)
+    self.setWindowTitle("Energy History")
+    vbox = QtGui.QVBoxLayout(self)
+    self.canvas = EnergyHistoryCanvas()
+    vbox.addWidget(self.canvas)
+    hbox1 = QtGui.QHBoxLayout()
+    vbox.addLayout(hbox1)
+    button1 = QtGui.QPushButton("Save Fig")
+    button1.clicked.connect(self.saveFig)
+    hbox1.addWidget(button1)
+    button2 = QtGui.QPushButton("Close")
+    button2.clicked.connect(self.reject)
+    hbox1.addWidget(button2)
+    self.canvas.drawGraph(self.ehist)
+
+  def saveFig(self):
+    fname = QtGui.QFileDialog.getSaveFileName(self, 'Save Fig')
+    if fname:
+      self.canvas.saveGraph(str(fname))    
+
+"""
 MainWindow
 """    
 class MainWindow(QtGui.QMainWindow):
@@ -443,7 +491,7 @@ class MainWindow(QtGui.QMainWindow):
     menubar = QtGui.QMenuBar(self)
     self.setMenuBar(menubar)
     file_menu = QtGui.QMenu('File', self)
-    file_menu.addAction('New', self.fileNew)   
+    #file_menu.addAction('New', self.fileNew)   
     file_menu.addAction('Open', self.fileOpen)
     file_menu.addAction('Save', self.fileSave)
     file_menu.addAction('Save Image', self.fileSaveImage)
@@ -451,12 +499,13 @@ class MainWindow(QtGui.QMainWindow):
     menubar.addMenu(file_menu)
     view_menu = QtGui.QMenu('View', self)
     view_menu.addAction('Set Display', self.setDispDialog)
-    view_menu.addAction('Set Shift', self.setShiftDialog)   
+    view_menu.addAction('Set Shift', self.setShiftDialog)
+    view_menu.addAction('Energy History', self.energyHistoryDialog)
     menubar.addMenu(view_menu)
-    grid_menu = QtGui.QMenu('Grid', self)
-    grid_menu.addAction('Add Solute', self.addSoluteDialog)    
-    grid_menu.addAction('Add Solute Random', self.addSoluteRandomDialog)
-    menubar.addMenu(grid_menu)
+    #grid_menu = QtGui.QMenu('Grid', self)
+    #grid_menu.addAction('Add Solute', self.addSoluteDialog)    
+    #grid_menu.addAction('Add Solute Random', self.addSoluteRandomDialog)
+    #menubar.addMenu(grid_menu)
 
   def fileNew(self):
     self.glwidget.kmc = NewKMCDialog.newKMC(self)
@@ -508,6 +557,11 @@ class MainWindow(QtGui.QMainWindow):
       dlg = SetShiftDialog(self, self.glwidget.kmc, self.glwidget.draw)
       dlg.exec_()
 
+  def energyHistoryDialog(self):
+    if self.glwidget.kmc:
+      dlg = EnergyHistoryDialog(self, self.glwidget.kmc)
+      dlg.exec_()
+      
   def MainToolBar(self):
     toolbar = QtGui.QToolBar(self)
     toolbar.addAction('Init', self.initModel)
