@@ -138,6 +138,7 @@ void MPGL_SceneResize(MPGL_Scene *scene, int width, int height);
 /*--------------------------------------------------
 kmc functions
 */
+#define MPGL_KMC_TYPES_MAX 64
 #define MPGL_KMC_SPHERE 101
 #define MPGL_KMC_CYLINDER 102
 
@@ -151,7 +152,10 @@ typedef struct MPGL_KMCDraw {
 	int res;
 	float frame_color[3];
 	float frame_width;
-	int disp[MP_KMC_TYPES_MAX];
+	int ntypes;
+	short types[MPGL_KMC_TYPES_MAX];
+	int disp[MPGL_KMC_TYPES_MAX];
+	float dia[MPGL_KMC_TYPES_MAX];
 	int shift[3];
 } MPGL_KMCDraw;
 
@@ -163,7 +167,7 @@ void MPGL_KMCDrawInit(MPGL_KMCDraw *draw);
 void MPGL_KMCDrawColormapRange(MPGL_KMCDraw *draw, MP_KMCData *data, MPGL_Colormap *colormap);
 void MPGL_KMCDrawGrid(MPGL_KMCDraw *draw, MP_KMCData *data, MPGL_Colormap *colormap);
 void MPGL_KMCDrawFrame(MPGL_KMCDraw *draw, MP_KMCData *data);
-void MPGL_KMCDrawAxis(int size[]);
+void MPGL_KMCDrawAxis(MP_KMCData *data);
 void MPGL_KMCDrawRegion(MP_KMCData *data, float region[]);
 
 #ifdef __cplusplus

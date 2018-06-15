@@ -2,6 +2,7 @@
 
 struct FSFCCParm {
 	short type;
+	double lc;
 	double a[6];
 	double R[2];
 	double A[2];
@@ -11,6 +12,7 @@ struct FSFCCParm {
 static struct FSFCCParm Copper = 
 {
 	29,
+	3.615,
 	{ 29.059214, -140.05681, 130.07331, -17.48135, 31.82546, 71.58749 },
 	{ 1.2247449, 1.0 },
 	{ 9.806694, 16.774638 },
@@ -20,6 +22,7 @@ static struct FSFCCParm Copper =
 static struct FSFCCParm Silver =
 {
 	47,
+	4.086,
 	{ 20.368404, -102.36075, 94.31277, -6.220051, 31.08088, 175.56047 },
 	{ 1.2247449, 1.0 },
 	{ 1.458761, 42.946555 },
@@ -29,6 +32,7 @@ static struct FSFCCParm Silver =
 static struct FSFCCParm Gold =
 {
 	79,
+	4.078,
 	{ 29.059066, -153.14779, 148.17881, -22.20508, 72.71465, 199.26269 },
 	{ 1.1180065, 0.8660254 },
 	{ 21.930125, 284.99631 },
@@ -38,6 +42,7 @@ static struct FSFCCParm Gold =
 static struct FSFCCParm Nickel =
 {
 	28,
+	3.524,
 	{ 29.057085, -76.04625, 48.08920, -25.96604, 79.15121,  0.0 },
 	{ 1.2247449, 1.1180065 },
 	{ 60.537985, -80.102414 },
@@ -49,6 +54,7 @@ static void FSFCCCopyParm(MP_FSFCCParm *parm, struct FSFCCParm p)
 	int i;
 
 	parm->type = p.type;
+	parm->lc = p.lc;
 	for (i = 0; i < 2; i++) {
 		parm->R[i] = p.R[i];
 		parm->A[i] = p.A[i];
@@ -90,9 +96,9 @@ double MP_FSFCCEnergy(MP_FSFCCParm *parm, MP_KMCData *data, short types[])
 	if (types[0] != parm->type) return 0.0;
 	for (i = 1, rho = 0.0, sV = 0.0; i < data->ncluster; i++) {
 		if (types[i] == parm->type) {
-			r = sqrt(data->cluster[i][0] * data->cluster[i][0]
-				+ data->cluster[i][1] * data->cluster[i][1]
-				+ data->cluster[i][2] * data->cluster[i][2]);
+			r = sqrt(data->rcluster[i][0]*data->rcluster[i][0]
+				+ data->rcluster[i][1]*data->rcluster[i][1]
+				+ data->rcluster[i][2]*data->rcluster[i][2]) / parm->lc;
 			for (j = 0, phi = 0.0; j < 2; j++) {
 				if (parm->R[j] >= r) {
 					phi += parm->A[j] * pow(parm->R[j] - r, 3.0);
@@ -142,6 +148,7 @@ static PyObject *PyNew(PyTypeObject *type, PyObject *args, PyObject *kwds)
 
 static PyMemberDef PyMembers[] = {
 	{ "type", T_SHORT, offsetof(MP_FSFCCParm, type), 1, "type" },
+	{ "lc", T_DOUBLE, offsetof(MP_FSFCCParm, lc), 1, "lc" },
 	{ NULL }  /* Sentinel */
 };
 

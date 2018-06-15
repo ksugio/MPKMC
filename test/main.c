@@ -98,41 +98,40 @@ static double calcFSFCC(MP_KMCData *data, short types[])
 
 int main(int argc, char *argv[])
 {
-	int i;
+//	int i;
 	//int p, x, y, z;
 	//char etbfile[] = {"../python/Al-Si.etb"};
 	int update;
 	MP_KMCData data;
-	int njump;
+	//int njump;
 	double Kb = 86.1735e-6; // ev/K
 	//double Ry = 13.6058; // ev
 	//double Kbry = Kb*Ry;
-	double T = 300.0;
+	double T = 500.0;
 	//double ehist[100];
-
-	double uc[][3] = { {0.0, 0.0, 0.0}, {0.5, 0.5, 0.0}, {0.5, 0.0, 0.5}, {0.0, 0.5, 0.5} };
+	double ene;
+	double uc[][3] = { { 0.0, 0.0, 0.0 }, { 0.5, 0.5, 0.0 }, { 0.5, 0.0, 0.5 }, { 0.0, 0.5, 0.5 } };
+	short uc_types[] = { 29, 29, 29, 29 };
+	double pv[][3] = { { 3.615, 0.0, 0.0 }, { 0.0, 3.615, 0.0 }, { 0.0, 0.0, 3.615 } };
 	double cluster[][3] = {{ 0, 0, 0 }, { 0.5, 0.5, 0 }, { 0, 0.5, -0.5 }, { -0.5, 0, -0.5 }, { -0.5, 0.5, 0 },
 				{ 0, 0.5, 0.5 },{ 0.5, 0, 0.5 },{ 0.5, -0.5, 0 },{ 0, -0.5, 0.5 },
-				{ -0.5, 0, 0.5 },{ -0.5, -0.5, 0 },{ 0, -0.5, -0.5 },{ 0.5, 0, -0.5 }};
+				{ -0.5, 0, 0.5 },{ -0.5, -0.5, 0 },{ 0, -0.5, -0.5 },{ 0.5, 0, -0.5 },
+				{ 1.0, 0, 0 },{ -1.0, 0, 0 },{ 0, 1.0, 0 },{ 0, -1.0, 0 },{ 0, 0, 1.0 },{ 0, 0, -1.0}};
 
 	//MP_KMCRead(&data, "Al-V1.kmc");
-	MP_KMCAlloc(&data, 4, 2, 2, 2, 13, 1000, 1000, 1000);
+	MP_KMCAlloc(&data, 4, 2, 2, 2, 19, 100, 1000, 10000);
 	data.rand_seed = 12345;
-	MP_KMCSetUnitCell(&data, uc);
+	data.table_use = TRUE;
+	MP_KMCSetUnitCell(&data, uc, uc_types, pv);
 	MP_KMCSetCluster(&data, cluster);
-	MP_KMCCalcRotIndex(&data, 5.0);
-	MP_KMCSetSolvent(&data, 29);
+	MP_KMCCalcRotIndex(&data, 5.0, 1.0e-6);
 	MP_KMCAddSoluteRandom(&data, 3, 0, TRUE);
-	MP_KMCTotalEnergy(&data, calcFSFCC, &update);
-	printf("i %f %d\n", data.tote, update);
-//	for (i = 0; i < 100;i++) {
-		njump = MP_KMCJump(&data, 1000, Kb*T, calcFSFCC, &update);
-		if (njump > 0) {
-			printf("%d %f %d\n", data.step, data.tote, update);
-		}
-//	}
-	MP_KMCTotalEnergy(&data, calcFSFCC, &update);
-	printf("f %f %d\n", data.tote, update);
+	ene = MP_KMCTotalEnergy(&data, calcFSFCC, &update);
+	printf("%d %.15e\n", data.ntable, ene);
+	MP_KMCJump(&data, 10000, Kb*T, calcFSFCC, &update);
+	printf("%d %.15e\n", data.ntable, data.tote);
+//	MP_KMCTotalEnergy(&data, calcFSFCC, &update);
+//	printf("f %f %d\n", data.tote, update);
 //	MP_KMCStepBackward(&data, 9);
 //	MP_KMCStepGo(&data, 0);
 //	printf("cur %d %f\n", data.step, data.tote);
@@ -140,7 +139,7 @@ int main(int argc, char *argv[])
 //	for (i = 0; i <= data.nevent; i++) {
 //		printf("%d %f\n", i, ehist[i]);
 //	}
-//	MP_KMCWrite(&data, "test.mpkmc", 0);
+	MP_KMCWrite(&data, "test.mpkmc", 0);
 //	MP_KMCWriteTable(&data, "test.etb");
 	MP_KMCFree(&data);
 }

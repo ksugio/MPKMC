@@ -52,8 +52,8 @@ class GLWidget(QtOpenGL.QGLWidget):
       self.model.transform()
       self.draw.draw_grid(self.kmc, self.cmp)
       self.draw.draw_frame(self.kmc)     
-      GL.glTranslatef(-0.5, -0.5, -0.5)
-      self.draw.draw_axis(self.kmc.size)
+      GL.glTranslatef(-1.0, -1.0, -1.0)
+      self.draw.draw_axis(self.kmc)
       GL.glPopMatrix()
       GL.glPushMatrix()
       GL.glRotated(90.0, 0.0, 0.0, 1.0)
@@ -363,16 +363,17 @@ class SetDispDialog(QtGui.QDialog):
     self.draw = draw
     self.setWindowTitle("Set Display")
     vbox = QtGui.QVBoxLayout(self)
-    self.table = QtGui.QTableWidget(kmc.ntypes, 2)
-    self.table.setHorizontalHeaderLabels(["Type", "Display"])
-    for i in range(kmc.ntypes):
-      self.table.setItem(i, 0, QtGui.QTableWidgetItem(str(kmc.types(i))))
+    self.table = QtGui.QTableWidget(draw.ntypes, 3)
+    self.table.setHorizontalHeaderLabels(["Type", "Display", "Diameter"])
+    for i in range(draw.ntypes):
+      self.table.setItem(i, 0, QtGui.QTableWidgetItem(str(draw.types(i))))
       item = QtGui.QTableWidgetItem()
       if draw.get_disp(i) == 0:
         item.setCheckState(QtCore.Qt.Unchecked)
       else:
         item.setCheckState(QtCore.Qt.Checked)
       self.table.setItem(i, 1, item)
+      self.table.setItem(i, 2, QtGui.QTableWidgetItem(str(draw.get_dia(i))))
     vbox.addWidget(self.table)
     self.buttonb = QtGui.QDialogButtonBox()
     vbox.addWidget(self.buttonb)
@@ -386,7 +387,9 @@ class SetDispDialog(QtGui.QDialog):
       if item.checkState() == QtCore.Qt.Unchecked:
         self.draw.set_disp(row, 0)
       else:
-        self.draw.set_disp(row, 1)       
+        self.draw.set_disp(row, 1)
+      dia = float(self.table.item(row, 2).text())
+      self.draw.set_dia(row, dia)
     self.accept()
 
 """
@@ -587,9 +590,13 @@ class MainWindow(QtGui.QMainWindow):
     button5 = ToolButton('Energy', self.setDrawKind)
     group2.addButton(button5)
     toolbar.addWidget(button5)
-    toolbar.addSeparator()  
-    toolbar.addAction('Backward', self.StepBackward)
-    toolbar.addAction('Forward', self.StepForward)
+    toolbar.addSeparator()
+    toolbar.addAction('<<', self.StepFirst)    
+    toolbar.addAction('<', self.StepBackward)
+    self.playb = ToolButton('Play', self.StepPlay)    
+    toolbar.addWidget(self.playb)
+    toolbar.addAction('>', self.StepForward)
+    toolbar.addAction('>>', self.StepLast) 
     toolbar.addAction('Go', self.StepGo)
     self.addToolBar(toolbar)
 
@@ -618,6 +625,11 @@ class MainWindow(QtGui.QMainWindow):
     self.glwidget.fitModel()
     self.glwidget.updateGL()
 
+  def StepFirst(self):
+    if self.glwidget.kmc:
+      self.glwidget.kmc.step_go(0)
+      self.glwidget.updateGL()
+
   def StepBackward(self):
     if self.glwidget.kmc:
       self.glwidget.kmc.step_backward(1)
@@ -626,12 +638,35 @@ class MainWindow(QtGui.QMainWindow):
   def StepForward(self):
     if self.glwidget.kmc:
       self.glwidget.kmc.step_forward(1)
-      self.glwidget.updateGL()    
-
+      self.glwidget.updateGL()
+      
+  def StepLast(self):
+    if self.glwidget.kmc:
+      self.glwidget.kmc.step_go(self.glwidget.kmc.nevent)
+      self.glwidget.updateGL()
+      
   def StepGo(self):
     if self.glwidget.kmc:
       dlg = StepGoDialog(self, self.glwidget.kmc)
       dlg.exec_()    
+
+  def StepPlay(self):
+    if self.playb.isChecked():
+      self.timer = QtCore.QTimer()
+      self.timer.setInterval(10)
+      self.timer.timeout.connect(self.TimerForward)
+      self.timer.start()
+    else:
+      self.timer.stop()
+
+  def TimerForward(self):
+    if self.glwidget.kmc:
+      if self.glwidget.kmc.step >= self.glwidget.kmc.nevent:
+        self.timer.stop()
+        self.playb.toggle()
+        return
+      self.glwidget.kmc.step_forward(1)
+      self.glwidget.updateGL()
 
 class ToolButton(QtGui.QToolButton):
   def __init__(self, text, func):

@@ -4,7 +4,7 @@ EXPORTS
 	MP_KMCFree
 	MP_KMCSetUnitCell
 	MP_KMCSetCluster
-	MP_KMCSetSolvent
+	MP_KMCRealPos
 	MP_KMCIndex2Grid
 	MP_KMCGrid2Index
 	MP_KMCClusterIndexes

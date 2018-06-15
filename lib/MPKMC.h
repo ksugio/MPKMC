@@ -51,7 +51,7 @@ extern "C" {
 #define MP_KMC_NUC_MAX 32
 #define MP_KMC_NCLUSTER_MAX 64
 #define MP_KMC_NROT_MAX 64
-#define MP_KMC_TYPES_MAX 64
+
 
 enum {MP_KMCFCC};
 
@@ -86,26 +86,27 @@ typedef struct MP_KMCData {
 #endif
 	int nuc;
 	double uc[MP_KMC_NUC_MAX][3];
+	short uc_types[MP_KMC_NUC_MAX];
+	double pv[3][3];
 	int size[3];
 	int ntot;
 	MP_KMCGridItem *grid;
 	int ncluster;
 	double cluster[MP_KMC_NCLUSTER_MAX][3];
+	double rcluster[MP_KMC_NCLUSTER_MAX][3];
 	int nrot;
 	int **rot_index;
 	int *rot_index_et;
+	int table_use;
 	int ntable;
 	int ntable_step;
 	int ntable_max;
 	char htable[256];
 	MP_KMCTableItem *table;
 	short *table_types;
-	short solvent;
 	int nsolute;
 	int nsolute_max;
 	MP_KMCSoluteItem *solute;
-	int ntypes;
-	short types[MP_KMC_TYPES_MAX];
 	int nevent;
 	int nevent_step;
 	int nevent_max;
@@ -118,9 +119,9 @@ typedef struct MP_KMCData {
 int MP_KMCAlloc(MP_KMCData *data, int nuc, int nx, int ny, int nz, int ncluster,
 	int nsolute_max, int ntable_step, int nevent_step);
 void MP_KMCFree(MP_KMCData *data);
-void MP_KMCSetUnitCell(MP_KMCData *data, double uc[][3]);
+void MP_KMCSetUnitCell(MP_KMCData *data, double uc[][3], short types[], double pv[][3]);
 void MP_KMCSetCluster(MP_KMCData *data, double cluster[][3]);
-void MP_KMCSetSolvent(MP_KMCData *data, short type);
+void MP_KMCRealPos(MP_KMCData *data, double cp[], double rp[]);
 void MP_KMCIndex2Grid(MP_KMCData *data, int id, int *p, int *x, int *y, int *z);
 int MP_KMCGrid2Index(MP_KMCData *data, int p, int x, int y, int z);
 int MP_KMCClusterIndexes(MP_KMCData *data, int id, int ids[]);
@@ -148,7 +149,7 @@ int MP_KMCRead(MP_KMCData *data, char *filename);
 * rotindex functions
 */
 int MP_KMCAddRotIndex(MP_KMCData *data, int ids[]);
-int MP_KMCCalcRotIndex(MP_KMCData *data, double step);
+int MP_KMCCalcRotIndex(MP_KMCData *data, double step, double tol);
 
 /*--------------------------------------------------
 * rand functions
@@ -166,6 +167,7 @@ typedef struct MP_FSFCCParm {
 		PyObject *pyfunc;
 #endif
 	short type;
+	double lc;
 	double a[6];
 	double R[2];
 	double A[2];

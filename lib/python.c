@@ -52,30 +52,32 @@ static PyMemberDef PyKMCMembers[] = {
 	{ "nuc", T_INT, offsetof(MP_KMCData, nuc), 1, "number of atoms in unit cell" },
 	{ "ntot", T_INT, offsetof(MP_KMCData, ntot), 1, "total number of allocated memory" },
 	{ "ncluster", T_INT, offsetof(MP_KMCData, ncluster), 1, "number of atoms in cluster" },
+	{ "nrot", T_INT, offsetof(MP_KMCData, nrot), 1, "number of rotation index" },
+	{ "table_use", T_INT, offsetof(MP_KMCData, table_use), 0, "flag for using table" },
 	{ "ntable", T_INT, offsetof(MP_KMCData, ntable), 1, "number of table" },
-	{ "solvent", T_INT, offsetof(MP_KMCData, solvent), 1, "type of solvent" },
 	{ "nsolute", T_INT, offsetof(MP_KMCData, nsolute), 1, "number of solute atoms" },
 	{ "nsolute_max", T_INT, offsetof(MP_KMCData, nsolute_max), 1, "maximum number of solute atoms" },
-	{ "ntypes", T_INT, offsetof(MP_KMCData, ntypes), 1, "number of types" },
 	{ "nevent", T_INT, offsetof(MP_KMCData, nevent), 1, "number of events" },
 	{ "step", T_INT, offsetof(MP_KMCData, step), 1, "step" },
 	{ "rand_seed", T_LONG, offsetof(MP_KMCData, rand_seed), 0, "seed of random number" },
-	{ "tote", T_DOUBLE, offsetof(MP_KMCData, tote), 0, "total energy" },
+	{ "tote", T_DOUBLE, offsetof(MP_KMCData, tote), 1, "total energy" },
 	{ NULL }  /* Sentinel */
 };
 
 static PyObject *PyKMCSetUnitCell(MP_KMCData *self, PyObject *args, PyObject *kwds)
 {
-	PyObject *uc;
-	static char *kwlist[] = { "uc", NULL };
+	PyObject *uc, *types, *pv;
+	static char *kwlist[] = { "uc", "types", "pv", NULL };
 	PyObject *tp;
 	double duc[MP_KMC_NUC_MAX][3];
+	short stypes[MP_KMC_NUC_MAX];
+	double dpv[3][3];
 	int i, j;
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O", kwlist, &uc)) {
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "OOO", kwlist, &uc, &types, &pv)) {
 		return NULL;
 	}
-	if (PyTuple_Size(uc) != self->nuc) {
+	if (PyTuple_Size(uc) != self->nuc || PyTuple_Size(types) != self->nuc || PyTuple_Size(pv) != 3) {
 		return NULL;
 	}
 	for (i = 0; i < self->nuc; i++) {
@@ -83,8 +85,15 @@ static PyObject *PyKMCSetUnitCell(MP_KMCData *self, PyObject *args, PyObject *kw
 		for (j = 0; j < 3; j++) {
 			duc[i][j] = (double)PyFloat_AsDouble(PyTuple_GetItem(tp, (Py_ssize_t)j));
 		}
+		stypes[i] = (short)PyInt_AsLong(PyTuple_GetItem(types, (Py_ssize_t)i));
 	}
-	MP_KMCSetUnitCell(self, duc);
+	for (i = 0; i < 3; i++) {
+		tp = PyTuple_GetItem(pv, (Py_ssize_t)i);
+		for (j = 0; j < 3; j++) {
+			dpv[i][j] = (double)PyFloat_AsDouble(PyTuple_GetItem(tp, (Py_ssize_t)j));
+		}
+	}
+	MP_KMCSetUnitCell(self, duc, stypes, dpv);
 	Py_RETURN_NONE;
 }
 
@@ -112,16 +121,24 @@ static PyObject *PyKMCSetCluster(MP_KMCData *self, PyObject *args, PyObject *kwd
 	Py_RETURN_NONE;
 }
 
-static PyObject *PyKMCSetSolvent(MP_KMCData *self, PyObject *args, PyObject *kwds)
+static PyObject *PyKMCRealPos(MP_KMCData *self, PyObject *args, PyObject *kwds)
 {
-	short type;
-	static char *kwlist[] = { "type", NULL };
+	PyObject *cp;
+	static char *kwlist[] = { "cp", NULL };
+	double dcp[3], drp[3];
+	int i;
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "h", kwlist, &type)) {
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O", kwlist, &cp)) {
 		return NULL;
 	}
-	MP_KMCSetSolvent(self, type);
-	Py_RETURN_NONE;
+	if (PyTuple_Size(cp) != 3) {
+		return NULL;
+	}
+	for (i = 0; i < 3; i++) {
+		dcp[i] = (double)PyFloat_AsDouble(PyTuple_GetItem(cp, (Py_ssize_t)i));
+	}
+	MP_KMCRealPos(self, dcp, drp);
+	return Py_BuildValue("ddd", drp[0], drp[1], drp[2]);
 }
 
 static PyObject *PyKMCIndex2Grid(MP_KMCData *self, PyObject *args, PyObject *kwds)
@@ -474,11 +491,14 @@ static PyObject *PyKMCTableItem(MP_KMCData *self, PyObject *args, PyObject *kwds
 	if (!PyArg_ParseTupleAndKeywords(args, kwds, "i", kwlist, &id)) {
 		return NULL;
 	}
-	tps = PyTuple_New((Py_ssize_t)self->ncluster);
-	for (i = 0; i < self->ncluster; i++) {
-		PyTuple_SetItem(tps, (Py_ssize_t)i, PyInt_FromLong(self->table[id].types[i]));
+	if (id >= 0 && id < self->ntable) {
+		tps = PyTuple_New((Py_ssize_t)self->ncluster);
+		for (i = 0; i < self->ncluster; i++) {
+			PyTuple_SetItem(tps, (Py_ssize_t)i, PyInt_FromLong(self->table[id].types[i]));
+		}
+		return Py_BuildValue("Odl", tps, self->table[id].energy, self->table[id].refcount);
 	}
-	return Py_BuildValue("Odl", tps, self->table[id].energy, self->table[id].refcount);
+	else return NULL;
 }
 
 static PyObject *PyKMCGridItem(MP_KMCData *self, PyObject *args, PyObject *kwds)
@@ -489,7 +509,10 @@ static PyObject *PyKMCGridItem(MP_KMCData *self, PyObject *args, PyObject *kwds)
 	if (!PyArg_ParseTupleAndKeywords(args, kwds, "i", kwlist, &id)) {
 		return NULL;
 	}
-	return Py_BuildValue("hd", self->grid[id].type, self->grid[id].energy);
+	if (id >= 0 && id < self->ntot) {
+		return Py_BuildValue("hd", self->grid[id].type, self->grid[id].energy);
+	}
+	else return NULL;
 }
 
 static PyObject *PyKMCSoluteItem(MP_KMCData *self, PyObject *args, PyObject *kwds)
@@ -500,18 +523,10 @@ static PyObject *PyKMCSoluteItem(MP_KMCData *self, PyObject *args, PyObject *kwd
 	if (!PyArg_ParseTupleAndKeywords(args, kwds, "i", kwlist, &id)) {
 		return NULL;
 	}
-	return Py_BuildValue("dh", self->solute[id].id, self->solute[id].type);
-}
-
-static PyObject *PyKMCTypes(MP_KMCData *self, PyObject *args, PyObject *kwds)
-{
-	int id;
-	static char *kwlist[] = { "id", NULL };
-
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "i", kwlist, &id)) {
-		return NULL;
+	if (id >= 0 && id < self->nsolute) {
+		return Py_BuildValue("ihh", self->solute[id].id, self->solute[id].type, self->solute[id].jump);
 	}
-	return Py_BuildValue("h", self->types[id]);
+	else return NULL;
 }
 
 static PyObject *PyKMCAddRotIndex(MP_KMCData *self, PyObject *args, PyObject *kwds)
@@ -536,21 +551,42 @@ static PyObject *PyKMCAddRotIndex(MP_KMCData *self, PyObject *args, PyObject *kw
 static PyObject *PyKMCCalcRotIndex(MP_KMCData *self, PyObject *args, PyObject *kwds)
 {
 	double step;
-	static char *kwlist[] = { "step", NULL };
+	double tol;
+	static char *kwlist[] = { "step", "tol", NULL };
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "d", kwlist, &step)) {
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "dd", kwlist, &step, &tol)) {
 		return NULL;
 	}
-	return Py_BuildValue("i", MP_KMCCalcRotIndex(self, step));
+	return Py_BuildValue("i", MP_KMCCalcRotIndex(self, step, tol));
+}
+
+static PyObject *PyKMCGetRotIndex(MP_KMCData *self, PyObject *args, PyObject *kwds)
+{
+	int id;
+	static char *kwlist[] = { "id", NULL };
+	PyObject *tps;
+	int i;
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "i", kwlist, &id)) {
+		return NULL;
+	}
+	if (id >= 0 && id < self->nrot) {
+		tps = PyTuple_New((Py_ssize_t)self->ncluster);
+		for (i = 0; i < self->ncluster; i++) {
+			PyTuple_SetItem(tps, (Py_ssize_t)i, PyInt_FromLong(self->rot_index[id][i]));
+		}
+		return tps;
+	}
+	else return NULL;
 }
 
 static PyMethodDef PyKMCMethods[] = {
 	{ "set_unitcell", (PyCFunction)PyKMCSetUnitCell, METH_VARARGS | METH_KEYWORDS,
-	"set_unitcell(uc) : set atom position of unit cell" },
+	"set_unitcell(uc, types, pv) : set unit cell" },
 	{ "set_cluster", (PyCFunction)PyKMCSetCluster, METH_VARARGS | METH_KEYWORDS,
 	"set_cluster(cluster) : set atom position of cluster" },
-	{ "set_solvent", (PyCFunction)PyKMCSetSolvent, METH_VARARGS | METH_KEYWORDS,
-	"set_solvent(type) : set type of solvent" },
+	{ "real_pos", (PyCFunction)PyKMCRealPos, METH_VARARGS | METH_KEYWORDS,
+	"real_pos(cp) : return real position" },
 	{ "index2grid", (PyCFunction)PyKMCIndex2Grid, METH_VARARGS | METH_KEYWORDS,
 	"index2grid(id) : return grid position from index" },
 	{ "grid2index", (PyCFunction)PyKMCGrid2Index, METH_VARARGS | METH_KEYWORDS,
@@ -599,14 +635,73 @@ static PyMethodDef PyKMCMethods[] = {
 	"grid_item(id) : return grid item" },
 	{ "solute_item", (PyCFunction)PyKMCSoluteItem, METH_VARARGS | METH_KEYWORDS,
 	"solute_item(id) : return solute item" },
-	{ "types", (PyCFunction)PyKMCTypes, METH_VARARGS | METH_KEYWORDS,
-	"types(id) : return type" },
 	{ "add_rot_index", (PyCFunction)PyKMCAddRotIndex, METH_VARARGS | METH_KEYWORDS,
 	"add_rot_index(ids) : add rotation index" },
 	{ "calc_rot_index", (PyCFunction)PyKMCCalcRotIndex, METH_VARARGS | METH_KEYWORDS,
-	"calc_rot_index(step) : calculate rotation index" },
+	"calc_rot_index(step, tol) : calculate rotation index" },
+	{ "get_rot_index", (PyCFunction)PyKMCGetRotIndex, METH_VARARGS | METH_KEYWORDS,
+	"get_rot_index(id) : get rotation index" },
 	{ NULL }  /* Sentinel */
 };
+
+static PyObject *PyKMCGetUC(MP_KMCData *self, void *closure)
+{
+	PyObject *tps;
+	int i;
+
+	tps = PyTuple_New((Py_ssize_t)self->nuc);
+	for (i = 0; i < self->nuc; i++) {
+		PyTuple_SetItem(tps, (Py_ssize_t)i,
+			Py_BuildValue("ddd", self->uc[i][0], self->uc[i][1], self->uc[i][2]));
+	}
+	return tps;
+}
+
+static PyObject *PyKMCGetUCTypes(MP_KMCData *self, void *closure)
+{
+	PyObject *tps;
+	int i;
+
+	tps = PyTuple_New((Py_ssize_t)self->nuc);
+	for (i = 0; i < self->nuc; i++) {
+		PyTuple_SetItem(tps, (Py_ssize_t)i, PyInt_FromLong(self->uc_types[i]));
+	}
+	return tps;
+}
+
+static PyObject *PyKMCGetPV(MP_KMCData *self, void *closure)
+{
+	return Py_BuildValue("(ddd)(ddd)(ddd)",
+		self->pv[0][0], self->pv[0][1], self->pv[0][2],
+		self->pv[1][0], self->pv[1][1], self->pv[1][2], 
+		self->pv[2][0], self->pv[2][1], self->pv[2][2]);
+}
+
+static PyObject *PyKMCGetCluster(MP_KMCData *self, void *closure)
+{
+	PyObject *tps;
+	int i;
+
+	tps = PyTuple_New((Py_ssize_t)self->ncluster);
+	for (i = 0; i < self->ncluster; i++) {
+		PyTuple_SetItem(tps, (Py_ssize_t)i,
+			Py_BuildValue("ddd", self->cluster[i][0], self->cluster[i][1], self->cluster[i][2]));
+	}
+	return tps;
+}
+
+static PyObject *PyKMCGetRCluster(MP_KMCData *self, void *closure)
+{
+	PyObject *tps;
+	int i;
+
+	tps = PyTuple_New((Py_ssize_t)self->ncluster);
+	for (i = 0; i < self->ncluster; i++) {
+		PyTuple_SetItem(tps, (Py_ssize_t)i,
+			Py_BuildValue("ddd", self->rcluster[i][0], self->rcluster[i][1], self->rcluster[i][2]));
+	}
+	return tps;
+}
 
 static PyObject *PyKMCGetSize(MP_KMCData *self, void *closure)
 {
@@ -630,6 +725,11 @@ static int PyKMCSetHTable(MP_KMCData *self, PyObject *value, void *closure)
 }
 
 static PyGetSetDef PyKMCGetSet[] = {
+	{ "uc", (getter)PyKMCGetUC, NULL, "atom positions of unit cell", NULL },
+	{ "uc_types", (getter)PyKMCGetUCTypes, NULL, "atom types of unit cell", NULL },
+	{ "pv", (getter)PyKMCGetPV, NULL, "primitive vector", NULL },
+	{ "cluster", (getter)PyKMCGetCluster, NULL, "atom positions of cluster", NULL },
+	{ "rcluster", (getter)PyKMCGetRCluster, NULL, "real atom positions of cluster", NULL },
 	{ "size", (getter)PyKMCGetSize, NULL, "size of grid", NULL },
 	{ "htable", (getter)PyKMCGetHTable, (setter)PyKMCSetHTable, "header of table", NULL },
 	{ NULL }  /* Sentinel */
