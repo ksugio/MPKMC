@@ -15,13 +15,14 @@ int MP_KMCAlloc(MP_KMCData *data, int nuc, int nx, int ny, int nz, int ncluster,
 	data->grid = (MP_KMCGridItem *)malloc(data->ntot*sizeof(MP_KMCGridItem));
 	data->table = (MP_KMCTableItem *)malloc(ntable_step*sizeof(MP_KMCTableItem));
 	data->table_types = (short *)malloc(ncluster*ntable_step*sizeof(short));
+	data->clusterid = (int *)malloc(nuc*ncluster*4*sizeof(int));
 	data->rot_index = (int **)malloc(MP_KMC_NROT_MAX*sizeof(int *));
 	data->rot_index_et = (int *)malloc(ncluster*MP_KMC_NROT_MAX*sizeof(int));
 	data->solute = (MP_KMCSoluteItem *)malloc(nsolute_max*sizeof(MP_KMCSoluteItem));
 	data->event = (MP_KMCEventItem *)malloc(nevent_step*sizeof(MP_KMCEventItem));
 	if (data->grid == NULL || data->table == NULL || data->table_types == NULL
-		|| data->rot_index == NULL || data->rot_index_et == NULL || data->solute == NULL
-		|| data->event == NULL) return FALSE;
+		|| data->clusterid == NULL || data->rot_index == NULL || data->rot_index_et == NULL
+		|| data->solute == NULL || data->event == NULL) return FALSE;
 	for (i = 0; i < nuc; i++) {
 		data->uc[i][0] = 0.0, data->uc[i][1] = 0.0, data->uc[i][2] = 0.0;
 		data->uc_types[i] = -1;
@@ -62,6 +63,7 @@ void MP_KMCFree(MP_KMCData *data)
 	free(data->grid);
 	free(data->table);
 	free(data->table_types);
+	free(data->clusterid);
 	free(data->rot_index);
 	free(data->rot_index_et);
 	free(data->solute);
@@ -96,9 +98,39 @@ void MP_KMCSetUnitCell(MP_KMCData *data, double uc[][3], short types[], double p
 	}
 }
 
-void MP_KMCSetCluster(MP_KMCData *data, double cluster[][3])
+static int SearchClusterIndex(MP_KMCData *data, int p, double cluster[], int *np, int *dx, int *dy, int *dz)
 {
-	int i;
+	int i, j;
+	double x, y, z;
+	int neigh[27][3] = {
+		{ 0, 0, 0 },{ 1, 0, 0 },{ -1, 0, 0 },{ 0, 1, 0 },{ 0, -1, 0 },{ 1, 1, 0 },
+		{ 1, -1, 0 },{ -1, 1, 0 },{ -1, -1, 0 },{ 0, 0, 1 },{ 1, 0, 1 },{ -1, 0, 1 },
+		{ 0, 1, 1 },{ 0, -1, 1 },{ 1, 1, 1 },{ 1, -1, 1 },{ -1, 1, 1 },{ -1, -1, 1 },
+		{ 0, 0, -1 },{ 1, 0, -1 },{ -1, 0, -1 },{ 0, 1, -1 },{ 0, -1, -1 },{ 1, 1, -1 },
+		{ 1, -1, -1 },{ -1, 1, -1 },{ -1, -1, -1 } };
+
+	for (i = 0; i < 27; i++) {
+		for (j = 0; j < data->nuc; j++) {
+			x = neigh[i][0] + data->uc[j][0] - data->uc[p][0];
+			y = neigh[i][1] + data->uc[j][1] - data->uc[p][1];
+			z = neigh[i][2] + data->uc[j][2] - data->uc[p][2];
+			if (x == cluster[0] && y == cluster[1] && z == cluster[2]) {
+				*np = j;
+				*dx = neigh[i][0];
+				*dy = neigh[i][1];
+				*dz = neigh[i][2];
+				return TRUE;
+			}
+		}
+	}
+	return FALSE;
+}
+
+int MP_KMCSetCluster(MP_KMCData *data, double cluster[][3])
+{
+	int i, j;
+	int np, dx, dy, dz;
+	int sp;
 	double rp[3];
 
 	for (i = 0; i < data->ncluster; i++) {
@@ -110,6 +142,22 @@ void MP_KMCSetCluster(MP_KMCData *data, double cluster[][3])
 		data->rcluster[i][1] = rp[1];
 		data->rcluster[i][2] = rp[2];
 	}
+	for (i = 0; i < data->nuc; i++) {
+		for (j = 0; j < data->ncluster; j++) {
+			if (SearchClusterIndex(data, i, cluster[j], &np, &dx, &dy, &dz)) {
+				sp = i * (data->ncluster * 4) + j * 4;
+				data->clusterid[sp++] = np;
+				data->clusterid[sp++] = dx;
+				data->clusterid[sp++] = dy;
+				data->clusterid[sp++] = dz;
+			}
+			else {
+				fprintf(stderr, "Error : Cluster position not match to Unitcell position.\n");
+				return FALSE;
+			}
+		}
+	}
+	return TRUE;
 }
 
 void MP_KMCRealPos(MP_KMCData *data, double cp[], double rp[])
@@ -138,68 +186,40 @@ int MP_KMCGrid2Index(MP_KMCData *data, int p, int x, int y, int z)
 	return p + x*data->nuc + y*(data->nuc*data->size[0]) + z*(data->nuc*data->size[0]*data->size[1]);
 }
 
-static int SearchNeigh(MP_KMCData *data, int cp, int p, int x, int y, int z, int *np, int *nx, int *ny, int *nz)
-{
-	int i, j;
-	double dx, dy, dz;
-	int neigh[27][3] = {
-		{ 0, 0, 0 },{ 1, 0, 0 },{ -1, 0, 0 },{ 0, 1, 0 },{ 0, -1, 0 },{ 1, 1, 0 },
-		{ 1, -1, 0 },{ -1, 1, 0 },{ -1, -1, 0 },{ 0, 0, 1 },{ 1, 0, 1 },{ -1, 0, 1 },
-		{ 0, 1, 1 },{ 0, -1, 1 },{ 1, 1, 1 },{ 1, -1, 1 },{ -1, 1, 1 },{ -1, -1, 1 },
-		{ 0, 0, -1 },{ 1, 0, -1 },{ -1, 0, -1 },{ 0, 1, -1 },{ 0, -1, -1 },{ 1, 1, -1 },
-		{ 1, -1, -1 },{ -1, 1, -1 },{ -1, -1, -1 } };
-
-	for (i = 0; i < 27; i++) {
-		for (j = 0; j < data->nuc; j++) {
-			dx = neigh[i][0] + data->uc[j][0] - data->uc[p][0];
-			dy = neigh[i][1] + data->uc[j][1] - data->uc[p][1];
-			dz = neigh[i][2] + data->uc[j][2] - data->uc[p][2];
-			if (dx == data->cluster[cp][0] && dy == data->cluster[cp][1] && dz == data->cluster[cp][2]) {
-				*np = j;
-				*nx = x + neigh[i][0];
-				*ny = y + neigh[i][1];
-				*nz = z + neigh[i][2];
-				if (*nx < 0) {
-					*nx += data->size[0];
-				}
-				else if (*nx >= data->size[0]) {
-					*nx -= data->size[0];
-				}
-				if (*ny < 0) {
-					*ny += data->size[1];
-				}
-				else if (*ny >= data->size[1]) {
-					*ny -= data->size[1];
-				}
-				if (*nz < 0) {
-					*nz += data->size[2];
-				}
-				else if (*nz >= data->size[2]) {
-					*nz -= data->size[2];
-				}
-				return TRUE;
-			}
-		}
-	}
-	return FALSE;
-}
-
-int MP_KMCClusterIndexes(MP_KMCData *data, int id, int ids[])
+void MP_KMCClusterIndexes(MP_KMCData *data, int id, int ids[])
 {
 	int i;
 	int p, x, y, z;
 	int np, nx, ny, nz;
+	int sp;
 
 	MP_KMCIndex2Grid(data, id, &p, &x, &y, &z);
 	for (i = 0; i < data->ncluster; i++) {
-		if (SearchNeigh(data, i, p, x, y, z, &np, &nx, &ny, &nz)) {
-			ids[i] = MP_KMCGrid2Index(data, np, nx, ny, nz);
+		sp = p * (data->ncluster * 4) + i * 4;
+		np = data->clusterid[sp++];
+		nx = x + data->clusterid[sp++];
+		ny = y + data->clusterid[sp++];
+		nz = z + data->clusterid[sp++];
+		if (nx < 0) {
+			nx += data->size[0];
 		}
-		else {
-			return FALSE;
+		else if (nx >= data->size[0]) {
+			nx -= data->size[0];
 		}
+		if (ny < 0) {
+			ny += data->size[1];
+		}
+		else if (ny >= data->size[1]) {
+			ny -= data->size[1];
+		}
+		if (nz < 0) {
+			nz += data->size[2];
+		}
+		else if (nz >= data->size[2]) {
+			nz -= data->size[2];
+		}
+		ids[i] = MP_KMCGrid2Index(data, np, nx, ny, nz);
 	}
-	return TRUE;
 }
 
 int MP_KMCSearchCluster(MP_KMCData *data, short types[])

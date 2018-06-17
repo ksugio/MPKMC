@@ -94,6 +94,7 @@ typedef struct MP_KMCData {
 	int ncluster;
 	double cluster[MP_KMC_NCLUSTER_MAX][3];
 	double rcluster[MP_KMC_NCLUSTER_MAX][3];
+	int *clusterid;
 	int nrot;
 	int **rot_index;
 	int *rot_index_et;
@@ -120,11 +121,11 @@ int MP_KMCAlloc(MP_KMCData *data, int nuc, int nx, int ny, int nz, int ncluster,
 	int nsolute_max, int ntable_step, int nevent_step);
 void MP_KMCFree(MP_KMCData *data);
 void MP_KMCSetUnitCell(MP_KMCData *data, double uc[][3], short types[], double pv[][3]);
-void MP_KMCSetCluster(MP_KMCData *data, double cluster[][3]);
+int MP_KMCSetCluster(MP_KMCData *data, double cluster[][3]);
 void MP_KMCRealPos(MP_KMCData *data, double cp[], double rp[]);
 void MP_KMCIndex2Grid(MP_KMCData *data, int id, int *p, int *x, int *y, int *z);
 int MP_KMCGrid2Index(MP_KMCData *data, int p, int x, int y, int z);
-int MP_KMCClusterIndexes(MP_KMCData *data, int id, int ids[]);
+void MP_KMCClusterIndexes(MP_KMCData *data, int id, int ids[]);
 int MP_KMCSearchCluster(MP_KMCData *data, short types[]);
 int MP_KMCSearchClusterIDs(MP_KMCData *data, int ids[]);
 int MP_KMCAddCluster(MP_KMCData *data, short types[], double energy, long refcount);
