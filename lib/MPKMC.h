@@ -96,8 +96,7 @@ typedef struct MP_KMCData {
 	double rcluster[MP_KMC_NCLUSTER_MAX][3];
 	int *clusterid;
 	int nrot;
-	int **rot_index;
-	int *rot_index_et;
+	int *rotid;
 	int table_use;
 	int ntable;
 	int ntable_step;
@@ -159,7 +158,7 @@ float MP_Rand(long *rand_seed);
 float MP_RandGauss(long *rand_seed);
 
 /*--------------------------------------------------
-* fs typedef and functions
+* fsfcc typedef and functions
 */
 
 typedef struct MP_FSFCCParm {
@@ -181,6 +180,24 @@ PyTypeObject MP_FSFCCPyType;
 
 int MP_FSFCCInit(MP_FSFCCParm *parm, short type);
 double MP_FSFCCEnergy(MP_FSFCCParm *parm, MP_KMCData *data, short types[]);
+
+/*--------------------------------------------------
+* fsbcc typedef and functions
+*/
+
+typedef struct MP_FSBCCParm {
+#ifndef _DEBUG
+	PyObject_HEAD
+		PyObject *pyfunc;
+#endif
+	short type;
+	double d;
+	double A;
+	double beta;
+	double c[4];
+} MP_FSBCCParm;
+
+
 
 #ifdef __cplusplus
 }

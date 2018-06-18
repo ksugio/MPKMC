@@ -16,13 +16,12 @@ int MP_KMCAlloc(MP_KMCData *data, int nuc, int nx, int ny, int nz, int ncluster,
 	data->table = (MP_KMCTableItem *)malloc(ntable_step*sizeof(MP_KMCTableItem));
 	data->table_types = (short *)malloc(ncluster*ntable_step*sizeof(short));
 	data->clusterid = (int *)malloc(nuc*ncluster*4*sizeof(int));
-	data->rot_index = (int **)malloc(MP_KMC_NROT_MAX*sizeof(int *));
-	data->rot_index_et = (int *)malloc(ncluster*MP_KMC_NROT_MAX*sizeof(int));
+	data->rotid = (int *)malloc(MP_KMC_NROT_MAX*ncluster*sizeof(int));
 	data->solute = (MP_KMCSoluteItem *)malloc(nsolute_max*sizeof(MP_KMCSoluteItem));
 	data->event = (MP_KMCEventItem *)malloc(nevent_step*sizeof(MP_KMCEventItem));
 	if (data->grid == NULL || data->table == NULL || data->table_types == NULL
-		|| data->clusterid == NULL || data->rot_index == NULL || data->rot_index_et == NULL
-		|| data->solute == NULL || data->event == NULL) return FALSE;
+		|| data->clusterid == NULL || data->rotid == NULL || data->solute == NULL
+		|| data->event == NULL) return FALSE;
 	for (i = 0; i < nuc; i++) {
 		data->uc[i][0] = 0.0, data->uc[i][1] = 0.0, data->uc[i][2] = 0.0;
 		data->uc_types[i] = -1;
@@ -36,9 +35,6 @@ int MP_KMCAlloc(MP_KMCData *data, int nuc, int nx, int ny, int nz, int ncluster,
 	}
 	for (i = 0; i < ncluster; i++) {
 		data->cluster[i][0] = 0.0, data->cluster[i][1] = 0.0, data->cluster[i][2] = 0.0;
-	}
-	for (i = 0; i < MP_KMC_NROT_MAX; i++) {
-		data->rot_index[i] = data->rot_index_et + i*ncluster;
 	}
 	for (i = 0; i < ntable_step; i++) {
 		data->table[i].types = data->table_types + i*ncluster;
@@ -64,8 +60,7 @@ void MP_KMCFree(MP_KMCData *data)
 	free(data->table);
 	free(data->table_types);
 	free(data->clusterid);
-	free(data->rot_index);
-	free(data->rot_index_et);
+	free(data->rotid);
 	free(data->solute);
 	free(data->event);
 }
@@ -130,7 +125,7 @@ int MP_KMCSetCluster(MP_KMCData *data, double cluster[][3])
 {
 	int i, j;
 	int np, dx, dy, dz;
-	int sp;
+	int pt;
 	double rp[3];
 
 	for (i = 0; i < data->ncluster; i++) {
@@ -145,11 +140,11 @@ int MP_KMCSetCluster(MP_KMCData *data, double cluster[][3])
 	for (i = 0; i < data->nuc; i++) {
 		for (j = 0; j < data->ncluster; j++) {
 			if (SearchClusterIndex(data, i, cluster[j], &np, &dx, &dy, &dz)) {
-				sp = i * (data->ncluster * 4) + j * 4;
-				data->clusterid[sp++] = np;
-				data->clusterid[sp++] = dx;
-				data->clusterid[sp++] = dy;
-				data->clusterid[sp++] = dz;
+				pt = i * (data->ncluster * 4) + j * 4;
+				data->clusterid[pt++] = np;
+				data->clusterid[pt++] = dx;
+				data->clusterid[pt++] = dy;
+				data->clusterid[pt] = dz;
 			}
 			else {
 				fprintf(stderr, "Error : Cluster position not match to Unitcell position.\n");
@@ -191,15 +186,15 @@ void MP_KMCClusterIndexes(MP_KMCData *data, int id, int ids[])
 	int i;
 	int p, x, y, z;
 	int np, nx, ny, nz;
-	int sp;
+	int pt;
 
 	MP_KMCIndex2Grid(data, id, &p, &x, &y, &z);
 	for (i = 0; i < data->ncluster; i++) {
-		sp = p * (data->ncluster * 4) + i * 4;
-		np = data->clusterid[sp++];
-		nx = x + data->clusterid[sp++];
-		ny = y + data->clusterid[sp++];
-		nz = z + data->clusterid[sp++];
+		pt = p * (data->ncluster * 4) + i * 4;
+		np = data->clusterid[pt++];
+		nx = x + data->clusterid[pt++];
+		ny = y + data->clusterid[pt++];
+		nz = z + data->clusterid[pt];
 		if (nx < 0) {
 			nx += data->size[0];
 		}
@@ -226,13 +221,15 @@ int MP_KMCSearchCluster(MP_KMCData *data, short types[])
 {
 	int i, j, k;
 	int count;
+	int sp;
 
 	for (i = 0; i < data->ntable; i++) {
 		if (data->table[i].types[0] == types[0]) {
 			for (j = 0; j < data->nrot; j++) {
 				count = 0;
+				sp = j * data->ncluster;
 				for (k = 1; k < data->ncluster; k++) {
-					if (data->table[i].types[k] == types[data->rot_index[j][k]]) count++;
+					if (data->table[i].types[k] == types[data->rotid[sp+k]]) count++;
 				}
 				if (count == data->ncluster - 1) return i;
 			}
@@ -718,6 +715,7 @@ void MP_KMCResetTable(MP_KMCData *data)
 int MP_KMCWrite(MP_KMCData *data, char *filename, int comp)
 {
 	int i, j;
+	int sp;
 	gzFile gfp;
 	char mode[32];
 
@@ -744,8 +742,9 @@ int MP_KMCWrite(MP_KMCData *data, char *filename, int comp)
 	gzprintf(gfp, "nevent_step %d\n", data->nevent_step);
 	gzprintf(gfp, "nrot %d\n", data->nrot);
 	for (i = 0; i < data->nrot; i++) {
+		sp = i * data->ncluster;
 		for (j = 0; j < data->ncluster; j++) {
-			gzprintf(gfp, "%d ", data->rot_index[i][j]);
+			gzprintf(gfp, "%d ", data->rotid[sp+j]);
 		}
 		gzprintf(gfp, "\n");
 	}

@@ -30,6 +30,9 @@
     <ClCompile Include="fsfcc.c">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="fsbcc.c">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MPKMC.h">

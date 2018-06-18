@@ -91,19 +91,22 @@ static int updateIndexes(MP_KMCData *data, double az, double ay, double ax, doub
 int MP_KMCAddRotIndex(MP_KMCData *data, int ids[])
 {
 	int i, j;
+	int sp;
 
 	if (data->nrot >= MP_KMC_NROT_MAX) {
 		fprintf(stderr, "Error : too many indexes (MP_KMCAddRotIndex)\n");
 		return FALSE;
 	}
 	for (i = 0; i < data->nrot; i++) {
+		sp = i * data->ncluster;
 		for (j = 0; j < data->ncluster; j++) {
-			if (data->rot_index[i][j] != ids[j]) break;
+			if (data->rotid[sp+j] != ids[j]) break;
 		}
 		if (j == data->ncluster) return FALSE;
 	}
+	sp = i * data->ncluster;
 	for (j = 0; j < data->ncluster; j++) {
-		data->rot_index[i][j] = ids[j];
+		data->rotid[sp+j] = ids[j];
 	}
 	data->nrot++;
 	return TRUE;

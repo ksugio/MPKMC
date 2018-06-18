@@ -128,8 +128,8 @@ int main(int argc, char *argv[])
 	MP_KMCAddSoluteRandom(&data, 3, 0, TRUE);
 	ene = MP_KMCTotalEnergy(&data, calcFSFCC, &update);
 	printf("%d %.15e\n", data.ntable, ene);
-//	MP_KMCJump(&data, 10000, Kb*T, calcFSFCC, &update);
-//	printf("%d %.15e\n", data.ntable, data.tote);
+	MP_KMCJump(&data, 10000, Kb*T, calcFSFCC, &update);
+	printf("%d %.15e\n", data.ntable, data.tote);
 //	MP_KMCTotalEnergy(&data, calcFSFCC, &update);
 //	printf("f %f %d\n", data.tote, update);
 //	MP_KMCStepBackward(&data, 9);

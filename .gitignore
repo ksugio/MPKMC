@@ -159,7 +159,6 @@ $RECYCLE.BIN/
 .DS_Store
 
 # for python
-*.pyd
 *.mpkmc
 *.etb
 

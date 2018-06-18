@@ -560,26 +560,6 @@ static PyObject *PyKMCCalcRotIndex(MP_KMCData *self, PyObject *args, PyObject *k
 	return Py_BuildValue("i", MP_KMCCalcRotIndex(self, step, tol));
 }
 
-static PyObject *PyKMCGetRotIndex(MP_KMCData *self, PyObject *args, PyObject *kwds)
-{
-	int id;
-	static char *kwlist[] = { "id", NULL };
-	PyObject *tps;
-	int i;
-
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "i", kwlist, &id)) {
-		return NULL;
-	}
-	if (id >= 0 && id < self->nrot) {
-		tps = PyTuple_New((Py_ssize_t)self->ncluster);
-		for (i = 0; i < self->ncluster; i++) {
-			PyTuple_SetItem(tps, (Py_ssize_t)i, PyInt_FromLong(self->rot_index[id][i]));
-		}
-		return tps;
-	}
-	else return NULL;
-}
-
 static PyMethodDef PyKMCMethods[] = {
 	{ "set_unitcell", (PyCFunction)PyKMCSetUnitCell, METH_VARARGS | METH_KEYWORDS,
 	"set_unitcell(uc, types, pv) : set unit cell" },
@@ -639,8 +619,6 @@ static PyMethodDef PyKMCMethods[] = {
 	"add_rot_index(ids) : add rotation index" },
 	{ "calc_rot_index", (PyCFunction)PyKMCCalcRotIndex, METH_VARARGS | METH_KEYWORDS,
 	"calc_rot_index(step, tol) : calculate rotation index" },
-	{ "get_rot_index", (PyCFunction)PyKMCGetRotIndex, METH_VARARGS | METH_KEYWORDS,
-	"get_rot_index(id) : get rotation index" },
 	{ NULL }  /* Sentinel */
 };
 
