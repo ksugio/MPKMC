@@ -28,5 +28,5 @@ if __name__ == "__main__":
     for temp in T:
         njump, update = kmc.jump(Ntry, Kb*temp, FSFCCEnergy)
         print temp, njump, kmc.tote, kmc.ntable
-    kmc.write_table('fsfcc2.etb')
-    kmc.write('fsfcc2.mpkmc', 8)
+    kmc.write_table('fsfcc.etb')
+    kmc.write('fsfcc.mpkmc', 8)

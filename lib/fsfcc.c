@@ -147,8 +147,8 @@ static PyObject *PyNew(PyTypeObject *type, PyObject *args, PyObject *kwds)
 }
 
 static PyMemberDef PyMembers[] = {
-	{ "type", T_SHORT, offsetof(MP_FSFCCParm, type), 1, "type" },
-	{ "lc", T_DOUBLE, offsetof(MP_FSFCCParm, lc), 1, "lc" },
+	{ "type", T_SHORT, offsetof(MP_FSFCCParm, type), 1, "atom type" },
+	{ "lc", T_DOUBLE, offsetof(MP_FSFCCParm, lc), 1, "lattice constant" },
 	{ NULL }  /* Sentinel */
 };
 

@@ -50,7 +50,7 @@ static PyObject *PyKMCReadNew(PyTypeObject *type, PyObject *args, PyObject *kwds
 
 static PyMemberDef PyKMCMembers[] = {
 	{ "nuc", T_INT, offsetof(MP_KMCData, nuc), 1, "number of atoms in unit cell" },
-	{ "ntot", T_INT, offsetof(MP_KMCData, ntot), 1, "total number of allocated memory" },
+	{ "ntot", T_INT, offsetof(MP_KMCData, ntot), 1, "total number of atom sites" },
 	{ "ncluster", T_INT, offsetof(MP_KMCData, ncluster), 1, "number of atoms in cluster" },
 	{ "nrot", T_INT, offsetof(MP_KMCData, nrot), 1, "number of rotation index" },
 	{ "table_use", T_INT, offsetof(MP_KMCData, table_use), 0, "flag for using table" },
@@ -58,7 +58,7 @@ static PyMemberDef PyKMCMembers[] = {
 	{ "nsolute", T_INT, offsetof(MP_KMCData, nsolute), 1, "number of solute atoms" },
 	{ "nsolute_max", T_INT, offsetof(MP_KMCData, nsolute_max), 1, "maximum number of solute atoms" },
 	{ "nevent", T_INT, offsetof(MP_KMCData, nevent), 1, "number of events" },
-	{ "step", T_INT, offsetof(MP_KMCData, step), 1, "step" },
+	{ "step", T_INT, offsetof(MP_KMCData, step), 1, "current step" },
 	{ "rand_seed", T_LONG, offsetof(MP_KMCData, rand_seed), 0, "seed of random number" },
 	{ "tote", T_DOUBLE, offsetof(MP_KMCData, tote), 1, "total energy" },
 	{ NULL }  /* Sentinel */
@@ -585,7 +585,7 @@ static PyMethodDef PyKMCMethods[] = {
 	{ "index2grid", (PyCFunction)PyKMCIndex2Grid, METH_VARARGS | METH_KEYWORDS,
 	"index2grid(id) : return grid position from index" },
 	{ "grid2index", (PyCFunction)PyKMCGrid2Index, METH_VARARGS | METH_KEYWORDS,
-	"grid2index(x, y, z) : return index from grid position" },
+	"grid2index(p, x, y, z) : return index from grid position" },
 	{ "cluster_indexes", (PyCFunction)PyKMCClusterIndexes, METH_VARARGS | METH_KEYWORDS,
 	"cluster_indexes(id) : return cluster indexes" },
 	{ "search_cluster", (PyCFunction)PyKMCSearchCluster, METH_VARARGS | METH_KEYWORDS,
@@ -607,9 +607,9 @@ static PyMethodDef PyKMCMethods[] = {
 	{ "jump", (PyCFunction)PyKMCJump, METH_VARARGS | METH_KEYWORDS,
 	"jump(ntry, kt, func) : jump diffusions by KMC method" },
 	{ "step_forward", (PyCFunction)PyKMCStepForward, METH_VARARGS | METH_KEYWORDS,
-	"step_forward(count) : take a step forward" },
+	"step_forward(count) : take steps forward" },
 	{ "step_backward", (PyCFunction)PyKMCStepBackward, METH_VARARGS | METH_KEYWORDS,
-	"step_backward(count) : take a step backward" },
+	"step_backward(count) : take steps backward" },
 	{ "step_go", (PyCFunction)PyKMCStepGo, METH_VARARGS | METH_KEYWORDS,
 	"step_go(step) : go to step" },
 	{ "energy_history", (PyCFunction)PyKMCEnergyHistory, METH_VARARGS | METH_KEYWORDS,
@@ -723,7 +723,7 @@ static PyGetSetDef PyKMCGetSet[] = {
 	{ "pv", (getter)PyKMCGetPV, NULL, "primitive vector", NULL },
 	{ "cluster", (getter)PyKMCGetCluster, NULL, "atom positions of cluster", NULL },
 	{ "rcluster", (getter)PyKMCGetRCluster, NULL, "real atom positions of cluster", NULL },
-	{ "size", (getter)PyKMCGetSize, NULL, "size of grid", NULL },
+	{ "size", (getter)PyKMCGetSize, NULL, "size of simulation cell", NULL },
 	{ "htable", (getter)PyKMCGetHTable, (setter)PyKMCSetHTable, "header of table", NULL },
 	{ NULL }  /* Sentinel */
 };
@@ -750,7 +750,7 @@ static PyTypeObject PyKMCNewType = {
 	0,							/*tp_setattro*/
 	0,							/*tp_as_buffer*/
 	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,	/*tp_flags*/
-	"new(lat_type, nx, ny, nz, solvent, ndiffuse_max, ntable_step)", 	/* tp_doc */
+	"new(nuc, nx, ny, nz, ncluster, nsolute_max, ntable_step, nevent_step)", 	/* tp_doc */
 	0,							/* tp_traverse */
 	0,							/* tp_clear */
 	0,							/* tp_richcompare */
