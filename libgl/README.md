@@ -86,3 +86,22 @@ MPGLKMC.so is created and copied to python directory.
   + mat = ((m00, m01, m02, m03), (...), (...), (...)) : transformation matrix
   + mat_inv = ((i00, i01, i02, i03), (...), (...), (...)) : inversed transformation matrix
   + scale = scale : scale
+
+## scene()
++ CLASS METHODS
+  + light_add(x, y, z, w) : add light
+  + light_ambient(id, red, green, blue, alpha) : set light ambient
+  + light_diffuse(id, red, green, blue, alpha) : set light diffuse
+  + light_position(id, x, y, z, w) : set light position
+  + light_specular(id, red, green, blue, alpha) : set light specular
+  + resize(width, height) : resize window
+  + setup() : setup scene
++ CLASS DATA
+  + clear_color = (red, green, blue, alpha) : clear color
+  + lookat = (ex, ey, ez, cx, cy, cz, ux, uy, yz) : viewpoint
+  + mat_emission = (red, green, blue, alpha) : material emission
+  + mat_shininess = shininess : material shininess
+  + mat_specular = (red, green, blue, alpha) : material specular
+  + proj = {0:frustum 1:ortho} : projection mode
+  + zfar = z : zfar of viewing volume
+  + znear = z : znear of viewing volume

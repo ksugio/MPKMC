@@ -77,11 +77,11 @@ MPKMC.so is created and copied to python directory.
   + ntot : total number of atom sites
   + nuc : number of atoms in unit cell
   + pv : primitive vector
-  + rand_seed : seed of random number
+  + rand_seed = seed : seed of random number
   + rcluster : real atom positions of cluster
   + size : size of simulation cell
   + step : current step
-  + table_use : flag for using table
+  + table_use = {0:False | 1:True} : flag for using table
   + tote : total energy
   + uc : atom positions of unit cell
   + uc_types : atom types of unit cell
