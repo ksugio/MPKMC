@@ -522,6 +522,7 @@ class MainWindow(QtGui.QMainWindow):
     fname = QtGui.QFileDialog.getOpenFileName(self, 'Open file')
     if fname:
       self.glwidget.kmc = MPKMC.read(str(fname))
+      self.glwidget.kmc.total_energy(None)
       self.glwidget.model.init()
       self.glwidget.fitModel()
       self.glwidget.cmpRange()

@@ -32,15 +32,15 @@ static PyObject *PyKMCReadNew(PyTypeObject *type, PyObject *args, PyObject *kwds
 {
 	char *fname;
 	int version = 1;
-	static char *kwlist[] = { "fname", NULL };
+	static char *kwlist[] = { "fname", "version", NULL };
 	MP_KMCData *self;
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "s", kwlist, &fname)) {
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "s|i", kwlist, &fname, &version)) {
 		return NULL;
 	}
 	self = (MP_KMCData *)type->tp_alloc(type, 0);
 	if (self != NULL) {
-		if (!MP_KMCRead(self, fname)) {
+		if (!MP_KMCRead(self, fname, version)) {
 			Py_DECREF(self);
 			return NULL;
 		}
@@ -326,12 +326,17 @@ static PyObject *PyKMCCalcEnergy(MP_KMCData *self, PyObject *args, PyObject *kwd
 	if (!PyArg_ParseTupleAndKeywords(args, kwds, "iO", kwlist, &id, &func)) {
 		return NULL;
 	}
-	if (!PyCallable_Check(func)) {
-		PyErr_SetString(PyExc_TypeError, "func must be callable");
-		return NULL;
+	if (func == Py_None) {
+		ene = MP_KMCCalcEnergy(self, id, NULL, &update);
 	}
-	self->pyfunc = func;
-	ene = MP_KMCCalcEnergy(self, id, calcEnergy, &update);
+	else {
+		if (!PyCallable_Check(func)) {
+			PyErr_SetString(PyExc_TypeError, "func must be callable");
+			return NULL;
+		}
+		self->pyfunc = func;
+		ene = MP_KMCCalcEnergy(self, id, calcEnergy, &update);
+	}
 	return Py_BuildValue("di", ene, update);
 }
 
@@ -345,12 +350,17 @@ static PyObject *PyKMCTotalEnergy(MP_KMCData *self, PyObject *args, PyObject *kw
 	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O", kwlist, &func)) {
 		return NULL;
 	}
-	if (!PyCallable_Check(func)) {
-		PyErr_SetString(PyExc_TypeError, "func must be callable");
-		return NULL;
+	if (func == Py_None) {
+		ene = MP_KMCTotalEnergy(self, NULL, &update);
 	}
-	self->pyfunc = func;
-	ene = MP_KMCTotalEnergy(self, calcEnergy, &update);
+	else {
+		if (!PyCallable_Check(func)) {
+			PyErr_SetString(PyExc_TypeError, "func must be callable");
+			return NULL;
+		}
+		self->pyfunc = func;
+		ene = MP_KMCTotalEnergy(self, calcEnergy, &update);
+	}
 	return Py_BuildValue("di", ene, update);
 }
 
@@ -366,12 +376,17 @@ static PyObject *PyKMCJump(MP_KMCData *self, PyObject *args, PyObject *kwds)
 	if (!PyArg_ParseTupleAndKeywords(args, kwds, "idO", kwlist, &ntry, &kt, &func)) {
 		return NULL;
 	}
-	if (!PyCallable_Check(func)) {
-		PyErr_SetString(PyExc_TypeError, "func must be callable");
-		return NULL;
+	if (func == Py_None) {
+		njump = MP_KMCJump(self, ntry, kt, NULL, &update);
 	}
-	self->pyfunc = func;
-	njump = MP_KMCJump(self, ntry, kt, calcEnergy, &update);
+	else {
+		if (!PyCallable_Check(func)) {
+			PyErr_SetString(PyExc_TypeError, "func must be callable");
+			return NULL;
+		}
+		self->pyfunc = func;
+		njump = MP_KMCJump(self, ntry, kt, calcEnergy, &update);
+	}
 	return Py_BuildValue("ii", njump, update);
 }
 
@@ -777,7 +792,7 @@ static PyTypeObject PyKMCReadType = {
 	0,							/*tp_setattro*/
 	0,							/*tp_as_buffer*/
 	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,	/*tp_flags*/
-	"read(fname)",				/* tp_doc */
+	"read(fname, [version=1])",				/* tp_doc */
 	0,							/* tp_traverse */
 	0,							/* tp_clear */
 	0,							/* tp_richcompare */

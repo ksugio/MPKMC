@@ -143,7 +143,7 @@ int MP_KMCReadTable(MP_KMCData *data, char *filename);
 void MP_KMCSortTable(MP_KMCData *data);
 void MP_KMCResetTable(MP_KMCData *data);
 int MP_KMCWrite(MP_KMCData *data, char *filename, int comp);
-int MP_KMCRead(MP_KMCData *data, char *filename);
+int MP_KMCRead(MP_KMCData *data, char *filename, int version);
 
 /*--------------------------------------------------
 * rotindex functions

@@ -27,7 +27,7 @@ void MPGL_KMCDrawColormapRange(MPGL_KMCDraw *draw, MP_KMCData *data, MPGL_Colorm
 	double max = -1.0e32;
 
 	for (i = 0; i < data->ntot; i++) {
-		if (data->grid[i].type >= 0) {
+		if (data->grid[i].type > 0) {
 			if (data->grid[i].energy < min) min = data->grid[i].energy;
 			if (data->grid[i].energy > max) max = data->grid[i].energy;
 		}
