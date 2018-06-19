@@ -350,7 +350,7 @@ static PyObject *PyNew(PyTypeObject *type, PyObject *args, PyObject *kwds)
 }
 
 static PyMemberDef PyMembers[] = {
-	{ "scale", T_FLOAT, offsetof(MPGL_Model, scale), 0, "scale" },
+	{ "scale", T_FLOAT, offsetof(MPGL_Model, scale), 0, "scale = scale : scale" },
 	{ NULL }  /* Sentinel */
 };
 
@@ -635,9 +635,9 @@ static int PySetMatInv(MPGL_Model *self, PyObject *value, void *closure)
 }
 
 static PyGetSetDef PyGetSet[] = {
-	{ "mat", (getter)PyGetMat, (setter)PySetMat, "mat = ((m00, m01, m02, m03), (...), (...), (...))", NULL },
-	{ "center", (getter)PyGetCenter, (setter)PySetCenter, "center = (cx, cy, cz)", NULL },
-	{ "mat_inv", (getter)PyGetMatInv, (setter)PySetMatInv, "mat_inv = ((i00, i01, i02, i03), (...), (...), (...))", NULL },
+	{ "mat", (getter)PyGetMat, (setter)PySetMat, "mat = ((m00, m01, m02, m03), (...), (...), (...)) : transformation matrix", NULL },
+	{ "center", (getter)PyGetCenter, (setter)PySetCenter, "center = (cx, cy, cz) : center of rotation", NULL },
+	{ "mat_inv", (getter)PyGetMatInv, (setter)PySetMatInv, "mat_inv = ((i00, i01, i02, i03), (...), (...), (...)) : inversed transformation matrix", NULL },
 	{ NULL }  /* Sentinel */
 };
 

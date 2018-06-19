@@ -480,10 +480,10 @@ static PyMethodDef PyMethods[] = {
 };
 
 static PyMemberDef PyMembers[] = {
-	{ "kind", T_INT, offsetof(MPGL_KMCDraw, kind), 0, "draw kind, 0:type 1:energy" },
-	{ "res", T_INT, offsetof(MPGL_KMCDraw, res), 0, "resolution of sphere" },
-	{ "frame_width", T_FLOAT, offsetof(MPGL_KMCDraw, frame_width), 0, "frame width" },
-	{ "ntypes", T_INT, offsetof(MPGL_KMCDraw, ntypes), 0, "number of registered types" },
+	{ "kind", T_INT, offsetof(MPGL_KMCDraw, kind), 0, "kind = {0:type | 1:energy} : draw kind, " },
+	{ "res", T_INT, offsetof(MPGL_KMCDraw, res), 0, "res = res : resolution of sphere" },
+	{ "frame_width", T_FLOAT, offsetof(MPGL_KMCDraw, frame_width), 0, "frame_width = width : frame width" },
+	{ "ntypes", T_INT, offsetof(MPGL_KMCDraw, ntypes), 1, "ntypes : number of registered types" },
 	{ NULL }  /* Sentinel */
 };
 
@@ -520,8 +520,8 @@ static int PySetShift(MPGL_KMCDraw *self, PyObject *value, void *closure)
 }
 
 static PyGetSetDef PyGetSet[] = {
-	{ "frame_color", (getter)PyGetFrameColor, (setter)PySetFrameColor, "frame color", NULL },
-	{ "shift", (getter)PyGetShift, (setter)PySetShift, "shift in drawing", NULL },
+	{ "frame_color", (getter)PyGetFrameColor, (setter)PySetFrameColor, "frame_color = (red, green, blue) : frame color", NULL },
+	{ "shift", (getter)PyGetShift, (setter)PySetShift, "shift = (dx, dy, dz) : shift in drawing", NULL },
 	{ NULL }  /* Sentinel */
 };
 

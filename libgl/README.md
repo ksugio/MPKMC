@@ -38,7 +38,7 @@ MPGLKMC.so is created and copied to python directory.
   + frame_color = (red, green, blue) : frame color
   + frame_width = width : frame width
   + kind = {0:type | 1:energy} : draw kind
-  + ntypes = num : number of registered types
+  + ntypes : number of registered types
   + res = res : resolution of sphere
   + shift = (dx, dy, dz) : shift in drawing
 

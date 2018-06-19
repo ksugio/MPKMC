@@ -192,12 +192,12 @@ static PyObject *PyNew(PyTypeObject *type, PyObject *args, PyObject *kwds)
 }
 
 static PyMemberDef PyMembers[] = {
-	{ "mode", T_INT, offsetof(MPGL_Colormap, mode), 0, "mode, {0:step, 1:gradation}" },
-	{ "title", T_STRING, offsetof(MPGL_Colormap, title), 0, "title" },
-	{ "nstep", T_INT, offsetof(MPGL_Colormap, nstep), 0, "number of step color" },
-	{ "ngrad", T_INT, offsetof(MPGL_Colormap, ngrad), 0, "number of gradiation color" },
-	{ "nscale", T_INT, offsetof(MPGL_Colormap, nscale), 0, "number of scale" },
-	{ "font_type", T_INT, offsetof(MPGL_Colormap, font_type), 0, "font type, {0:10pt, 1:12pt, 2:18pt}" },
+	{ "mode", T_INT, offsetof(MPGL_Colormap, mode), 0, "mode = {0:step | 1:gradation} : colormap mode" },
+	{ "title", T_STRING, offsetof(MPGL_Colormap, title), 0, "title = txt : colormap title" },
+	{ "nstep", T_INT, offsetof(MPGL_Colormap, nstep), 0, "nstep = num : number of step color" },
+	{ "ngrad", T_INT, offsetof(MPGL_Colormap, ngrad), 0, "ngrad = num : number of gradiation color" },
+	{ "nscale", T_INT, offsetof(MPGL_Colormap, nscale), 0, "nscale = num : number of scale" },
+	{ "font_type", T_INT, offsetof(MPGL_Colormap, font_type), 0, "font_type = {0:10pt | 1:12pt | 2:18pt} : font type" },
 	{ NULL }  /* Sentinel */
 };
 
@@ -373,9 +373,9 @@ static int PySetFontColor(MPGL_Colormap *self, PyObject *value, void *closure)
 }
 
 static PyGetSetDef PyGetSet[] = {
-	{ "range", (getter)PyGetRange, (setter)PySetRange, "range = (min, max)", NULL },
-	{ "size", (getter)PyGetSize, (setter)PySetSize, "size = (width, height)", NULL },
-	{ "font_color", (getter)PyGetFontColor, (setter)PySetFontColor, "font_color = (red, green, blue)", NULL },
+	{ "range", (getter)PyGetRange, (setter)PySetRange, "range = (min, max) : colormap range", NULL },
+	{ "size", (getter)PyGetSize, (setter)PySetSize, "size = (width, height) : colormap size", NULL },
+	{ "font_color", (getter)PyGetFontColor, (setter)PySetFontColor, "font_color = (red, green, blue) : font color", NULL },
 	{ NULL }  /* Sentinel */
 };
 

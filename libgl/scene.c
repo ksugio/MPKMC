@@ -255,11 +255,11 @@ static PyMethodDef PyMethods[] = {
 	{ "light_position", (PyCFunction)PyLightPosition, METH_VARARGS | METH_KEYWORDS,
 	"light_position(id, x, y, z, w) : set light position" },
 	{ "light_specular", (PyCFunction)PyLightSpecular, METH_VARARGS | METH_KEYWORDS,
-	"light_specular(id, r, g, b, a) : set light specular" },
+	"light_specular(id, red, green, blue, alpha) : set light specular" },
 	{ "light_diffuse", (PyCFunction)PyLightDiffuse, METH_VARARGS | METH_KEYWORDS,
-	"light_diffuse(id, r, g, b, a) : set light diffuse" },
+	"light_diffuse(id, red, green, blue, alpha) : set light diffuse" },
 	{ "light_ambient", (PyCFunction)PyLightAmbient, METH_VARARGS | METH_KEYWORDS,
-	"light_ambient(id, r, g, b, a) : set light specular" },
+	"light_ambient(id, red, green, blue, alpha) : set light ambient" },
 	{ "setup", (PyCFunction)PySetup, METH_NOARGS,
 	"setup() : setup scene" },
 	{ "resize", (PyCFunction)PyResize, METH_VARARGS | METH_KEYWORDS,
@@ -268,10 +268,10 @@ static PyMethodDef PyMethods[] = {
 };
 
 static PyMemberDef PyMembers[] = {
-	{ "proj", T_INT, offsetof(MPGL_Scene, proj), 0, "projection mode, 0:frustum 1:ortho" },
-	{ "znear", T_DOUBLE, offsetof(MPGL_Scene, znear), 0, "near of viewing volume" },
-	{ "zfar", T_DOUBLE, offsetof(MPGL_Scene, zfar), 0, "far of viewing volume" },
-	{ "mat_shininess", T_FLOAT, offsetof(MPGL_Scene, mat_shininess), 0, "material shininess" },
+	{ "proj", T_INT, offsetof(MPGL_Scene, proj), 0, "proj = {0:frustum | 1:ortho} : projection mode, " },
+	{ "znear", T_DOUBLE, offsetof(MPGL_Scene, znear), 0, "znear = z : znear of viewing volume" },
+	{ "zfar", T_DOUBLE, offsetof(MPGL_Scene, zfar), 0, "zfar = z : zfar of viewing volume" },
+	{ "mat_shininess", T_FLOAT, offsetof(MPGL_Scene, mat_shininess), 0, "mat_shininess = shininess : material shininess" },
 	{ NULL }  /* Sentinel */
 };
 
@@ -349,10 +349,10 @@ static int PySetClearColor(MPGL_Scene *self, PyObject *value, void *closure)
 }
 
 static PyGetSetDef PyGetSet[] = {
-	{ "lookat", (getter)PyGetLookat, (setter)PySetLookat, "lookat = (ex, ey, ez, cx, cy, cz, ux, uy, yz)", NULL },
-	{ "mat_specular", (getter)PyGetMatSpecular, (setter)PySetMatSpecular, "mat_specular = (r, g, b, a)", NULL },
-	{ "mat_emission", (getter)PyGetMatEmission, (setter)PySetMatEmission, "mat_emission = (r, g, b, a)", NULL },
-	{ "clear_color", (getter)PyGetClearColor, (setter)PySetClearColor, "clear_color = (r, g, b, a)", NULL },
+	{ "lookat", (getter)PyGetLookat, (setter)PySetLookat, "lookat = (ex, ey, ez, cx, cy, cz, ux, uy, yz) : viewpoint", NULL },
+	{ "mat_specular", (getter)PyGetMatSpecular, (setter)PySetMatSpecular, "mat_specular = (red, green, blue, alpha) : material specular", NULL },
+	{ "mat_emission", (getter)PyGetMatEmission, (setter)PySetMatEmission, "mat_emission = (red, green, blue, alpha) : material emission", NULL },
+	{ "clear_color", (getter)PyGetClearColor, (setter)PySetClearColor, "clear_color = (red, green, blue, alpha) : clear color", NULL },
 	{ NULL }  /* Sentinel */
 };
 
