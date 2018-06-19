@@ -475,7 +475,7 @@ static PyMethodDef PyMethods[] = {
 	{ "region", (PyCFunction)PyKMCDrawRegion, METH_VARARGS | METH_KEYWORDS,
 	"region(kmc) : return draw region" },
 	{ "types", (PyCFunction)PyKMCDrawTypes, METH_VARARGS | METH_KEYWORDS,
-	"types(id) : return type" },
+	"types(id) : return registered type" },
 	{ NULL }  /* Sentinel */
 };
 
@@ -483,7 +483,7 @@ static PyMemberDef PyMembers[] = {
 	{ "kind", T_INT, offsetof(MPGL_KMCDraw, kind), 0, "draw kind, 0:type 1:energy" },
 	{ "res", T_INT, offsetof(MPGL_KMCDraw, res), 0, "resolution of sphere" },
 	{ "frame_width", T_FLOAT, offsetof(MPGL_KMCDraw, frame_width), 0, "frame width" },
-	{ "ntypes", T_INT, offsetof(MPGL_KMCDraw, ntypes), 0, "number of types" },
+	{ "ntypes", T_INT, offsetof(MPGL_KMCDraw, ntypes), 0, "number of registered types" },
 	{ NULL }  /* Sentinel */
 };
 
@@ -521,7 +521,7 @@ static int PySetShift(MPGL_KMCDraw *self, PyObject *value, void *closure)
 
 static PyGetSetDef PyGetSet[] = {
 	{ "frame_color", (getter)PyGetFrameColor, (setter)PySetFrameColor, "frame color", NULL },
-	{ "shift", (getter)PyGetShift, (setter)PySetShift, "shift", NULL },
+	{ "shift", (getter)PyGetShift, (setter)PySetShift, "shift in drawing", NULL },
 	{ NULL }  /* Sentinel */
 };
 
