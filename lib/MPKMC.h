@@ -15,7 +15,7 @@ extern "C" {
 #define M_PI 3.14159265358979323846
 #endif
 
-#ifndef _DEBUG
+#ifdef PYTHON_DLL
 #ifndef Py_PYTHON_H
 #include <Python.h>
 #endif
@@ -70,6 +70,7 @@ typedef struct MP_KMCSoluteItem {
 	int id;
 	short type;
 	short jump;
+	int njump;
 } MP_KMCSoluteItem;
 
 typedef struct MP_KMCEventItem {
@@ -80,7 +81,7 @@ typedef struct MP_KMCEventItem {
 } MP_KMCEventItem;
 
 typedef struct MP_KMCData {
-#ifndef _DEBUG
+#ifdef PYTHON_DLL
 	PyObject_HEAD
 	PyObject *pyfunc;
 #endif
@@ -93,6 +94,7 @@ typedef struct MP_KMCData {
 	MP_KMCGridItem *grid;
 	int ncluster;
 	double cluster[MP_KMC_NCLUSTER_MAX][3];
+	short jcluster[MP_KMC_NCLUSTER_MAX];
 	double rcluster[MP_KMC_NCLUSTER_MAX][3];
 	int *clusterid;
 	int nrot;
@@ -120,10 +122,11 @@ int MP_KMCAlloc(MP_KMCData *data, int nuc, int nx, int ny, int nz, int ncluster,
 	int nsolute_max, int ntable_step, int nevent_step);
 void MP_KMCFree(MP_KMCData *data);
 void MP_KMCSetUnitCell(MP_KMCData *data, double uc[][3], short types[], double pv[][3]);
-int MP_KMCSetCluster(MP_KMCData *data, double cluster[][3]);
-void MP_KMCRealPos(MP_KMCData *data, double cp[], double rp[]);
+int MP_KMCSetCluster(MP_KMCData *data, double cluster[][3], short jcluster[]);
+void MP_KMCRealPos(MP_KMCData *data, double pos[], double rpos[]);
 void MP_KMCIndex2Grid(MP_KMCData *data, int id, int *p, int *x, int *y, int *z);
 int MP_KMCGrid2Index(MP_KMCData *data, int p, int x, int y, int z);
+void MP_KMCIndex2Pos(MP_KMCData *data, int id, double pos[]);
 void MP_KMCClusterIndexes(MP_KMCData *data, int id, int ids[]);
 int MP_KMCSearchCluster(MP_KMCData *data, short types[]);
 int MP_KMCSearchClusterIDs(MP_KMCData *data, int ids[]);
@@ -162,9 +165,9 @@ float MP_RandGauss(long *rand_seed);
 */
 
 typedef struct MP_FSFCCParm {
-#ifndef _DEBUG
+#ifdef PYTHON_DLL
 	PyObject_HEAD
-		PyObject *pyfunc;
+	PyObject *pyfunc;
 #endif
 	short type;
 	double lc;
@@ -174,30 +177,12 @@ typedef struct MP_FSFCCParm {
 	double r[6];
 } MP_FSFCCParm;
 
-#ifndef _DEBUG
+#ifdef PYTHON_DLL
 PyTypeObject MP_FSFCCPyType;
 #endif
 
 int MP_FSFCCInit(MP_FSFCCParm *parm, short type);
 double MP_FSFCCEnergy(MP_FSFCCParm *parm, MP_KMCData *data, short types[]);
-
-/*--------------------------------------------------
-* fsbcc typedef and functions
-*/
-
-typedef struct MP_FSBCCParm {
-#ifndef _DEBUG
-	PyObject_HEAD
-		PyObject *pyfunc;
-#endif
-	short type;
-	double d;
-	double A;
-	double beta;
-	double c[4];
-} MP_FSBCCParm;
-
-
 
 #ifdef __cplusplus
 }

@@ -114,19 +114,27 @@ int main(int argc, char *argv[])
 				{ 0, 0.5, 0.5 },{ 0.5, 0, 0.5 },{ 0.5, -0.5, 0 },{ 0, -0.5, 0.5 },
 				{ -0.5, 0, 0.5 },{ -0.5, -0.5, 0 },{ 0, -0.5, -0.5 },{ 0.5, 0, -0.5 },
 				{ 1.0, 0, 0 },{ -1.0, 0, 0 },{ 0, 1.0, 0 },{ 0, -1.0, 0 },{ 0, 0, 1.0 },{ 0, 0, -1.0}};
+	short jcluster[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0 };
+//	int i;
+//	double pos0[3], pos1[3];
 
-	MP_KMCRead(&data, "Al-Cu_5.kmc", 0);
-//	MP_KMCAlloc(&data, 4, 2, 2, 2, 19, 100, 1000, 10000);
-//	data.rand_seed = 12345;
-//	data.table_use = TRUE;
-//	MP_KMCSetUnitCell(&data, uc, uc_types, pv);
-//	MP_KMCSetCluster(&data, cluster);
-//	MP_KMCCalcRotIndex(&data, 5.0, 1.0e-6);
-//	MP_KMCAddSoluteRandom(&data, 3, 0, TRUE);
-//	ene = MP_KMCTotalEnergy(&data, calcFSFCC, &update);
-//	printf("%d %.15e\n", data.ntable, ene);
-//	MP_KMCJump(&data, 10000, Kb*T, calcFSFCC, &update);
-//	printf("%d %.15e\n", data.ntable, data.tote);
+//	MP_KMCRead(&data, "Al-Cu_5.kmc", 0);
+	MP_KMCAlloc(&data, 4, 10, 10, 10, 19, 100, 1000, 10000);
+	data.rand_seed = 12345;
+	data.table_use = TRUE;
+	MP_KMCSetUnitCell(&data, uc, uc_types, pv);
+	MP_KMCSetCluster(&data, cluster, jcluster);
+	MP_KMCCalcRotIndex(&data, 5.0, 1.0e-6);
+	MP_KMCAddSoluteRandom(&data, 3, 0, TRUE);
+	ene = MP_KMCTotalEnergy(&data, calcFSFCC, &update);
+	printf("%d %.15e\n", data.ntable, ene);
+	MP_KMCJump(&data, 1000, Kb*T, calcFSFCC, &update);
+	printf("%d %.15e\n", data.ntable, data.tote);
+//	for (i = 0; i < data.nevent; i++) {
+//		MP_KMCIndex2Pos(&data, data.event[i].id0, pos0);
+//		MP_KMCIndex2Pos(&data, data.event[i].id1, pos1);
+//		printf("%f %f %f\n", pos1[0] - pos0[0], pos1[1] - pos0[1], pos1[2] - pos0[2]);
+//	}
 //	MP_KMCTotalEnergy(&data, calcFSFCC, &update);
 //	printf("f %f %d\n", data.tote, update);
 //	MP_KMCStepBackward(&data, 9);
@@ -137,9 +145,9 @@ int main(int argc, char *argv[])
 //		printf("%d %f\n", i, ehist[i]);
 //	}
 //	MP_KMCRead(&data, "test.mpkmc");
-//	MP_KMCWrite(&data, "test.mpkmc", 8);
-//	MP_KMCRead(&data, "test.mpkmc");
-//	MP_KMCWrite(&data, "test2.mpkmc", 8);
+	MP_KMCWrite(&data, "test.mpkmc", 0);
+	MP_KMCRead(&data, "test.mpkmc", 1);
+	MP_KMCWrite(&data, "test2.mpkmc", 0);
 //	MP_KMCWriteTable(&data, "test.etb");
 	MP_KMCFree(&data);
 }

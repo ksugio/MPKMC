@@ -175,7 +175,7 @@ void MPGL_ColormapDraw(MPGL_Colormap *colormap)
 /**********************************************************
 * for Python
 **********************************************************/
-#ifndef _DEBUG
+#ifdef PYTHON_DLL
 
 static void PyDealloc(MPGL_Colormap* self)
 {
@@ -421,4 +421,4 @@ PyTypeObject MPGL_ColormapPyType = {
 	PyNew,						/* tp_new */
 };
 
-#endif /* _DEBUG */
+#endif /* PYTHON_DLL */

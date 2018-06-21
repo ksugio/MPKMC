@@ -1,4 +1,4 @@
-#ifndef _DEBUG
+#ifdef PYTHON_DLL
 
 #include "MPKMC.h"
 #include <numpy/arrayobject.h>
@@ -100,15 +100,17 @@ static PyObject *PyKMCSetUnitCell(MP_KMCData *self, PyObject *args, PyObject *kw
 static PyObject *PyKMCSetCluster(MP_KMCData *self, PyObject *args, PyObject *kwds)
 {
 	PyObject *cluster;
-	static char *kwlist[] = { "cluster", NULL };
+	PyObject *jcluster;
+	static char *kwlist[] = { "cluster", "jcluster", NULL };
 	PyObject *tp;
 	double dcluster[MP_KMC_NCLUSTER_MAX][3];
+	short sjcluster[MP_KMC_NCLUSTER_MAX];
 	int i, j;
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O", kwlist, &cluster)) {
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "OO", kwlist, &cluster, &jcluster)) {
 		return NULL;
 	}
-	if (PyTuple_Size(cluster) != self->ncluster) {
+	if (PyTuple_Size(cluster) != self->ncluster || PyTuple_Size(jcluster) != self->ncluster) {
 		return NULL;
 	}
 	for (i = 0; i < self->ncluster; i++) {
@@ -116,29 +118,29 @@ static PyObject *PyKMCSetCluster(MP_KMCData *self, PyObject *args, PyObject *kwd
 		for (j = 0; j < 3; j++) {
 			dcluster[i][j] = (double)PyFloat_AsDouble(PyTuple_GetItem(tp, (Py_ssize_t)j));
 		}
+		sjcluster[i] = (short)PyInt_AsLong(PyTuple_GetItem(jcluster, (Py_ssize_t)i));
 	}
-	MP_KMCSetCluster(self, dcluster);
-	Py_RETURN_NONE;
+	return Py_BuildValue("i", MP_KMCSetCluster(self, dcluster, sjcluster));
 }
 
 static PyObject *PyKMCRealPos(MP_KMCData *self, PyObject *args, PyObject *kwds)
 {
-	PyObject *cp;
-	static char *kwlist[] = { "cp", NULL };
-	double dcp[3], drp[3];
+	PyObject *pos;
+	static char *kwlist[] = { "pos", NULL };
+	double dpos[3], drpos[3];
 	int i;
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O", kwlist, &cp)) {
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O", kwlist, &pos)) {
 		return NULL;
 	}
-	if (PyTuple_Size(cp) != 3) {
+	if (PyTuple_Size(pos) != 3) {
 		return NULL;
 	}
 	for (i = 0; i < 3; i++) {
-		dcp[i] = (double)PyFloat_AsDouble(PyTuple_GetItem(cp, (Py_ssize_t)i));
+		dpos[i] = (double)PyFloat_AsDouble(PyTuple_GetItem(pos, (Py_ssize_t)i));
 	}
-	MP_KMCRealPos(self, dcp, drp);
-	return Py_BuildValue("ddd", drp[0], drp[1], drp[2]);
+	MP_KMCRealPos(self, dpos, drpos);
+	return Py_BuildValue("ddd", drpos[0], drpos[1], drpos[2]);
 }
 
 static PyObject *PyKMCIndex2Grid(MP_KMCData *self, PyObject *args, PyObject *kwds)
@@ -163,6 +165,19 @@ static PyObject *PyKMCGrid2Index(MP_KMCData *self, PyObject *args, PyObject *kwd
 		return NULL;
 	}
 	return Py_BuildValue("i", MP_KMCGrid2Index(self, p, x, y, z));
+}
+
+static PyObject *PyKMCIndex2Pos(MP_KMCData *self, PyObject *args, PyObject *kwds)
+{
+	int id;
+	static char *kwlist[] = { "id", NULL };
+	double pos[3];
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "i", kwlist, &id)) {
+		return NULL;
+	}
+	MP_KMCIndex2Pos(self, id, pos);
+	return Py_BuildValue("ddd", pos[0], pos[1], pos[2]);
 }
 
 static PyObject *PyKMCClusterIndexes(MP_KMCData *self, PyObject *args, PyObject *kwds)
@@ -579,13 +594,15 @@ static PyMethodDef PyKMCMethods[] = {
 	{ "set_unitcell", (PyCFunction)PyKMCSetUnitCell, METH_VARARGS | METH_KEYWORDS,
 	"set_unitcell(uc, types, pv) : set unit cell" },
 	{ "set_cluster", (PyCFunction)PyKMCSetCluster, METH_VARARGS | METH_KEYWORDS,
-	"set_cluster(cluster) : set atom position of cluster" },
+	"set_cluster(cluster, jcluster) : set atom position of cluster" },
 	{ "real_pos", (PyCFunction)PyKMCRealPos, METH_VARARGS | METH_KEYWORDS,
 	"real_pos(cp) : return real position" },
 	{ "index2grid", (PyCFunction)PyKMCIndex2Grid, METH_VARARGS | METH_KEYWORDS,
-	"index2grid(id) : return grid position from index" },
+	"index2grid(id) : return grid position of i-th atom" },
 	{ "grid2index", (PyCFunction)PyKMCGrid2Index, METH_VARARGS | METH_KEYWORDS,
 	"grid2index(p, x, y, z) : return index from grid position" },
+	{ "index2pos", (PyCFunction)PyKMCIndex2Pos, METH_VARARGS | METH_KEYWORDS,
+	"index2pos(id) : return atom position of i-th atom" },
 	{ "cluster_indexes", (PyCFunction)PyKMCClusterIndexes, METH_VARARGS | METH_KEYWORDS,
 	"cluster_indexes(id) : return cluster indexes" },
 	{ "search_cluster", (PyCFunction)PyKMCSearchCluster, METH_VARARGS | METH_KEYWORDS,
@@ -837,4 +854,4 @@ PyMODINIT_FUNC initMPKMC(void)
 	PyModule_AddObject(m, "fsfcc", (PyObject *)&MP_FSFCCPyType);
 }
 
-#endif /* _DEBUG */
+#endif /* PYTHON_DLL */

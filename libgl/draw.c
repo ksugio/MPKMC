@@ -306,7 +306,7 @@ void MPGL_KMCDrawRegion(MP_KMCData *data, float region[])
 /**********************************************************
 * for Python
 **********************************************************/
-#ifndef _DEBUG
+#ifdef PYTHON_DLL
 
 static void PyDealloc(MPGL_KMCDraw *self)
 {
@@ -567,4 +567,4 @@ PyTypeObject MPGL_KMCDrawDataPyType = {
 	PyNew,						/* tp_new */
 };
 
-#endif /* _DEBUG */
+#endif /* PYTHON_DLL */

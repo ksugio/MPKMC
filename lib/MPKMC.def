@@ -7,6 +7,7 @@ EXPORTS
 	MP_KMCRealPos
 	MP_KMCIndex2Grid
 	MP_KMCGrid2Index
+	MP_KMCIndex2Pos
 	MP_KMCClusterIndexes
 	MP_KMCSearchCluster
 	MP_KMCSearchClusterIDs

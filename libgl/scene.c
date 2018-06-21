@@ -118,7 +118,7 @@ void MPGL_SceneResize(MPGL_Scene *scene, int width, int height)
 /**********************************************************
 * for Python
 **********************************************************/
-#ifndef _DEBUG
+#ifdef PYTHON_DLL
 
 static void PyDealloc(MPGL_Scene *self)
 {
@@ -398,4 +398,4 @@ PyTypeObject MPGL_ScenePyType = {
 	PyNew,						/* tp_new */
 };
 
-#endif /* _DEBUG */
+#endif /* PYTHON_DLL */

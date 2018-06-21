@@ -7,7 +7,7 @@ def FSFCCEnergy(kmc, types):
 
 if __name__ == "__main__":
     Ntry = 10000
-    T = range(1000, 800, -50)
+    T = range(1100, 800, -10)
     Kb = 86.1735e-6 # ev/K
     uc = ((0, 0, 0), (0.5, 0.5, 0.0), (0.5, 0.0, 0.5), (0.0, 0.5, 0.5))
     uc_types = (29, 29, 29, 29)
@@ -17,10 +17,11 @@ if __name__ == "__main__":
         (0, -0.5, 0.5), (-0.5, 0, 0.5), (-0.5, -0.5, 0), (0, -0.5, -0.5),\
         (0.5, 0, -0.5), (1.0, 0, 0), (-1.0, 0, 0), (0, 1.0, 0), (0, -1.0, 0),\
         (0, 0, 1.0), (0, 0, -1.0))
+    jclu = (1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0)
     kmc = MPKMC.new(4, 10, 10, 10, 19, 100, 1000, 10000)
     kmc.rand_seed = 12345
     kmc.set_unitcell(uc, uc_types, pv)
-    kmc.set_cluster(clu)
+    kmc.set_cluster(clu, jclu)
     kmc.calc_rot_index(5.0, 1.0e-6)
     kmc.add_solute_random(30, 0, 1)
     kmc.total_energy(FSFCCEnergy)
