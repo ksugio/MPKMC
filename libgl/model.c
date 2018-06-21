@@ -333,7 +333,7 @@ void MPGL_ModelTransform(MPGL_Model *model)
 /**********************************************************
 * for Python
 **********************************************************/
-#ifdef PYTHON_DLL
+#ifdef MP_PYTHON_LIB
 
 static void PyDealloc(MPGL_Model* self)
 {
@@ -683,4 +683,4 @@ PyTypeObject MPGL_ModelPyType = {
 	PyNew,						/* tp_new */
 };
 
-#endif /* PYTHON_DLL */
+#endif /* MP_PYTHON_LIB */

@@ -120,7 +120,7 @@ double MP_FSFCCEnergy(MP_FSFCCParm *parm, MP_KMCData *data, short types[])
 /**********************************************************
 * for Python
 **********************************************************/
-#ifdef PYTHON_DLL
+#ifdef MP_PYTHON_LIB
 
 static void PyDealloc(MP_FSFCCParm* self)
 {
@@ -221,4 +221,4 @@ PyTypeObject MP_FSFCCPyType = {
 	PyNew,						/* tp_new */
 };
 
-#endif /* PYTHON_DLL */
+#endif /* MP_PYTHON_LIB */

@@ -26,7 +26,7 @@ extern "C" {
   model typedef and functions
 */
 typedef struct MPGL_Model {
-#ifdef PYTHON_DLL
+#ifdef MP_PYTHON_LIB
 	PyObject_HEAD
 #endif
 	float mat[4][4];
@@ -35,7 +35,7 @@ typedef struct MPGL_Model {
 	float mat_inv[4][4];
 } MPGL_Model;
 
-#ifdef PYTHON_DLL
+#ifdef MP_PYTHON_LIB
 PyTypeObject MPGL_ModelPyType;
 #endif
 
@@ -71,7 +71,7 @@ void MPGL_TextBitmap(const char s[], int font_type);
 enum { MPGL_ColormapStep, MPGL_ColormapGrad };
 
 typedef struct MPGL_Colormap {
-#ifdef PYTHON_DLL
+#ifdef MP_PYTHON_LIB
 	PyObject_HEAD
 #endif
 	int mode;
@@ -88,7 +88,7 @@ typedef struct MPGL_Colormap {
 	float font_color[3];
 } MPGL_Colormap;
 
-#ifdef PYTHON_DLL
+#ifdef MP_PYTHON_LIB
 PyTypeObject MPGL_ColormapPyType;
 #endif
 
@@ -112,7 +112,7 @@ typedef struct MPGL_SceneLight {
 } MPGL_SceneLight;
 
 typedef struct MPGL_Scene {
-#ifdef PYTHON_DLL
+#ifdef MP_PYTHON_LIB
 	PyObject_HEAD
 #endif
 	int proj;
@@ -126,7 +126,7 @@ typedef struct MPGL_Scene {
 	MPGL_SceneLight light[8];
 } MPGL_Scene;
 
-#ifdef PYTHON_DLL
+#ifdef MP_PYTHON_LIB
 PyTypeObject MPGL_ScenePyType;
 #endif
 
@@ -145,7 +145,7 @@ kmc functions
 enum { MPGL_KMCKindType, MPGL_KMCKindEnergy };
 
 typedef struct MPGL_KMCDraw {
-#ifdef PYTHON_DLL
+#ifdef MP_PYTHON_LIB
 	PyObject_HEAD
 #endif
 	int kind;
@@ -159,7 +159,7 @@ typedef struct MPGL_KMCDraw {
 	int shift[3];
 } MPGL_KMCDraw;
 
-#ifdef PYTHON_DLL
+#ifdef MP_PYTHON_LIB
 PyTypeObject MPGL_KMCDrawDataPyType;
 #endif
 

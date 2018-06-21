@@ -1,4 +1,4 @@
-#ifdef PYTHON_DLL
+#ifdef MP_PYTHON_LIB
 
 #include "MPGLKMC.h"
 #include <numpy/arrayobject.h>
@@ -46,4 +46,4 @@ PyMODINIT_FUNC initMPGLKMC(void)
 	PyModule_AddObject(m, "scene", (PyObject *)&MPGL_ScenePyType);
 }
 
-#endif /* PYTHON_DLL */
+#endif /* MP_PYTHON_LIB */

@@ -1,4 +1,4 @@
-#ifdef PYTHON_DLL
+#ifdef MP_PYTHON_LIB
 
 #include "MPKMC.h"
 #include <numpy/arrayobject.h>
@@ -854,4 +854,4 @@ PyMODINIT_FUNC initMPKMC(void)
 	PyModule_AddObject(m, "fsfcc", (PyObject *)&MP_FSFCCPyType);
 }
 
-#endif /* PYTHON_DLL */
+#endif /* MP_PYTHON_LIB */

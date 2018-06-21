@@ -15,7 +15,7 @@ extern "C" {
 #define M_PI 3.14159265358979323846
 #endif
 
-#ifdef PYTHON_DLL
+#ifdef MP_PYTHON_LIB
 #ifndef Py_PYTHON_H
 #include <Python.h>
 #endif
@@ -81,7 +81,7 @@ typedef struct MP_KMCEventItem {
 } MP_KMCEventItem;
 
 typedef struct MP_KMCData {
-#ifdef PYTHON_DLL
+#ifdef MP_PYTHON_LIB
 	PyObject_HEAD
 	PyObject *pyfunc;
 #endif
@@ -165,7 +165,7 @@ float MP_RandGauss(long *rand_seed);
 */
 
 typedef struct MP_FSFCCParm {
-#ifdef PYTHON_DLL
+#ifdef MP_PYTHON_LIB
 	PyObject_HEAD
 	PyObject *pyfunc;
 #endif
@@ -177,7 +177,7 @@ typedef struct MP_FSFCCParm {
 	double r[6];
 } MP_FSFCCParm;
 
-#ifdef PYTHON_DLL
+#ifdef MP_PYTHON_LIB
 PyTypeObject MP_FSFCCPyType;
 #endif
 

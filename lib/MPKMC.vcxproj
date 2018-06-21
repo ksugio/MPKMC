@@ -121,7 +121,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;ZLIB_WINAPI;PYTHON_DLL;NDEBUG;_WINDOWS;_USRDLL;MPKMC_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;ZLIB_WINAPI;MP_PYTHON_LIB;NDEBUG;_WINDOWS;_USRDLL;MPKMC_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
