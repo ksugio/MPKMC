@@ -501,7 +501,7 @@ static void AddEvent(MP_KMCData *data, int dp, int id0, int id1, double de)
 
 int MP_KMCJump(MP_KMCData *data, int ntry, double kt, double(*func)(MP_KMCData *, short *), int *update)
 {
-	int i, j;
+	int j;
 	int dp, cp;
 	int id0, id1;
 	int ids0[MP_KMC_NCLUSTER_MAX];
@@ -510,10 +510,11 @@ int MP_KMCJump(MP_KMCData *data, int ntry, double kt, double(*func)(MP_KMCData *
 	int nncluster;
 	double energy[MP_KMC_NCLUSTER_MAX * 2];
 	double cle0, cle1, clde;
+	int ntried = 0;
 	int njump = 0;
 
 	*update = FALSE;
-	for (i = 0; i < ntry; i++) {
+	while (ntried < ntry) {
 		dp = (int)(MP_Rand(&(data->rand_seed)) * data->nsolute);
 		cp = (int)(MP_Rand(&(data->rand_seed)) * (data->ncluster - 1)) + 1;
 		if (dp < data->nsolute && cp < data->ncluster && data->solute[dp].jump && data->jcluster[cp]) {
@@ -541,6 +542,7 @@ int MP_KMCJump(MP_KMCData *data, int ntry, double kt, double(*func)(MP_KMCData *
 				else {
 					SwapType(data, id0, id1);
 				}
+				ntried++;
 			}
 		}
 	}

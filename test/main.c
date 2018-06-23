@@ -145,9 +145,9 @@ int main(int argc, char *argv[])
 //		printf("%d %f\n", i, ehist[i]);
 //	}
 //	MP_KMCRead(&data, "test.mpkmc");
-	MP_KMCWrite(&data, "test.mpkmc", 0);
-	MP_KMCRead(&data, "test.mpkmc", 1);
-	MP_KMCWrite(&data, "test2.mpkmc", 0);
+//	MP_KMCWrite(&data, "test.mpkmc", 0);
+//	MP_KMCRead(&data, "test.mpkmc", 1);
+//	MP_KMCWrite(&data, "test2.mpkmc", 0);
 //	MP_KMCWriteTable(&data, "test.etb");
 	MP_KMCFree(&data);
 }
