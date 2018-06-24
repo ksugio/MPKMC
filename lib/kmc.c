@@ -542,8 +542,8 @@ int MP_KMCJump(MP_KMCData *data, int ntry, double kt, double(*func)(MP_KMCData *
 				else {
 					SwapType(data, id0, id1);
 				}
-				ntried++;
 			}
+			ntried++;
 		}
 	}
 	return njump;
