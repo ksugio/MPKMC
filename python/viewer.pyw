@@ -32,9 +32,7 @@ class GLWidget(QtOpenGL.QGLWidget):
     self.scene = MPGLKMC.scene()
     self.scene.light_add(1.0, 1.0, 1.0, 0.0)
     self.scene.proj = 0    
-    self.model = []
-    self.model.append(MPGLKMC.model())
-    self.model.append(MPGLKMC.model())
+    self.model = [MPGLKMC.model(), MPGLKMC.model()]
     self.cmp = MPGLKMC.colormap()
     self.tabid = 0
     self.__width = 800
@@ -55,10 +53,11 @@ class GLWidget(QtOpenGL.QGLWidget):
       if self.dispMode == 0:
         GL.glPushMatrix()
         self.model[0].transform()
+        self.draw.transform(self.kmc)
         self.draw.atoms(self.kmc, self.cmp)
         self.draw.frame(self.kmc) 
-        self.draw.translate(self.kmc, -0.5, -0.5, -0.5)
-        self.draw.axis(self.kmc, self.kmc.size, 0.5)
+        GL.glTranslate(-0.3, -0.3, -0.3)
+        self.draw.axis(self.kmc, self.kmc.size, 0.1)
         GL.glPopMatrix()
         self.drawColormap()
         stx = (2.0 * 10 - self.__width) / self.__height
@@ -67,11 +66,17 @@ class GLWidget(QtOpenGL.QGLWidget):
       elif self.dispMode == 1 and self.kmc.ntable > 0:
         GL.glPushMatrix()
         self.model[1].transform()
+        self.draw.transform(self.kmc)
         self.draw.cluster(self.kmc, self.cmp, self.tabid)     
-        self.draw.translate(self.kmc, -1.5, -1.5, -1.5)
+        GL.glTranslate(-1.5, -1.5, -1.5)
         self.draw.axis(self.kmc, (3, 3, 3), 0.1)
         GL.glPopMatrix()
         self.drawColormap()
+        stx = (2.0 * 10 - self.__width) / self.__height
+        sty = 2.0*(self.__height - 20) / self.__height - 1.0
+        item = self.kmc.table_item(self.tabid)
+        s = 'ID %d,   Energy %f,   Count %d' % (self.tabid, item[1], item[2])
+        self.drawString(stx, sty, s)
 
   def drawColormap(self):
     GL.glPushMatrix()
