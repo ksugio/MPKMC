@@ -37,9 +37,9 @@ MPKMC.so is created and copied to python directory.
   + version : version of data format
 + CLASS METHODS
   + add_cluster(types) : add cluster in table and return table index
-  + add_cluster_ids(ids) : add cluster in table by indexes and return table index
+  + add_cluster_ids(ids) : add cluster in table by atom indexes and return table index
   + add_rot_index(ids) : add rotation index
-  + add_solute(id, type, jump) : add a solute atom by id, jump = {0:false | 1:true}
+  + add_solute(id, type, jump) : add a solute atom by an atom index, jump = {0:false | 1:true}
   + add_solute_random(num, type, jump) : add solute atoms randomly, jump = {0:false | 1:true}
   + calc_energy(id, func) : calculate energy of i-th atom
   + calc_rot_index(step, tol) : calculate rotation index
@@ -54,7 +54,7 @@ MPKMC.so is created and copied to python directory.
   + real_pos(pos) : return real position from unit cell position
   + reset_table() : reset reference count of energy table
   + search_cluster(types) : search cluster in table and return table index
-  + search_cluster_ids(ids) : search cluster in table from indexes and return table index
+  + search_cluster_ids(ids) : search cluster in table from atom indexes and return table index
   + set_cluster(cluster, jcluster) : set atom positions and jump flags of cluster, return true if it succeeds
   + set_unitcell(uc, types, pv) : set atom positons, types and primitive vector of unit cell
   + solute_item(id) : return i-th item in solute table
