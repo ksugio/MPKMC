@@ -24,15 +24,18 @@ MPGLKMC.so is created and copied to python directory.
 # References
 ## draw()
 + CLASS METHODS
+  + atoms(kmc, cmp) : draw atoms
+  + atoms region(kmc) : return atoms region for drawing
+  + axis(kmc, (lx, ly, lz), dia) : draw axis
+  + cluster(kmc, cmp, id) : draw a cluster registered in energy table  
+  + cluster_region(kmc) : return cluster region for drawing
   + colormap_range(kmc, cmp) : set colormap range
-  + draw_axis(kmc) : draw axis
-  + draw_frame(kmc) : draw frame
-  + draw_grid(kmc, cmp) : draw kmc grid
+  + frame(kmc) : draw frame
   + set_dia(id) : get diameter of spheres
   + set_disp(id) : get display of spheres
-  + region(kmc) : return draw region
   + set_dia(id, dia) : set diameter of spheres
   + set_disp(id, disp) : set display of spheres
+  + translate(kmc, x, y, z) : OpenGL translation
   + types(id) : return registered type
 + CLASS DATA
   + frame_color = (red, green, blue) : frame color

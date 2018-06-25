@@ -501,7 +501,7 @@ static void AddEvent(MP_KMCData *data, int dp, int id0, int id1, double de)
 
 int MP_KMCJump(MP_KMCData *data, int ntry, double kt, double(*func)(MP_KMCData *, short *), int *update)
 {
-	int j;
+	int j, c;
 	int dp, cp;
 	int id0, id1;
 	int ids0[MP_KMC_NCLUSTER_MAX];
@@ -514,6 +514,14 @@ int MP_KMCJump(MP_KMCData *data, int ntry, double kt, double(*func)(MP_KMCData *
 	int njump = 0;
 
 	*update = FALSE;
+	for (j = 0, c = 0; j < data->nsolute; j++) {
+		if (data->solute[j].jump) c++;
+	}
+	if (c < 1) return -1;
+	for (j = 0, c = 0; j < data->ncluster; j++) {
+		if (data->jcluster[j]) c++;
+	}
+	if (c < 2) return -1;
 	while (ntried < ntry) {
 		dp = (int)(MP_Rand(&(data->rand_seed)) * data->nsolute);
 		cp = (int)(MP_Rand(&(data->rand_seed)) * (data->ncluster - 1)) + 1;

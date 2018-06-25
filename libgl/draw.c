@@ -96,40 +96,44 @@ static void realPos(double pv[][3], double x0, double y0, double z0,
 	*z1 = pv[0][2] * x0 + pv[1][2] * y0 + pv[2][2] * z0;
 }
 
+void MPGL_KMCDrawTranslate(MP_KMCData *data, double x, double y, double z)
+{
+	double rx, ry, rz;
+
+	realPos(data->pv, x, y, z, &rx, &ry, &rz);
+	glTranslated(rx, ry, rz);
+}
+
 static void DrawSphere(MPGL_KMCDraw *draw, MP_KMCData *data, MPGL_Colormap *colormap)
 {
 	int i, j;
 	short type;
 	int p, x, y, z;
-	double x0, y0, z0;
-	double x1, y1, z1;
+	double px, py, pz;
 	float color[3];
 
 	for (i = 0; i < data->ntot; i++) {
 		type = data->grid[i].type;
-		if (type >= 0) {
-			for (j = 0; j < draw->ntypes; j++) {
-				if (draw->types[j] == type) break;
+		for (j = 0; j < draw->ntypes; j++) {
+			if (draw->types[j] == type) break;
+		}
+		if (draw->disp[j]) {
+			glPushMatrix();
+			Index2Grid(draw, data, i, &p, &x, &y, &z);
+			px = x + data->uc[p][0];
+			py = y + data->uc[p][1];
+			pz = z + data->uc[p][2];
+			MPGL_KMCDrawTranslate(data, px, py, pz);
+			glScaled(draw->dia[j], draw->dia[j], draw->dia[j]);
+			if (draw->kind == MPGL_KMCKindType) {
+				MPGL_ColormapStepColor(colormap, j, color);
 			}
-			if (draw->disp[j]) {
-				glPushMatrix();
-				Index2Grid(draw, data, i, &p, &x, &y, &z);
-				x0 = x + data->uc[p][0];
-				y0 = y + data->uc[p][1];
-				z0 = z + data->uc[p][2];
-				realPos(data->pv, x0, y0, z0, &x1, &y1, &z1);
-				glTranslated(x1, y1, z1);
-				glScaled(draw->dia[j], draw->dia[j], draw->dia[j]);
-				if (draw->kind == MPGL_KMCKindType) {
-					MPGL_ColormapStepColor(colormap, j, color);
-				}
-				else if (draw->kind == MPGL_KMCKindEnergy) {
-					MPGL_ColormapGradColor(colormap, data->grid[i].energy, color);
-				}
-				glColor3fv(color);
-				glCallList(MPGL_KMC_SPHERE);
-				glPopMatrix();
+			else if (draw->kind == MPGL_KMCKindEnergy) {
+				MPGL_ColormapGradColor(colormap, data->grid[i].energy, color);
 			}
+			glColor3fv(color);
+			glCallList(MPGL_KMC_SPHERE);
+			glPopMatrix();
 		}
 	}
 }
@@ -144,19 +148,26 @@ static void AddTypes(MPGL_KMCDraw *draw, short type)
 	draw->types[draw->ntypes++] = type;
 }
 
-void MPGL_KMCDrawGrid(MPGL_KMCDraw *draw, MP_KMCData *data, MPGL_Colormap *colormap)
+static void UpdateTypes(MPGL_KMCDraw *draw, MP_KMCData *data)
+{
+	int i;
+
+	draw->ntypes = 0;
+	for (i = 0; i < data->nuc; i++) {
+		AddTypes(draw, data->uc_types[i]);
+	}
+	for (i = 0; i < data->nsolute; i++) {
+		AddTypes(draw, data->solute[i].type);
+	}
+}
+
+void MPGL_KMCDrawAtoms(MPGL_KMCDraw *draw, MP_KMCData *data, MPGL_Colormap *colormap)
 {
 	int i;
 
 	SphereList(draw->res);
+	UpdateTypes(draw, data);
 	if (draw->kind == MPGL_KMCKindType) {
-		draw->ntypes = 0;
-		for (i = 0; i < data->nuc; i++) {
-			AddTypes(draw, data->uc_types[i]);
-		}
-		for (i = 0; i < data->nsolute; i++) {
-			AddTypes(draw, data->solute[i].type);
-		}
 		colormap->mode = MPGL_ColormapStep;
 		sprintf(colormap->title, "Type");
 		colormap->nstep = draw->ntypes;
@@ -172,6 +183,35 @@ void MPGL_KMCDrawGrid(MPGL_KMCDraw *draw, MP_KMCData *data, MPGL_Colormap *color
 		}
 	}
 	DrawSphere(draw, data, colormap);
+}
+
+void MPGL_KMCDrawCluster(MPGL_KMCDraw *draw, MP_KMCData *data, MPGL_Colormap *colormap, int id)
+{
+	int i, j;
+	short type;
+	float color[3];
+
+	SphereList(draw->res);
+	UpdateTypes(draw, data);
+	colormap->mode = MPGL_ColormapStep;
+	sprintf(colormap->title, "Type");
+	colormap->nstep = draw->ntypes;
+	for (i = 0; i < draw->ntypes; i++) {
+		sprintf(colormap->label[i], "%d", draw->types[i]);
+	}
+	for (i = 0; i < data->ncluster; i++) {
+		type = data->table[id].types[i];
+		for (j = 0; j < draw->ntypes; j++) {
+			if (draw->types[j] == type) break;
+		}
+		glPushMatrix();
+		glTranslated(data->rcluster[i][0], data->rcluster[i][1], data->rcluster[i][2]);
+		glScaled(draw->dia[j], draw->dia[j], draw->dia[j]);
+		MPGL_ColormapStepColor(colormap, j, color);
+		glColor3fv(color);
+		glCallList(MPGL_KMC_SPHERE);
+		glPopMatrix();
+	}
 }
 
 void MPGL_KMCDrawFrame(MPGL_KMCDraw *draw, MP_KMCData *data)
@@ -277,20 +317,20 @@ static void CylinderDraw(double x0, double y0, double z0,
 	glPopMatrix();
 }
 
-void MPGL_KMCDrawAxis(MP_KMCData *data)
+void MPGL_KMCDrawAxis(MPGL_KMCDraw *draw, MP_KMCData *data, double len[], double dia)
 {
 	double x, y, z;
 
-	CylinderList(32);
-	realPos(data->pv, data->size[0], 0.0, 0.0, &x, &y, &z);
-	CylinderDraw(0.0, 0.0, 0.0, x, y, z, 0.5, 1.0, 0.0, 0.0);
-	realPos(data->pv, 0.0, data->size[1], 0.0, &x, &y, &z);
-	CylinderDraw(0.0, 0.0, 0.0, x, y, z, 0.5, 0.0, 1.0, 0.0);
-	realPos(data->pv, 0.0, 0.0, data->size[2], &x, &y, &z);
-	CylinderDraw(0.0, 0.0, 0.0, x, y, z, 0.5, 0.0, 0.0, 1.0);
+	CylinderList(draw->res);
+	realPos(data->pv, len[0], 0.0, 0.0, &x, &y, &z);
+	CylinderDraw(0.0, 0.0, 0.0, x, y, z, dia, 1.0, 0.0, 0.0);
+	realPos(data->pv, 0.0, len[1], 0.0, &x, &y, &z);
+	CylinderDraw(0.0, 0.0, 0.0, x, y, z, dia, 0.0, 1.0, 0.0);
+	realPos(data->pv, 0.0, 0.0, len[2], &x, &y, &z);
+	CylinderDraw(0.0, 0.0, 0.0, x, y, z, dia, 0.0, 0.0, 1.0);
 }
 
-void MPGL_KMCDrawRegion(MP_KMCData *data, float region[])
+void MPGL_KMCDrawAtomsRegion(MP_KMCData *data, float region[])
 {
 	double sx, sy, sz;
 
@@ -301,6 +341,32 @@ void MPGL_KMCDrawRegion(MP_KMCData *data, float region[])
 	region[3] = (float)sx + 0.5f;
 	region[4] = (float)sy + 0.5f;
 	region[5] = (float)sz + 0.5f;
+}
+
+void MPGL_KMCDrawClusterRegion(MP_KMCData *data, float region[])
+{
+	int i;
+	double xmin = 1.0e32;
+	double xmax = -1.0e32;
+	double ymin = 1.0e32;
+	double ymax = -1.0e32;
+	double zmin = 1.0e32;
+	double zmax = -1.0e32;
+
+	for (i = 0; i < data->ncluster; i++) {
+		if (data->rcluster[i][0] < xmin) xmin = data->rcluster[i][0];
+		else if (data->rcluster[i][0] > xmax) xmax = data->rcluster[i][0];
+		if (data->rcluster[i][1] < ymin) ymin = data->rcluster[i][1];
+		else if (data->rcluster[i][1] > ymax) ymax = data->rcluster[i][1];
+		if (data->rcluster[i][2] < zmin) zmin = data->rcluster[i][2];
+		else if (data->rcluster[i][2] > zmax) zmax = data->rcluster[i][2];
+	}
+	region[0] = (float)(xmin-0.5);
+	region[1] = (float)(ymin-0.5);
+	region[2] = (float)(zmin-0.5);
+	region[3] = (float)(xmax+0.5);
+	region[4] = (float)(ymax+0.5);
+	region[5] = (float)(zmax+0.5);
 }
 
 /**********************************************************
@@ -335,7 +401,20 @@ static PyObject *PyKMCDrawColormapRange(MPGL_KMCDraw *self, PyObject *args, PyOb
 	Py_RETURN_NONE;
 }
 
-static PyObject *PyKMCDrawGrid(MPGL_KMCDraw *self, PyObject *args, PyObject *kwds)
+static PyObject *PyKMCDrawTranslate(MPGL_KMCDraw *self, PyObject *args, PyObject *kwds)
+{
+	MP_KMCData *data;
+	double x, y, z;
+	static char *kwlist[] = { "kmc", "x", "y", "z", NULL };
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "Oddd", kwlist, &data, &x, &y, &z)) {
+		return NULL;
+	}
+	MPGL_KMCDrawTranslate(data, x, y, z);
+	Py_RETURN_NONE;
+}
+
+static PyObject *PyKMCDrawAtoms(MPGL_KMCDraw *self, PyObject *args, PyObject *kwds)
 {
 	MP_KMCData *data;
 	MPGL_Colormap *cmp;
@@ -344,7 +423,21 @@ static PyObject *PyKMCDrawGrid(MPGL_KMCDraw *self, PyObject *args, PyObject *kwd
 	if (!PyArg_ParseTupleAndKeywords(args, kwds, "OO!", kwlist, &data, &MPGL_ColormapPyType, &cmp)) {
 		return NULL;
 	}
-	MPGL_KMCDrawGrid(self, data, cmp);
+	MPGL_KMCDrawAtoms(self, data, cmp);
+	Py_RETURN_NONE;
+}
+
+static PyObject *PyKMCDrawCluster(MPGL_KMCDraw *self, PyObject *args, PyObject *kwds)
+{
+	MP_KMCData *data;
+	MPGL_Colormap *cmp;
+	int id;
+	static char *kwlist[] = { "kmc", "cmp", "id", NULL };
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "OO!i", kwlist, &data, &MPGL_ColormapPyType, &cmp, &id)) {
+		return NULL;
+	}
+	MPGL_KMCDrawCluster(self, data, cmp, id);
 	Py_RETURN_NONE;
 }
 
@@ -363,12 +456,14 @@ static PyObject *PyKMCDrawFrame(MPGL_KMCDraw *self, PyObject *args, PyObject *kw
 static PyObject *PyKMCDrawAxis(MPGL_KMCDraw *self, PyObject *args, PyObject *kwds)
 {
 	MP_KMCData *data;
-	static char *kwlist[] = { "kmc", NULL };
+	double len[3];
+	double dia;
+	static char *kwlist[] = { "kmc", "len", "dia", NULL };
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O", kwlist, &data)) {
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O(ddd)d", kwlist, &data, &(len[0]), &(len[1]), &(len[2]), &dia)) {
 		return NULL;
 	}
-	MPGL_KMCDrawAxis(data);
+	MPGL_KMCDrawAxis(self, data, len, dia);
 	Py_RETURN_NONE;
 }
 
@@ -430,7 +525,7 @@ static PyObject *PyKMCDrawSetDia(MPGL_KMCDraw *self, PyObject *args, PyObject *k
 	Py_RETURN_NONE;
 }
 
-static PyObject *PyKMCDrawRegion(MPGL_KMCDraw *self, PyObject *args, PyObject *kwds)
+static PyObject *PyKMCDrawAtomsRegion(MPGL_KMCDraw *self, PyObject *args, PyObject *kwds)
 {
 	MP_KMCData *data;
 	static char *kwlist[] = { "kmc", NULL };
@@ -439,7 +534,21 @@ static PyObject *PyKMCDrawRegion(MPGL_KMCDraw *self, PyObject *args, PyObject *k
 	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O", kwlist, &data)) {
 		return NULL;
 	}
-	MPGL_KMCDrawRegion(data, region);
+	MPGL_KMCDrawAtomsRegion(data, region);
+	return Py_BuildValue("dddddd", region[0], region[1], region[2],
+		region[3], region[4], region[5]);
+}
+
+static PyObject *PyKMCDrawClusterRegion(MPGL_KMCDraw *self, PyObject *args, PyObject *kwds)
+{
+	MP_KMCData *data;
+	static char *kwlist[] = { "kmc", NULL };
+	float region[6];
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O", kwlist, &data)) {
+		return NULL;
+	}
+	MPGL_KMCDrawClusterRegion(data, region);
 	return Py_BuildValue("dddddd", region[0], region[1], region[2],
 		region[3], region[4], region[5]);
 }
@@ -458,12 +567,16 @@ static PyObject *PyKMCDrawTypes(MPGL_KMCDraw *self, PyObject *args, PyObject *kw
 static PyMethodDef PyMethods[] = {
 	{ "colormap_range", (PyCFunction)PyKMCDrawColormapRange, METH_VARARGS | METH_KEYWORDS,
 	"colormap_range(kmc, cmp) : set colormap range" },
-	{ "draw_grid", (PyCFunction)PyKMCDrawGrid, METH_VARARGS | METH_KEYWORDS,
-	"draw_grid(kmc, cmp) : draw kmc grid" },
-	{ "draw_frame", (PyCFunction)PyKMCDrawFrame, METH_VARARGS | METH_KEYWORDS,
-	"draw_frame(kmc) : draw frame" },
-	{ "draw_axis", (PyCFunction)PyKMCDrawAxis, METH_VARARGS | METH_KEYWORDS,
-	"draw_axis(kmc) : draw axis" },
+	{ "translate", (PyCFunction)PyKMCDrawTranslate, METH_VARARGS | METH_KEYWORDS,
+	"translate(kmc, x, y, z) : OpenGL translation" },
+	{ "atoms", (PyCFunction)PyKMCDrawAtoms, METH_VARARGS | METH_KEYWORDS,
+	"atoms(kmc, cmp) : draw atoms" },
+	{ "cluster", (PyCFunction)PyKMCDrawCluster, METH_VARARGS | METH_KEYWORDS,
+	"cluster(kmc, cmp, id) : draw a cluster registered in energy table" },
+	{ "frame", (PyCFunction)PyKMCDrawFrame, METH_VARARGS | METH_KEYWORDS,
+	"frame(kmc) : draw frame" },
+	{ "axis", (PyCFunction)PyKMCDrawAxis, METH_VARARGS | METH_KEYWORDS,
+	"axis(kmc, (lx, ly, lz), dia) : draw axis" },
 	{ "get_disp", (PyCFunction)PyKMCDrawGetDisp, METH_VARARGS | METH_KEYWORDS,
 	"set_disp(id) : get display of spheres" },
 	{ "set_disp", (PyCFunction)PyKMCDrawSetDisp, METH_VARARGS | METH_KEYWORDS,
@@ -472,8 +585,10 @@ static PyMethodDef PyMethods[] = {
 	"set_dia(id) : get diameter of spheres" },
 	{ "set_dia", (PyCFunction)PyKMCDrawSetDia, METH_VARARGS | METH_KEYWORDS,
 	"set_dia(id, dia) : set diameter of spheres" },
-	{ "region", (PyCFunction)PyKMCDrawRegion, METH_VARARGS | METH_KEYWORDS,
-	"region(kmc) : return draw region" },
+	{ "atoms_region", (PyCFunction)PyKMCDrawAtomsRegion, METH_VARARGS | METH_KEYWORDS,
+	"atoms_region(kmc) : return atoms region for drawing" },
+	{ "cluster_region", (PyCFunction)PyKMCDrawClusterRegion, METH_VARARGS | METH_KEYWORDS,
+	"cluster_region(kmc) : return cluster region for drawing" },
 	{ "types", (PyCFunction)PyKMCDrawTypes, METH_VARARGS | METH_KEYWORDS,
 	"types(id) : return registered type" },
 	{ NULL }  /* Sentinel */

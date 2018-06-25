@@ -6,8 +6,8 @@ def FSFCCEnergy(kmc, types):
     return fsfcc.energy(kmc, types)
 
 if __name__ == "__main__":
-    Ntry = 10000
-    T = range(1100, 800, -10)
+    Ntry = 20000
+    T = range(1100, 800, -20)
     Kb = 86.1735e-6 # ev/K
     uc = ((0, 0, 0), (0.5, 0.5, 0.0), (0.5, 0.0, 0.5), (0.0, 0.5, 0.5))
     uc_types = (29, 29, 29, 29)

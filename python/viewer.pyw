@@ -26,13 +26,17 @@ class GLWidget(QtOpenGL.QGLWidget):
     QtOpenGL.QGLWidget.__init__(self, QtOpenGL.QGLFormat(QtOpenGL.QGL.SampleBuffers), parent)
     self.lastPos = QtCore.QPoint()
     self.mouseMode = 0
+    self.dispMode = 0
     self.kmc = None
     self.draw = MPGLKMC.draw()
     self.scene = MPGLKMC.scene()
     self.scene.light_add(1.0, 1.0, 1.0, 0.0)
     self.scene.proj = 0    
-    self.model = MPGLKMC.model()
+    self.model = []
+    self.model.append(MPGLKMC.model())
+    self.model.append(MPGLKMC.model())
     self.cmp = MPGLKMC.colormap()
+    self.tabid = 0
     self.__width = 800
     self.__height = 600    
 
@@ -48,22 +52,34 @@ class GLWidget(QtOpenGL.QGLWidget):
   def paintGL(self):
     GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
     if self.kmc:
-      GL.glPushMatrix()
-      self.model.transform()
-      self.draw.draw_grid(self.kmc, self.cmp)
-      self.draw.draw_frame(self.kmc)     
-      GL.glTranslatef(-1.0, -1.0, -1.0)
-      self.draw.draw_axis(self.kmc)
-      GL.glPopMatrix()
-      GL.glPushMatrix()
-      GL.glRotated(90.0, 0.0, 0.0, 1.0)
-      GL.glRotated(90.0, 1.0, 0.0, 0.0)
-      GL.glTranslate((2.0 - self.__width) / self.__height, -self.cmp.size[1]/2.0, self.scene.znear - 1.0e-6)
-      self.cmp.draw()
-      GL.glPopMatrix()
-      stx = (2.0 * 10 - self.__width) / self.__height
-      sty = 2.0*(self.__height - 20) / self.__height - 1.0
-      self.drawString(stx, sty, str(self.kmc.step) + ' step')
+      if self.dispMode == 0:
+        GL.glPushMatrix()
+        self.model[0].transform()
+        self.draw.atoms(self.kmc, self.cmp)
+        self.draw.frame(self.kmc) 
+        self.draw.translate(self.kmc, -0.5, -0.5, -0.5)
+        self.draw.axis(self.kmc, self.kmc.size, 0.5)
+        GL.glPopMatrix()
+        self.drawColormap()
+        stx = (2.0 * 10 - self.__width) / self.__height
+        sty = 2.0*(self.__height - 20) / self.__height - 1.0
+        self.drawString(stx, sty, str(self.kmc.step) + ' step')
+      elif self.dispMode == 1 and self.kmc.ntable > 0:
+        GL.glPushMatrix()
+        self.model[1].transform()
+        self.draw.cluster(self.kmc, self.cmp, self.tabid)     
+        self.draw.translate(self.kmc, -1.5, -1.5, -1.5)
+        self.draw.axis(self.kmc, (3, 3, 3), 0.1)
+        GL.glPopMatrix()
+        self.drawColormap()
+
+  def drawColormap(self):
+    GL.glPushMatrix()
+    GL.glRotated(90.0, 0.0, 0.0, 1.0)
+    GL.glRotated(90.0, 1.0, 0.0, 0.0)
+    GL.glTranslate((2.0 - self.__width) / self.__height, -self.cmp.size[1]/2.0, self.scene.znear - 1.0e-6)
+    self.cmp.draw()
+    GL.glPopMatrix()
 
   def resizeGL(self, width, height):
     self.__width = width
@@ -74,7 +90,7 @@ class GLWidget(QtOpenGL.QGLWidget):
     self.lastPos = QtCore.QPoint(event.pos())    
 
   def mouseReleaseEvent(self, event):
-    self.model.inverse()
+    self.model[self.dispMode].inverse()
 
   def mouseMoveEvent(self, event):
     dx = event.x() - self.lastPos.x()
@@ -93,32 +109,38 @@ class GLWidget(QtOpenGL.QGLWidget):
                     ax = math.pi * (dx + dy) / self.__height
                 elif event.x() > cx and event.y() > cy:
                     ax = math.pi * (dx - dy) / self.__height
-                self.model.rot_x(-ax)
+                self.model[self.dispMode].rot_x(-ax)
             else:
                 az = math.pi * dx / self.__height
-                self.model.rot_z(-az)
+                self.model[self.dispMode].rot_z(-az)
                 ay = math.pi *dy / self.__height
-                self.model.rot_y(-ay)
+                self.model[self.dispMode].rot_y(-ay)
         elif self.mouseMode == 1:
             if mod == QtCore.Qt.ControlModifier:
                 mx = 2.0 * dy / self.__height
-                self.model.trans_x(-mx)
+                self.model[self.dispMode].trans_x(-mx)
             else:
                 my = 2.0 * dx / self.__height
-                self.model.trans_y(my)
+                self.model[self.dispMode].trans_y(my)
                 mz = 2.0 * dy / self.__height
-                self.model.trans_z(-mz)
+                self.model[self.dispMode].trans_z(-mz)
         elif self.mouseMode == 2:
             s = 1.0 - float(dy) / self.__height
-            self.model.zoom(s)
+            self.model[self.dispMode].zoom(s)
         self.updateGL()
         self.lastPos = QtCore.QPoint(event.pos())
 
-  def fitModel(self):
-    region = self.draw.region(self.kmc)
-    self.model.fit_center(region)
+  def initModel(self, mid):
+    self.model[mid].init()
+
+  def fitModel(self, mid):
+    if mid == 0:
+      region = self.draw.atoms_region(self.kmc)
+    elif mid == 1:
+      region = self.draw.cluster_region(self.kmc)
+    self.model[mid].fit_center(region)
     aspect = float(self.__width)/float(self.__height)
-    self.model.fit_scale(region, aspect)
+    self.model[mid].fit_scale(region, aspect)
 
   def cmpRange(self):
     self.draw.colormap_range(self.kmc, self.cmp)
@@ -136,198 +158,37 @@ class GLWidget(QtOpenGL.QGLWidget):
     MPGLKMC.text_bitmap(s, self.cmp.font_type)
     GL.glPopAttrib()
 
-"""
-NewKMCDialog
-""" 
-class NewKMCDialog(QtGui.QDialog):
-  def __init__(self, parent):
-    QtGui.QDialog.__init__(self, parent)
-    self.setWindowTitle("New KMC")
-    vbox = QtGui.QVBoxLayout(self)
-    hbox0 = QtGui.QHBoxLayout()
-    vbox.addLayout(hbox0)
-    label0 = QtGui.QLabel()
-    label0.setText('Lattice Type')
-    hbox0.addWidget(label0)
-    self.combo0 = QtGui.QComboBox()
-    self.combo0.addItem('FCC')
-    hbox0.addWidget(self.combo0)
-    hbox1 = QtGui.QHBoxLayout()
-    vbox.addLayout(hbox1)
-    label1 = QtGui.QLabel()
-    label1.setText('Nx, Ny, Nz')
-    hbox1.addWidget(label1)
-    self.spinnx = self.SpinBox(2000, 1)
-    hbox1.addWidget(self.spinnx)
-    self.spinny = self.SpinBox(2000, 1)
-    hbox1.addWidget(self.spinny)
-    self.spinnz = self.SpinBox(2000, 1)
-    hbox1.addWidget(self.spinnz)
-    hbox2 = QtGui.QHBoxLayout()
-    vbox.addLayout(hbox2)
-    label2 = QtGui.QLabel()
-    label2.setText('Solvent')
-    hbox2.addWidget(label2)
-    self.spinmatrix = self.SpinBox(100, 1)
-    hbox2.addWidget(self.spinmatrix)
-    hbox3 = QtGui.QHBoxLayout()
-    vbox.addLayout(hbox3)
-    label3 = QtGui.QLabel()
-    label3.setText('NSolute Max')
-    hbox3.addWidget(label3)
-    self.nsolute_max = self.SpinBox(100000, 1000)
-    hbox3.addWidget(self.nsolute_max)    
-    hbox4 = QtGui.QHBoxLayout()
-    vbox.addLayout(hbox4)
-    label4 = QtGui.QLabel()
-    label4.setText('NTable Step')
-    hbox4.addWidget(label4)
-    self.ntable_step = self.SpinBox(100000, 1000)
-    hbox4.addWidget(self.ntable_step)
-    hbox5 = QtGui.QHBoxLayout()
-    vbox.addLayout(hbox5)
-    label5 = QtGui.QLabel()
-    label5.setText('NEvent Step')
-    hbox5.addWidget(label5)
-    self.nevent_step = self.SpinBox(1000000, 10000)
-    hbox5.addWidget(self.nevent_step)
-    self.button = QtGui.QDialogButtonBox()
-    vbox.addWidget(self.button)
-    self.button.setStandardButtons(QtGui.QDialogButtonBox.Cancel|QtGui.QDialogButtonBox.Ok)
-    self.button.accepted.connect(self.accept)
-    self.button.rejected.connect(self.reject)
+  def stepFirst(self):
+    if self.kmc:
+      if self.dispMode == 0:
+        self.kmc.step_go(0)
+      elif self.dispMode == 1:
+        self.tabid = 0
+      self.updateGL()
+      
+  def stepBackward(self):
+    if self.kmc:
+      if self.dispMode == 0:
+        self.kmc.step_backward(1)
+      elif self.dispMode == 1 and self.tabid > 0:
+        self.tabid = self.tabid - 1
+      self.updateGL() 
+    
+  def stepForward(self):
+    if self.kmc:
+      if self.dispMode == 0:
+        self.kmc.step_forward(1)
+      elif self.dispMode == 1 and self.tabid < self.kmc.ntable - 1 :
+        self.tabid = self.tabid + 1
+      self.updateGL()
 
-  def SpinBox(self, max, val):
-    spin = QtGui.QSpinBox()
-    spin.setMinimum(1)
-    spin.setMaximum(max)
-    spin.setValue(val)
-    spin.setMinimumWidth(50)
-    return spin
-
-  @staticmethod
-  def newKMC(self):
-    dlg = NewKMCDialog(self)
-    ok = dlg.exec_()
-    if ok:
-      lat_type = dlg.combo0.currentIndex()
-      nx = dlg.spinnx.value()
-      ny = dlg.spinny.value()
-      nz = dlg.spinnz.value()
-      solvent = dlg.spinmatrix.value()
-      nsolute_max = dlg.nsolute_max.value()
-      ntable_step = dlg.ntable_step.value()
-      nevent_step = dlg.nevent_step.value()
-      kmc = MPKMC.new(lat_type, nx, ny, nz, solvent, nsolute_max, ntable_step, nevent_step)
-      return kmc
-    else:
-      return None
-
-"""
-AddSoluteDialog
-""" 
-class AddSoluteDialog(QtGui.QDialog):
-  def __init__(self, parent, kmc):
-    QtGui.QDialog.__init__(self, parent)
-    self.kmc = kmc
-    self.setWindowTitle("Add Solute")
-    vbox = QtGui.QVBoxLayout(self)
-    hbox1 = QtGui.QHBoxLayout()
-    vbox.addLayout(hbox1)
-    label1 = QtGui.QLabel()
-    label1.setText('X, Y, Z')
-    hbox1.addWidget(label1)
-    sx, sy, sz = kmc.size
-    self.spinx = self.SpinBox(sx, 0)
-    hbox1.addWidget(self.spinx)
-    self.spiny = self.SpinBox(sy, 0)
-    hbox1.addWidget(self.spiny)
-    self.spinz = self.SpinBox(sz, 0)
-    hbox1.addWidget(self.spinz)
-    hbox2 = QtGui.QHBoxLayout()
-    vbox.addLayout(hbox2)
-    label2 = QtGui.QLabel()
-    label2.setText('Type')
-    hbox2.addWidget(label2)
-    self.type = self.SpinBox(200, 1)
-    hbox2.addWidget(self.type)
-    self.jump = QtGui.QCheckBox("Jump")
-    self.jump.setChecked(True)
-    vbox.addWidget(self.jump)
-    self.buttonb = QtGui.QDialogButtonBox()
-    vbox.addWidget(self.buttonb)
-    self.buttonb.setStandardButtons(QtGui.QDialogButtonBox.Cancel|QtGui.QDialogButtonBox.Ok)
-    self.buttonb.accepted.connect(self.Accept)
-    self.buttonb.rejected.connect(self.reject)
-
-  def SpinBox(self, max, val):
-    spin = QtGui.QSpinBox()
-    spin.setMinimum(0)
-    spin.setMaximum(max)
-    spin.setValue(val)
-    spin.setMinimumWidth(50)
-    return spin
-
-  def Accept(self):
-    x = self.spinx.value()
-    y = self.spiny.value()
-    z = self.spinz.value()
-    i = self.kmc.grid2index(x, y, z)
-    tp = self.type.value()
-    if self.jump.isChecked():
-      self.kmc.add_solute(i, tp, 1)
-    else:
-      self.kmc.add_solute(i, tp, 0)
-    self.accept()
-
-"""
-AddSoluteRandomDialog
-""" 
-class AddSoluteRandomDialog(QtGui.QDialog):
-  def __init__(self, parent, kmc):
-    QtGui.QDialog.__init__(self, parent)
-    self.kmc = kmc
-    self.setWindowTitle("Add Solute Random")
-    vbox = QtGui.QVBoxLayout(self)
-    hbox1 = QtGui.QHBoxLayout()
-    vbox.addLayout(hbox1)
-    label1 = QtGui.QLabel()
-    label1.setText('Number')
-    hbox1.addWidget(label1)
-    self.number = self.SpinBox(kmc.nsolute_max, 1)
-    hbox1.addWidget(self.number)
-    hbox2 = QtGui.QHBoxLayout()
-    vbox.addLayout(hbox2)
-    label2 = QtGui.QLabel()
-    label2.setText('Type')
-    hbox2.addWidget(label2)
-    self.type = self.SpinBox(200, 1)
-    hbox2.addWidget(self.type)
-    self.jump = QtGui.QCheckBox("Jump")
-    self.jump.setChecked(True)
-    vbox.addWidget(self.jump)
-    self.buttonb = QtGui.QDialogButtonBox()
-    vbox.addWidget(self.buttonb)
-    self.buttonb.setStandardButtons(QtGui.QDialogButtonBox.Cancel|QtGui.QDialogButtonBox.Ok)
-    self.buttonb.accepted.connect(self.Accept)
-    self.buttonb.rejected.connect(self.reject)
-
-  def SpinBox(self, max, val):
-    spin = QtGui.QSpinBox()
-    spin.setMinimum(0)
-    spin.setMaximum(max)
-    spin.setValue(val)
-    spin.setMinimumWidth(50)
-    return spin
-
-  def Accept(self):
-    num = self.number.value()
-    tp = self.type.value()
-    if self.jump.isChecked():
-      self.kmc.add_solute_random(num, tp, 1)
-    else:
-      self.kmc.add_solute_random(num, tp, 0)    
-    self.accept()
+  def stepLast(self):
+    if self.kmc:
+      if self.dispMode == 0:
+        self.kmc.step_go(self.kmc.nevent)
+      elif self.dispMode == 1:
+        self.tabid = self.kmc.ntable - 1
+      self.updateGL()
 
 """
 StepGoDialog
@@ -494,7 +355,6 @@ class MainWindow(QtGui.QMainWindow):
     menubar = QtGui.QMenuBar(self)
     self.setMenuBar(menubar)
     file_menu = QtGui.QMenu('File', self)
-    #file_menu.addAction('New', self.fileNew)   
     file_menu.addAction('Open', self.fileOpen)
     file_menu.addAction('Save', self.fileSave)
     file_menu.addAction('Save Image', self.fileSaveImage)
@@ -505,26 +365,16 @@ class MainWindow(QtGui.QMainWindow):
     view_menu.addAction('Set Shift', self.setShiftDialog)
     view_menu.addAction('Energy History', self.energyHistoryDialog)
     menubar.addMenu(view_menu)
-    #grid_menu = QtGui.QMenu('Grid', self)
-    #grid_menu.addAction('Add Solute', self.addSoluteDialog)    
-    #grid_menu.addAction('Add Solute Random', self.addSoluteRandomDialog)
-    #menubar.addMenu(grid_menu)
-
-  def fileNew(self):
-    self.glwidget.kmc = NewKMCDialog.newKMC(self)
-    if self.glwidget.kmc:
-      self.glwidget.model.init()
-      self.glwidget.fitModel()
-      self.glwidget.cmp.range = (0.0, 0.0)
-      self.glwidget.updateGL()
 
   def fileOpen(self):
     fname = QtGui.QFileDialog.getOpenFileName(self, 'Open file')
     if fname:
       self.glwidget.kmc = MPKMC.read(str(fname))
       self.glwidget.kmc.total_energy(None)
-      self.glwidget.model.init()
-      self.glwidget.fitModel()
+      self.glwidget.initModel(0)
+      self.glwidget.fitModel(0)
+      self.glwidget.initModel(1)
+      self.glwidget.fitModel(1)      
       self.glwidget.cmpRange()
       self.glwidget.updateGL()
 
@@ -591,13 +441,16 @@ class MainWindow(QtGui.QMainWindow):
     button5 = ToolButton('Energy', self.setDrawKind)
     group2.addButton(button5)
     toolbar.addWidget(button5)
+    button6 = ToolButton('Cluster', self.setDrawKind)
+    group2.addButton(button6)
+    toolbar.addWidget(button6)
     toolbar.addSeparator()
-    toolbar.addAction('<<', self.StepFirst)    
-    toolbar.addAction('<', self.StepBackward)
+    toolbar.addAction('<<', self.glwidget.stepFirst)    
+    toolbar.addAction('<', self.glwidget.stepBackward)
     self.playb = ToolButton('Play', self.StepPlay)    
     toolbar.addWidget(self.playb)
-    toolbar.addAction('>', self.StepForward)
-    toolbar.addAction('>>', self.StepLast) 
+    toolbar.addAction('>', self.glwidget.stepForward)
+    toolbar.addAction('>>', self.glwidget.stepLast) 
     toolbar.addAction('Go', self.StepGo)
     self.addToolBar(toolbar)
 
@@ -613,38 +466,22 @@ class MainWindow(QtGui.QMainWindow):
   def setDrawKind(self, pressed):
     txt = self.sender().text()
     if txt == "Type":
-        self.glwidget.draw.kind = 0
+      self.glwidget.dispMode = 0
+      self.glwidget.draw.kind = 0
     elif txt == "Energy":
-        self.glwidget.draw.kind = 1
+      self.glwidget.dispMode = 0
+      self.glwidget.draw.kind = 1
+    elif txt == "Cluster":
+      self.glwidget.dispMode = 1
     self.glwidget.updateGL()
 
   def initModel(self):
-    self.glwidget.model.init()
+    self.glwidget.initModel(self.glwidget.dispMode)
     self.glwidget.updateGL()
 
   def fitModel(self):
-    self.glwidget.fitModel()
+    self.glwidget.fitModel(self.glwidget.dispMode)
     self.glwidget.updateGL()
-
-  def StepFirst(self):
-    if self.glwidget.kmc:
-      self.glwidget.kmc.step_go(0)
-      self.glwidget.updateGL()
-
-  def StepBackward(self):
-    if self.glwidget.kmc:
-      self.glwidget.kmc.step_backward(1)
-      self.glwidget.updateGL() 
-    
-  def StepForward(self):
-    if self.glwidget.kmc:
-      self.glwidget.kmc.step_forward(1)
-      self.glwidget.updateGL()
-      
-  def StepLast(self):
-    if self.glwidget.kmc:
-      self.glwidget.kmc.step_go(self.glwidget.kmc.nevent)
-      self.glwidget.updateGL()
       
   def StepGo(self):
     if self.glwidget.kmc:
@@ -652,13 +489,14 @@ class MainWindow(QtGui.QMainWindow):
       dlg.exec_()    
 
   def StepPlay(self):
-    if self.playb.isChecked():
-      self.timer = QtCore.QTimer()
-      self.timer.setInterval(10)
-      self.timer.timeout.connect(self.TimerForward)
-      self.timer.start()
-    else:
-      self.timer.stop()
+    if self.glwidget.dispMode == 0:
+      if self.playb.isChecked():
+        self.timer = QtCore.QTimer()
+        self.timer.setInterval(10)
+        self.timer.timeout.connect(self.TimerForward)
+        self.timer.start()
+      else:
+        self.timer.stop()
 
   def TimerForward(self):
     if self.glwidget.kmc:

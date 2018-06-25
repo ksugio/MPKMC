@@ -40,5 +40,6 @@
     <None Include="MPKMC.def">
       <Filter>ソース ファイル</Filter>
     </None>
+    <None Include="README.md" />
   </ItemGroup>
 </Project>
