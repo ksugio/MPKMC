@@ -13,7 +13,7 @@ void MPGL_KMCDrawInit(MPGL_KMCDraw *draw)
 	draw->ntypes = 0;
 	for (i = 0; i < MPGL_KMC_TYPES_MAX; i++) {
 		draw->disp[i] = TRUE;
-		draw->dia[i] = 0.2f;
+		draw->dia[i] = 0.25;
 	}
 	draw->shift[0] = 0;
 	draw->shift[1] = 0;
@@ -317,7 +317,7 @@ static void CylinderDraw(double x0, double y0, double z0,
 	glPopMatrix();
 }
 
-void MPGL_KMCDrawAxis(MPGL_KMCDraw *draw, MP_KMCData *data, double len[], double dia)
+void MPGL_KMCDrawAxis(MPGL_KMCDraw *draw, int len[], double dia)
 {
 	CylinderList(draw->res);
 	CylinderDraw(0.0, 0.0, 0.0, len[0], 0.0, 0.0, dia, 1.0, 0.0, 0.0);
@@ -449,15 +449,14 @@ static PyObject *PyKMCDrawFrame(MPGL_KMCDraw *self, PyObject *args, PyObject *kw
 
 static PyObject *PyKMCDrawAxis(MPGL_KMCDraw *self, PyObject *args, PyObject *kwds)
 {
-	MP_KMCData *data;
-	double len[3];
+	int len[3];
 	double dia;
-	static char *kwlist[] = { "kmc", "len", "dia", NULL };
+	static char *kwlist[] = { "len", "dia", NULL };
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O(ddd)d", kwlist, &data, &(len[0]), &(len[1]), &(len[2]), &dia)) {
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "(iii)d", kwlist, &(len[0]), &(len[1]), &(len[2]), &dia)) {
 		return NULL;
 	}
-	MPGL_KMCDrawAxis(self, data, len, dia);
+	MPGL_KMCDrawAxis(self, len, dia);
 	Py_RETURN_NONE;
 }
 
@@ -570,7 +569,7 @@ static PyMethodDef PyMethods[] = {
 	{ "frame", (PyCFunction)PyKMCDrawFrame, METH_VARARGS | METH_KEYWORDS,
 	"frame(kmc) : draw frame" },
 	{ "axis", (PyCFunction)PyKMCDrawAxis, METH_VARARGS | METH_KEYWORDS,
-	"axis(kmc, (lx, ly, lz), dia) : draw axis" },
+	"axis((lx, ly, lz), dia) : draw axis" },
 	{ "get_disp", (PyCFunction)PyKMCDrawGetDisp, METH_VARARGS | METH_KEYWORDS,
 	"set_disp(id) : get display of spheres" },
 	{ "set_disp", (PyCFunction)PyKMCDrawSetDisp, METH_VARARGS | METH_KEYWORDS,

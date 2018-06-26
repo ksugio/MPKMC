@@ -150,6 +150,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="glut.c" />
     <ClCompile Include="main.c" />
   </ItemGroup>
   <ItemGroup>

@@ -32,7 +32,7 @@ class GLWidget(QtOpenGL.QGLWidget):
     self.scene = MPGLKMC.scene()
     self.scene.light_add(1.0, 1.0, 1.0, 0.0)
     self.scene.proj = 0    
-    self.model = [MPGLKMC.model(), MPGLKMC.model()]
+    self.model = [None, None]
     self.cmp = MPGLKMC.colormap()
     self.tabid = 0
     self.__width = 800
@@ -57,12 +57,10 @@ class GLWidget(QtOpenGL.QGLWidget):
         self.draw.atoms(self.kmc, self.cmp)
         self.draw.frame(self.kmc) 
         GL.glTranslate(-0.3, -0.3, -0.3)
-        self.draw.axis(self.kmc, self.kmc.size, 0.1)
+        self.draw.axis(self.kmc.size, 0.1)
         GL.glPopMatrix()
         self.drawColormap()
-        stx = (2.0 * 10 - self.__width) / self.__height
-        sty = 2.0*(self.__height - 20) / self.__height - 1.0
-        self.drawString(stx, sty, str(self.kmc.step) + ' step')
+        self.drawString(10, 20, str(self.kmc.step) + ' step')
       elif self.dispMode == 1 and self.kmc.ntable > 0:
         GL.glPushMatrix()
         self.model[1].transform()
@@ -86,6 +84,13 @@ class GLWidget(QtOpenGL.QGLWidget):
     self.cmp.draw()
     GL.glPopMatrix()
 
+  def drawString(self, x, y, s):
+    GL.glPushAttrib(GL.GL_LIGHTING_BIT)
+    GL.glDisable(GL.GL_LIGHTING)
+    GL.glColor3fv(self.cmp.font_color)
+    self.scene.front_text(x, y, s, self.cmp.font_type)
+    GL.glPopAttrib()
+    
   def resizeGL(self, width, height):
     self.__width = width
     self.__height = height
@@ -136,16 +141,11 @@ class GLWidget(QtOpenGL.QGLWidget):
         self.lastPos = QtCore.QPoint(event.pos())
 
   def initModel(self, mid):
-    self.model[mid].init()
-
-  def fitModel(self, mid):
     if mid == 0:
       region = self.draw.atoms_region(self.kmc)
     elif mid == 1:
       region = self.draw.cluster_region(self.kmc)
-    self.model[mid].fit_center(region)
-    aspect = float(self.__width)/float(self.__height)
-    self.model[mid].fit_scale(region, aspect)
+    self.model[mid] = MPGLKMC.model((0,0,0), region)
 
   def cmpRange(self):
     self.draw.colormap_range(self.kmc, self.cmp)
@@ -154,14 +154,6 @@ class GLWidget(QtOpenGL.QGLWidget):
     screenshot = GL.glReadPixels(0, 0, self.width(), self.height(), GL.GL_RGBA, GL.GL_UNSIGNED_BYTE)
     img = Image.frombuffer("RGBA", (self.width(), self.height()), screenshot, "raw", "RGBA", 0, 0)
     return img
-
-  def drawString(self, x, y, s):
-    GL.glPushAttrib(GL.GL_LIGHTING_BIT)
-    GL.glDisable(GL.GL_LIGHTING)
-    GL.glRasterPos3d(self.scene.znear - 1.0e-6, x, y)
-    GL.glColor3fv(self.cmp.font_color)
-    MPGLKMC.text_bitmap(s, self.cmp.font_type)
-    GL.glPopAttrib()
 
   def stepFirst(self):
     if self.kmc:
@@ -377,9 +369,7 @@ class MainWindow(QtGui.QMainWindow):
       self.glwidget.kmc = MPKMC.read(str(fname))
       self.glwidget.kmc.total_energy(None)
       self.glwidget.initModel(0)
-      self.glwidget.fitModel(0)
-      self.glwidget.initModel(1)
-      self.glwidget.fitModel(1)      
+      self.glwidget.initModel(1)     
       self.glwidget.cmpRange()
       self.glwidget.updateGL()
 
@@ -395,16 +385,6 @@ class MainWindow(QtGui.QMainWindow):
       if fname:      
         img = self.glwidget.screenShot()
         img.save(str(fname))
-
-  def addSoluteDialog(self):
-    if self.glwidget.kmc:
-      dlg = AddSoluteDialog(self, self.glwidget.kmc)
-      dlg.exec_()
-
-  def addSoluteRandomDialog(self):
-    if self.glwidget.kmc:
-      dlg = AddSoluteRandomDialog(self, self.glwidget.kmc)
-      dlg.exec_()
 
   def setDispDialog(self):
     if self.glwidget.kmc:
@@ -423,7 +403,7 @@ class MainWindow(QtGui.QMainWindow):
       
   def MainToolBar(self):
     toolbar = QtGui.QToolBar(self)
-    toolbar.addAction('Init', self.initModel)
+    toolbar.addAction('Reset', self.resetModel)
     toolbar.addAction('Fit', self.fitModel)    
     toolbar.addSeparator()    
     group1 = QtGui.QButtonGroup(self)
@@ -480,12 +460,12 @@ class MainWindow(QtGui.QMainWindow):
       self.glwidget.dispMode = 1
     self.glwidget.updateGL()
 
-  def initModel(self):
-    self.glwidget.initModel(self.glwidget.dispMode)
+  def resetModel(self):
+    self.glwidget.model[self.glwidget.dispMode].reset()
     self.glwidget.updateGL()
 
   def fitModel(self):
-    self.glwidget.fitModel(self.glwidget.dispMode)
+    self.glwidget.model[self.glwidget.dispMode].fit()
     self.glwidget.updateGL()
       
   def StepGo(self):

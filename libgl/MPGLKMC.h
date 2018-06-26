@@ -23,40 +23,6 @@ extern "C" {
 #include <GL/glu.h>
 
 /*--------------------------------------------------
-  model typedef and functions
-*/
-typedef struct MPGL_Model {
-#ifdef MP_PYTHON_LIB
-	PyObject_HEAD
-#endif
-	float mat[4][4];
-	float center[3];
-	float scale;
-	float mat_inv[4][4];
-} MPGL_Model;
-
-#ifdef MP_PYTHON_LIB
-PyTypeObject MPGL_ModelPyType;
-#endif
-
-void MPGL_ModelInit(MPGL_Model *model);
-void MPGL_ModelZoom(MPGL_Model *model, float s);
-void MPGL_ModelTranslateZ(MPGL_Model *model, float mz);
-void MPGL_ModelTranslateY(MPGL_Model *model, float my);
-void MPGL_ModelTranslateX(MPGL_Model *model, float mx);
-void MPGL_ModelRotateZ(MPGL_Model *model, float az);
-void MPGL_ModelRotateY(MPGL_Model *model, float ay);
-void MPGL_ModelRotateX(MPGL_Model *model, float ax);
-void MPGL_ModelInverse(MPGL_Model *model);
-void MPGL_ModelSetDirection(MPGL_Model *model, float dir[6]);
-void MPGL_ModelGetDirection(MPGL_Model *model, float dir[6]);
-void MPGL_ModelSetAngle(MPGL_Model *model, float angle[3]);
-void MPGL_ModelGetAngle(MPGL_Model *model, float angle[3]);
-void MPGL_ModelFitCenter(MPGL_Model *model, float region[]);
-void MPGL_ModelFitScale(MPGL_Model *model, float region[], float aspect);
-void MPGL_ModelTransform(MPGL_Model *model);
-
-/*--------------------------------------------------
   text functions
 */
 enum { MPGL_TextHelvetica10, MPGL_TextHelvetica12, MPGL_TextHelvetica18 };
@@ -117,13 +83,13 @@ typedef struct MPGL_Scene {
 #endif
 	int proj;
 	double znear, zfar;
-	float lookat[9];
 	float mat_specular[4];
 	float mat_shininess;
 	float mat_emission[4];
 	float clear_color[4];
 	int nlight;
 	MPGL_SceneLight light[8];
+	int width, height;
 } MPGL_Scene;
 
 #ifdef MP_PYTHON_LIB
@@ -134,6 +100,50 @@ void MPGL_SceneInit(MPGL_Scene *scene);
 MPGL_SceneLight *MPGL_SceneLightAdd(MPGL_Scene *scene, float x, float y, float z, float w);
 void MPGL_SceneSetup(MPGL_Scene *scene);
 void MPGL_SceneResize(MPGL_Scene *scene, int width, int height);
+void MPGL_SceneFrontText(MPGL_Scene *scene, int x, int y, const char s[], int font_type);
+
+/*--------------------------------------------------
+model typedef and functions
+*/
+enum { MPGL_ModelModeRotate, MPGL_ModelModeTranslate, MPGL_ModelModeZoom };
+
+typedef struct MPGL_Model {
+#ifdef MP_PYTHON_LIB
+	PyObject_HEAD
+#endif
+	float mat[4][4];
+	float center[3];
+	float scale;
+	float mat_inv[4][4];
+	float init_rot[3];
+	float region[6];
+	int button_down;
+	int button_x, button_y;
+	int button_mode;
+} MPGL_Model;
+
+#ifdef MP_PYTHON_LIB
+PyTypeObject MPGL_ModelPyType;
+#endif
+
+void MPGL_ModelInit(MPGL_Model *model, float init_rot[], float region[]);
+void MPGL_ModelReset(MPGL_Model *model);
+void MPGL_ModelFit(MPGL_Model *model);
+void MPGL_ModelZoom(MPGL_Model *model, float s);
+void MPGL_ModelTranslateZ(MPGL_Model *model, float mz);
+void MPGL_ModelTranslateY(MPGL_Model *model, float my);
+void MPGL_ModelTranslateX(MPGL_Model *model, float mx);
+void MPGL_ModelRotateZ(MPGL_Model *model, float az);
+void MPGL_ModelRotateY(MPGL_Model *model, float ay);
+void MPGL_ModelRotateX(MPGL_Model *model, float ax);
+void MPGL_ModelInverse(MPGL_Model *model);
+void MPGL_ModelSetDirection(MPGL_Model *model, float dir[6]);
+void MPGL_ModelGetDirection(MPGL_Model *model, float dir[6]);
+void MPGL_ModelSetAngle(MPGL_Model *model, float angle[3]);
+void MPGL_ModelGetAngle(MPGL_Model *model, float angle[3]);
+void MPGL_ModelTransform(MPGL_Model *model);
+void MPGL_ModelButton(MPGL_Model *model, int x, int y, int down);
+int MPGL_ModelMotion(MPGL_Model *model, MPGL_Scene *scene, int x, int y, int ctrl);
 
 /*--------------------------------------------------
 kmc functions
@@ -169,7 +179,7 @@ void MPGL_KMCDrawTransform(MP_KMCData *data);
 void MPGL_KMCDrawAtoms(MPGL_KMCDraw *draw, MP_KMCData *data, MPGL_Colormap *colormap);
 void MPGL_KMCDrawCluster(MPGL_KMCDraw *draw, MP_KMCData *data, MPGL_Colormap *colormap, int id);
 void MPGL_KMCDrawFrame(MPGL_KMCDraw *draw, MP_KMCData *data);
-void MPGL_KMCDrawAxis(MPGL_KMCDraw *draw, MP_KMCData *data, double len[], double dia);
+void MPGL_KMCDrawAxis(MPGL_KMCDraw *draw, int len[], double dia);
 void MPGL_KMCDrawAtomsRegion(MP_KMCData *data, float region[]);
 void MPGL_KMCDrawClusterRegion(MP_KMCData *data, float region[]);
 

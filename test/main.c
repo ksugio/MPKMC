@@ -1,6 +1,8 @@
 #include <MPKMC.h>
 #include <MPGLKMC.h>
 
+void GlutWindow(MP_KMCData *data, int width, int height, int argc, char **argv);
+
 static const char DefaultIn[] = {
 "&control\n\
  calculation = 'scf'\n\
@@ -119,7 +121,7 @@ int main(int argc, char *argv[])
 //	double pos0[3], pos1[3];
 
 //	MP_KMCRead(&data, "Al-Cu_5.kmc", 0);
-	MP_KMCAlloc(&data, 4, 10, 10, 10, 19, 100, 1000, 10000);
+	MP_KMCAlloc(&data, 4, 2, 2, 2, 19, 100, 1000, 10000);
 	data.rand_seed = 12345;
 	data.table_use = TRUE;
 	MP_KMCSetUnitCell(&data, uc, uc_types, pv);
@@ -128,8 +130,9 @@ int main(int argc, char *argv[])
 	MP_KMCAddSoluteRandom(&data, 3, 0, TRUE);
 	ene = MP_KMCTotalEnergy(&data, calcFSFCC, &update);
 	printf("%d %.15e\n", data.ntable, ene);
-	MP_KMCJump(&data, 1000, Kb*T, calcFSFCC, &update);
-	printf("%d %.15e\n", data.ntable, data.tote);
+	GlutWindow(&data, 800, 600, argc, argv);
+//	MP_KMCJump(&data, 1000, Kb*T, calcFSFCC, &update);
+//	printf("%d %.15e\n", data.ntable, data.tote);
 //	for (i = 0; i < data.nevent; i++) {
 //		MP_KMCIndex2Pos(&data, data.event[i].id0, pos0);
 //		MP_KMCIndex2Pos(&data, data.event[i].id1, pos1);

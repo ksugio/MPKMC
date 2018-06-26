@@ -26,7 +26,7 @@ MPGLKMC.so is created and copied to python directory.
 + CLASS METHODS
   + atoms(kmc, cmp) : draw atoms
   + atoms region(kmc) : return atoms region for drawing
-  + axis(kmc, (lx, ly, lz), dia) : draw axis
+  + axis((lx, ly, lz), dia) : draw axis
   + cluster(kmc, cmp, id) : draw a cluster registered in energy table  
   + cluster_region(kmc) : return cluster region for drawing
   + colormap_range(kmc, cmp) : set colormap range
@@ -68,12 +68,13 @@ MPGLKMC.so is created and copied to python directory.
 
 ## model()
 + CLASS METHODS
-  + fit_center(region) : fit center
-  + fit_scale(region, aspect) : fit scale
+  + button(x, y, down) : process when mouse button pressed
+  + fit() : fit scale
   + get_angle() : get angle
   + get_dir() : get direction
-  + init() : initialize matrix
   + inverse() : set inverse matrix
+  + motion(scene, x, y, ctrl) : process when mouse moved
+  + reset() : reset model matrix
   + rot_x(angle) : rotate around X axis
   + rot_y(angle) : rotate around Y axis
   + rot_z(angle) : rotate around Z axis
@@ -92,6 +93,7 @@ MPGLKMC.so is created and copied to python directory.
 
 ## scene()
 + CLASS METHODS
+  + front_text(x, y, string, font_type) : draw front text
   + light_add(x, y, z, w) : add light
   + light_ambient(id, red, green, blue, alpha) : set light ambient
   + light_diffuse(id, red, green, blue, alpha) : set light diffuse
@@ -101,10 +103,11 @@ MPGLKMC.so is created and copied to python directory.
   + setup() : setup scene
 + CLASS DATA
   + clear_color = (red, green, blue, alpha) : clear color
-  + lookat = (ex, ey, ez, cx, cy, cz, ux, uy, yz) : viewpoint
+  + height : screen height
   + mat_emission = (red, green, blue, alpha) : material emission
   + mat_shininess = shininess : material shininess
   + mat_specular = (red, green, blue, alpha) : material specular
   + proj = {0:frustum 1:ortho} : projection mode
+  + width : screen width
   + zfar = z : zfar of viewing volume
   + znear = z : znear of viewing volume
