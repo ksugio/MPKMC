@@ -25,18 +25,15 @@ class GLWidget(QtOpenGL.QGLWidget):
   def __init__(self, parent=None):
     QtOpenGL.QGLWidget.__init__(self, QtOpenGL.QGLFormat(QtOpenGL.QGL.SampleBuffers), parent)
     self.lastPos = QtCore.QPoint()
-    self.mouseMode = 0
     self.dispMode = 0
     self.kmc = None
     self.draw = MPGLKMC.draw()
     self.scene = MPGLKMC.scene()
     self.scene.light_add(1.0, 1.0, 1.0, 0.0)
-    self.scene.proj = 0    
+    self.scene.proj = 1    
     self.model = [None, None]
     self.cmp = MPGLKMC.colormap()
     self.tabid = 0
-    self.__width = 800
-    self.__height = 600    
 
   def minimumSizeHint(self):
     return QtCore.QSize(320, 240)
@@ -50,37 +47,26 @@ class GLWidget(QtOpenGL.QGLWidget):
   def paintGL(self):
     GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
     if self.kmc:
+      GL.glPushMatrix()
+      self.model[self.dispMode].transform()
       if self.dispMode == 0:
-        GL.glPushMatrix()
-        self.model[0].transform()
-        self.draw.transform(self.kmc)
         self.draw.atoms(self.kmc, self.cmp)
-        self.draw.frame(self.kmc) 
-        GL.glTranslate(-0.3, -0.3, -0.3)
-        self.draw.axis(self.kmc.size, 0.1)
-        GL.glPopMatrix()
-        self.drawColormap()
-        self.drawString(10, 20, str(self.kmc.step) + ' step')
-      elif self.dispMode == 1 and self.kmc.ntable > 0:
-        GL.glPushMatrix()
-        self.model[1].transform()
-        self.draw.transform(self.kmc)
-        self.draw.cluster(self.kmc, self.cmp, self.tabid)     
-        GL.glTranslate(-1.5, -1.5, -1.5)
-        self.draw.axis(self.kmc, (3, 3, 3), 0.1)
-        GL.glPopMatrix()
-        self.drawColormap()
-        stx = (2.0 * 10 - self.__width) / self.__height
-        sty = 2.0*(self.__height - 20) / self.__height - 1.0
+      elif self.dispMode == 1:
+        self.draw.cluster(self.kmc, self.cmp, self.tabid)
+      GL.glPopMatrix()
+      self.drawColormap()
+      if self.dispMode == 0:
+        s = str(self.kmc.step) + ' step'
+      elif self.dispMode == 1:
         item = self.kmc.table_item(self.tabid)
         s = 'ID %d,   Energy %f,   Count %d' % (self.tabid, item[1], item[2])
-        self.drawString(stx, sty, s)
+      self.drawString(10, 20, s)
 
   def drawColormap(self):
     GL.glPushMatrix()
     GL.glRotated(90.0, 0.0, 0.0, 1.0)
     GL.glRotated(90.0, 1.0, 0.0, 0.0)
-    GL.glTranslate((2.0 - self.__width) / self.__height, -self.cmp.size[1]/2.0, self.scene.znear - 1.0e-6)
+    GL.glTranslate((2.0 - self.scene.width) / self.scene.height, -self.cmp.size[1]/2.0, self.scene.znear - 1.0e-6)
     self.cmp.draw()
     GL.glPopMatrix()
 
@@ -92,100 +78,27 @@ class GLWidget(QtOpenGL.QGLWidget):
     GL.glPopAttrib()
     
   def resizeGL(self, width, height):
-    self.__width = width
-    self.__height = height
     self.scene.resize(width, height) 
 
   def mousePressEvent(self, event):
-    self.lastPos = QtCore.QPoint(event.pos())    
+    self.model[self.dispMode].button(event.x(), event.y(), 1)
 
   def mouseReleaseEvent(self, event):
-    self.model[self.dispMode].inverse()
+    self.model[self.dispMode].button(event.x(), event.y(), 0)
 
   def mouseMoveEvent(self, event):
-    dx = event.x() - self.lastPos.x()
-    dy = event.y() - self.lastPos.y()
-    mod = QtGui.QApplication.keyboardModifiers()
     if event.buttons() & QtCore.Qt.LeftButton:
-        if self.mouseMode == 0:
-            if mod == QtCore.Qt.ControlModifier:
-                cx = self.__width / 2
-                cy = self.__height / 2
-                if event.x() <= cx and event.y() <= cy:
-                    ax = math.pi * (-dx + dy) / self.__height
-                elif event.x() > cx and event.y() <= cy:
-                    ax = math.pi * (-dx - dy) / self.__height
-                elif event.x() <= cx and event.y() > cy:
-                    ax = math.pi * (dx + dy) / self.__height
-                elif event.x() > cx and event.y() > cy:
-                    ax = math.pi * (dx - dy) / self.__height
-                self.model[self.dispMode].rot_x(-ax)
-            else:
-                az = math.pi * dx / self.__height
-                self.model[self.dispMode].rot_z(-az)
-                ay = math.pi *dy / self.__height
-                self.model[self.dispMode].rot_y(-ay)
-        elif self.mouseMode == 1:
-            if mod == QtCore.Qt.ControlModifier:
-                mx = 2.0 * dy / self.__height
-                self.model[self.dispMode].trans_x(-mx)
-            else:
-                my = 2.0 * dx / self.__height
-                self.model[self.dispMode].trans_y(my)
-                mz = 2.0 * dy / self.__height
-                self.model[self.dispMode].trans_z(-mz)
-        elif self.mouseMode == 2:
-            s = 1.0 - float(dy) / self.__height
-            self.model[self.dispMode].zoom(s)
+      if QtGui.QApplication.keyboardModifiers() == QtCore.Qt.ControlModifier:
+        ctrl = 1 
+      else:
+        ctrl = 0
+      if self.model[self.dispMode].motion(self.scene, event.x(), event.y(), ctrl):
         self.updateGL()
-        self.lastPos = QtCore.QPoint(event.pos())
-
-  def initModel(self, mid):
-    if mid == 0:
-      region = self.draw.atoms_region(self.kmc)
-    elif mid == 1:
-      region = self.draw.cluster_region(self.kmc)
-    self.model[mid] = MPGLKMC.model((0,0,0), region)
-
-  def cmpRange(self):
-    self.draw.colormap_range(self.kmc, self.cmp)
 
   def screenShot(self):
     screenshot = GL.glReadPixels(0, 0, self.width(), self.height(), GL.GL_RGBA, GL.GL_UNSIGNED_BYTE)
     img = Image.frombuffer("RGBA", (self.width(), self.height()), screenshot, "raw", "RGBA", 0, 0)
     return img
-
-  def stepFirst(self):
-    if self.kmc:
-      if self.dispMode == 0:
-        self.kmc.step_go(0)
-      elif self.dispMode == 1:
-        self.tabid = 0
-      self.updateGL()
-      
-  def stepBackward(self):
-    if self.kmc:
-      if self.dispMode == 0:
-        self.kmc.step_backward(1)
-      elif self.dispMode == 1 and self.tabid > 0:
-        self.tabid = self.tabid - 1
-      self.updateGL() 
-    
-  def stepForward(self):
-    if self.kmc:
-      if self.dispMode == 0:
-        self.kmc.step_forward(1)
-      elif self.dispMode == 1 and self.tabid < self.kmc.ntable - 1 :
-        self.tabid = self.tabid + 1
-      self.updateGL()
-
-  def stepLast(self):
-    if self.kmc:
-      if self.dispMode == 0:
-        self.kmc.step_go(self.kmc.nevent)
-      elif self.dispMode == 1:
-        self.tabid = self.kmc.ntable - 1
-      self.updateGL()
 
 """
 StepGoDialog
@@ -368,9 +281,10 @@ class MainWindow(QtGui.QMainWindow):
     if fname:
       self.glwidget.kmc = MPKMC.read(str(fname))
       self.glwidget.kmc.total_energy(None)
-      self.glwidget.initModel(0)
-      self.glwidget.initModel(1)     
-      self.glwidget.cmpRange()
+      region = self.glwidget.draw.atoms_region(self.glwidget.kmc)
+      self.glwidget.model[0] = MPGLKMC.model((0,0,0), region)
+      region = self.glwidget.draw.cluster_region(self.glwidget.kmc)
+      self.glwidget.model[1] = MPGLKMC.model((0,0,0), region)
       self.glwidget.updateGL()
 
   def fileSave(self):
@@ -430,23 +344,26 @@ class MainWindow(QtGui.QMainWindow):
     group2.addButton(button6)
     toolbar.addWidget(button6)
     toolbar.addSeparator()
-    toolbar.addAction('<<', self.glwidget.stepFirst)    
-    toolbar.addAction('<', self.glwidget.stepBackward)
-    self.playb = ToolButton('Play', self.StepPlay)    
+    toolbar.addAction('<<', self.stepFirst)    
+    toolbar.addAction('<', self.stepBackward)
+    self.playb = ToolButton('Play', self.stepPlay)    
     toolbar.addWidget(self.playb)
-    toolbar.addAction('>', self.glwidget.stepForward)
-    toolbar.addAction('>>', self.glwidget.stepLast) 
-    toolbar.addAction('Go', self.StepGo)
+    toolbar.addAction('>', self.stepForward)
+    toolbar.addAction('>>', self.stepLast) 
+    toolbar.addAction('Go', self.stepGo)
+    toolbar.addSeparator()
+    toolbar.addAction('TB-', self.tableDown)    
+    toolbar.addAction('TB+', self.tableUp)
     self.addToolBar(toolbar)
 
   def setMouseMode(self, pressed):
     txt = self.sender().text()
     if txt == "Rot":
-        self.glwidget.mouseMode = 0
+        self.glwidget.model[self.glwidget.dispMode].button_mode = 0
     elif txt == "Trans":
-        self.glwidget.mouseMode = 1 
+        self.glwidget.model[self.glwidget.dispMode].button_mode = 1
     elif txt == "Zoom":
-        self.glwidget.mouseMode = 2
+        self.glwidget.model[self.glwidget.dispMode].button_mode = 2
 
   def setDrawKind(self, pressed):
     txt = self.sender().text()
@@ -467,29 +384,59 @@ class MainWindow(QtGui.QMainWindow):
   def fitModel(self):
     self.glwidget.model[self.glwidget.dispMode].fit()
     self.glwidget.updateGL()
+
+  def stepFirst(self):
+    if self.glwidget.kmc:
+      self.glwidget.kmc.step_go(0)
+      self.glwidget.updateGL()
       
-  def StepGo(self):
+  def stepBackward(self):
+    if self.glwidget.kmc:
+      self.glwidget.kmc.step_backward(1)
+      self.glwidget.updateGL() 
+    
+  def stepForward(self):
+    if self.glwidget.kmc:
+      self.glwidget.kmc.step_forward(1)
+      self.glwidget.updateGL()
+
+  def stepLast(self):
+    if self.glwidget.kmc:
+      self.glwidget.kmc.step_go(self.kmc.nevent)
+      self.glwidget.updateGL()
+
+  def stepGo(self):
     if self.glwidget.kmc:
       dlg = StepGoDialog(self, self.glwidget.kmc)
       dlg.exec_()    
 
-  def StepPlay(self):
+  def stepPlay(self):
     if self.glwidget.dispMode == 0:
       if self.playb.isChecked():
         self.timer = QtCore.QTimer()
         self.timer.setInterval(10)
-        self.timer.timeout.connect(self.TimerForward)
+        self.timer.timeout.connect(self.timerForward)
         self.timer.start()
       else:
         self.timer.stop()
 
-  def TimerForward(self):
+  def timerForward(self):
     if self.glwidget.kmc:
       if self.glwidget.kmc.step >= self.glwidget.kmc.nevent:
         self.timer.stop()
         self.playb.toggle()
         return
       self.glwidget.kmc.step_forward(1)
+      self.glwidget.updateGL()
+      
+  def tableDown(self):
+    if self.glwidget.kmc and self.glwidget.tabid > 0:
+      self.glwidget.tabid = self.glwidget.tabid - 1
+      self.glwidget.updateGL()
+
+  def tableUp(self):
+    if self.glwidget.kmc and self.glwidget.tabid < self.glwidget.kmc.ntable - 1 :
+      self.glwidget.tabid = self.glwidget.tabid + 1
       self.glwidget.updateGL()
 
 class ToolButton(QtGui.QToolButton):

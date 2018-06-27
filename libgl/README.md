@@ -25,19 +25,17 @@ MPGLKMC.so is created and copied to python directory.
 ## draw()
 + CLASS METHODS
   + atoms(kmc, cmp) : draw atoms
-  + atoms region(kmc) : return atoms region for drawing
-  + axis((lx, ly, lz), dia) : draw axis
+  + atoms_region(kmc) : return atoms region for drawing
   + cluster(kmc, cmp, id) : draw a cluster registered in energy table  
   + cluster_region(kmc) : return cluster region for drawing
   + colormap_range(kmc, cmp) : set colormap range
-  + frame(kmc) : draw frame
   + set_dia(id) : get diameter of spheres
   + set_disp(id) : get display of spheres
   + set_dia(id, dia) : set diameter of spheres
   + set_disp(id, disp) : set display of spheres
-  + translate(kmc, x, y, z) : OpenGL translation
   + types(id) : return registered type
 + CLASS DATA
+  + axis_dia = dia : diameter of axis
   + frame_color = (red, green, blue) : frame color
   + frame_width = width : frame width
   + kind = {0:type | 1:energy} : draw kind
@@ -73,7 +71,7 @@ MPGLKMC.so is created and copied to python directory.
   + get_angle() : get angle
   + get_dir() : get direction
   + inverse() : set inverse matrix
-  + motion(scene, x, y, ctrl) : process when mouse moved
+  + motion(scene, x, y, ctrl) : process when mouse moved, return true if model modified
   + reset() : reset model matrix
   + rot_x(angle) : rotate around X axis
   + rot_y(angle) : rotate around Y axis
@@ -86,6 +84,10 @@ MPGLKMC.so is created and copied to python directory.
   + transform() : OpenGL transformation
   + zoom(scale) : zoom
 + CLASS DATA  
+  + button_down : true while button pressed
+  + button_mode = {0:Rotate | 1:Translate | 2:Zoom} : mode while button motion
+  + button_x : position x where button pressed
+  + button_y : position y where button pressed
   + center = (cx, cy, cz) : center of rotation
   + mat = ((m00, m01, m02, m03), (...), (...), (...)) : transformation matrix
   + mat_inv = ((i00, i01, i02, i03), (...), (...), (...)) : inversed transformation matrix

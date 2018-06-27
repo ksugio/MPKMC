@@ -435,6 +435,10 @@ static PyObject *PyNew(PyTypeObject *type, PyObject *args, PyObject *kwds)
 
 static PyMemberDef PyMembers[] = {
 	{ "scale", T_FLOAT, offsetof(MPGL_Model, scale), 0, "scale = scale : scale" },
+	{ "button_down", T_INT, offsetof(MPGL_Model, button_down), 1, "button_down : true while button pressed" },
+	{ "button_x", T_INT, offsetof(MPGL_Model, button_x), 1, "button_x : position x where button pressed" },
+	{ "button_y", T_INT, offsetof(MPGL_Model, button_y), 1, "button_y : position y where button pressed" },
+	{ "button_mode", T_INT, offsetof(MPGL_Model, button_mode), 0, "button_mode = {0:Rotate | 1:Translate | 2:Zoom} : mode while button motion" },
 	{ NULL }  /* Sentinel */
 };
 
@@ -608,8 +612,7 @@ static PyObject *PyMotion(MPGL_Model *self, PyObject *args, PyObject *kwds)
 	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O!iii", kwlist, &MPGL_ScenePyType, &scene, &x, &y, &ctrl)) {
 		return NULL;
 	}
-	MPGL_ModelMotion(self, scene, x, y, ctrl);
-	Py_RETURN_NONE;
+	return Py_BuildValue("i", MPGL_ModelMotion(self, scene, x, y, ctrl));
 }
 
 static PyMethodDef PyMethods[] = {
@@ -646,7 +649,7 @@ static PyMethodDef PyMethods[] = {
 	{ "button", (PyCFunction)PyButton, METH_VARARGS | METH_KEYWORDS,
 	"button(x, y, down) : process when mouse button pressed" },
 	{ "motion", (PyCFunction)PyMotion, METH_VARARGS | METH_KEYWORDS,
-	"motion(scene, x, y, ctrl) : process when mouse moved" },
+	"motion(scene, x, y, ctrl) : process when mouse moved, return true if model modified" },
 	{ NULL }  /* Sentinel */
 };
 

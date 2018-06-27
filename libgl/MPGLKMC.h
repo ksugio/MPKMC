@@ -162,6 +162,7 @@ typedef struct MPGL_KMCDraw {
 	int res;
 	float frame_color[3];
 	float frame_width;
+	float axis_dia;
 	int ntypes;
 	short types[MPGL_KMC_TYPES_MAX];
 	int disp[MPGL_KMC_TYPES_MAX];
@@ -175,11 +176,8 @@ PyTypeObject MPGL_KMCDrawDataPyType;
 
 void MPGL_KMCDrawInit(MPGL_KMCDraw *draw);
 void MPGL_KMCDrawColormapRange(MPGL_KMCDraw *draw, MP_KMCData *data, MPGL_Colormap *colormap);
-void MPGL_KMCDrawTransform(MP_KMCData *data);
 void MPGL_KMCDrawAtoms(MPGL_KMCDraw *draw, MP_KMCData *data, MPGL_Colormap *colormap);
 void MPGL_KMCDrawCluster(MPGL_KMCDraw *draw, MP_KMCData *data, MPGL_Colormap *colormap, int id);
-void MPGL_KMCDrawFrame(MPGL_KMCDraw *draw, MP_KMCData *data);
-void MPGL_KMCDrawAxis(MPGL_KMCDraw *draw, int len[], double dia);
 void MPGL_KMCDrawAtomsRegion(MP_KMCData *data, float region[]);
 void MPGL_KMCDrawClusterRegion(MP_KMCData *data, float region[]);
 

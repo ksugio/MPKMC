@@ -5,7 +5,9 @@ static MP_KMCData *Data;
 static MPGL_KMCDraw Draw;
 static MPGL_Colormap Colormap;
 static MPGL_Scene Scene;
-static MPGL_Model Model;
+static MPGL_Model Model[2];
+
+static int dispMode = 0;
 
 static void DisplayFunc(void)
 {
@@ -13,12 +15,9 @@ static void DisplayFunc(void)
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glPushMatrix();
-	MPGL_ModelTransform(&Model);
-	MPGL_KMCDrawTransform(Data);
-	MPGL_KMCDrawAtoms(&Draw, Data, &Colormap);
-	MPGL_KMCDrawFrame(&Draw, Data);
-	glTranslatef(-0.3f, -0.3f, -0.3f);
-	MPGL_KMCDrawAxis(&Draw, Data->size, 0.1);
+	MPGL_ModelTransform(&Model[dispMode]);
+	if (dispMode == 0) MPGL_KMCDrawAtoms(&Draw, Data, &Colormap);
+	else if (dispMode == 1) MPGL_KMCDrawCluster(&Draw, Data, &Colormap, 0);
 	glPopMatrix();
 	/* colormap draw */
 	glPushMatrix();
@@ -46,10 +45,10 @@ static void MouseFunc(int button, int state, int x, int y)
 {
 	if (button ==  GLUT_LEFT_BUTTON) {
 		if (state == GLUT_DOWN) {
-			MPGL_ModelButton(&Model, x, y, TRUE);
+			MPGL_ModelButton(&Model[dispMode], x, y, TRUE);
 		}
 		else if (state == GLUT_UP) {
-			MPGL_ModelButton(&Model, x, y, FALSE);
+			MPGL_ModelButton(&Model[dispMode], x, y, FALSE);
 		}
 	}	
 }
@@ -60,41 +59,49 @@ static void MotionFunc(int x, int y)
 
 	if (glutGetModifiers() == GLUT_ACTIVE_CTRL) ctrl = TRUE;
 	else ctrl = FALSE;
-	if (MPGL_ModelMotion(&Model, &Scene, x, y, ctrl)) {
+	if (MPGL_ModelMotion(&Model[dispMode], &Scene, x, y, ctrl)) {
 		glutPostRedisplay();
 	}
 }
 
 static void SubMenu1(int value)
 {
-	if (value == 1) Model.button_mode = MPGL_ModelModeRotate;
-	else if (value == 2) Model.button_mode = MPGL_ModelModeTranslate;
-	else if (value == 3) Model.button_mode = MPGL_ModelModeZoom;
+	if (value == 1) Model[dispMode].button_mode = MPGL_ModelModeRotate;
+	else if (value == 2) Model[dispMode].button_mode = MPGL_ModelModeTranslate;
+	else if (value == 3) Model[dispMode].button_mode = MPGL_ModelModeZoom;
 }
 
 static void SubMenu2(int value)
 {
 	if (value == 1) {
-		MPGL_ModelFit(&Model);
+		MPGL_ModelFit(&Model[dispMode]);
 		glutPostRedisplay();
 	}
 	else if (value == 2) {
-		MPGL_ModelReset(&Model);
+		MPGL_ModelReset(&Model[dispMode]);
 		glutPostRedisplay();
 	}
 }
 
 static void SubMenu3(int value)
 {
-//	if (value == 1) Draw->kind  = MPGL_DrawKindType;
-//	else if (value == 2) Draw->kind = MPGL_DrawKindUpdate;
-//	else if (value == 3) Draw->kind = MPGL_DrawKindVal;
+	if (value == 1) {
+		Draw.kind = MPGL_KMCKindType;
+		dispMode = 0;
+	}
+	else if (value == 2) {
+		Draw.kind = MPGL_KMCKindEnergy;
+		dispMode = 0;
+	}
+	else if (value == 3) {
+		dispMode = 1;
+	}
 	glutPostRedisplay();
 }
 
 void GlutWindow(MP_KMCData *data, int width, int height, int argc, char **argv)
 {
-	int sub1, sub2;
+	int sub1, sub2, sub3;
 	float init_rot[] = { 0.0, 0.0, 0.0 };
 	float region[6];
 
@@ -114,7 +121,9 @@ void GlutWindow(MP_KMCData *data, int width, int height, int argc, char **argv)
 	Scene.proj = 0;
 	MPGL_SceneSetup(&Scene);
 	MPGL_KMCDrawAtomsRegion(data, region);
-	MPGL_ModelInit(&Model, init_rot, region);
+	MPGL_ModelInit(&Model[0], init_rot, region);
+	MPGL_KMCDrawClusterRegion(data, region);
+	MPGL_ModelInit(&Model[1], init_rot, region);
 	Data = data;
 	// menu
 	sub1 = glutCreateMenu(SubMenu1);
@@ -124,14 +133,14 @@ void GlutWindow(MP_KMCData *data, int width, int height, int argc, char **argv)
 	sub2 = glutCreateMenu(SubMenu2);
 	glutAddMenuEntry("Fit", 1);
 	glutAddMenuEntry("Reset", 2);
-/*	sub3 = glutCreateMenu(SubMenu3);
+	sub3 = glutCreateMenu(SubMenu3);
 	glutAddMenuEntry("Type", 1);
-	glutAddMenuEntry("Updata", 2);
-	glutAddMenuEntry("Value", 3);*/
+	glutAddMenuEntry("Energy", 2);
+	glutAddMenuEntry("Cluster", 3);
 	glutCreateMenu(NULL);
 	glutAddSubMenu("Mouse", sub1);
 	glutAddSubMenu("Model", sub2);
-//	glutAddSubMenu("Kind", sub3);
+	glutAddSubMenu("Kind", sub3);
 	glutAttachMenu(GLUT_RIGHT_BUTTON);
 	// main loop
 	glutMainLoop();

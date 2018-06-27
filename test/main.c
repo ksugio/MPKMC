@@ -121,7 +121,7 @@ int main(int argc, char *argv[])
 //	double pos0[3], pos1[3];
 
 //	MP_KMCRead(&data, "Al-Cu_5.kmc", 0);
-	MP_KMCAlloc(&data, 4, 2, 2, 2, 19, 100, 1000, 10000);
+	MP_KMCAlloc(&data, 4, 4, 4, 4, 19, 100, 1000, 10000);
 	data.rand_seed = 12345;
 	data.table_use = TRUE;
 	MP_KMCSetUnitCell(&data, uc, uc_types, pv);

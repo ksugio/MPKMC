@@ -37,11 +37,8 @@ EXPORTS
 	; kmc
 	MPGL_KMCDrawInit
 	MPGL_KMCDrawColormapRange
-	MPGL_KMCDrawTransform
 	MPGL_KMCDrawAtoms
 	MPGL_KMCDrawCluster
-	MPGL_KMCDrawFrame
-	MPGL_KMCDrawAxis
 	MPGL_KMCDrawAtomsRegion
 	MPGL_KMCDrawClusterRegion
 
