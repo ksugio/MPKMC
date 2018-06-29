@@ -5,7 +5,7 @@ LIBS = -lz
 TARGET_D = MPKMC.so
 TARGET_S = libMPKMC.a
 INSTALL_DIR = ../python
-OBJS = kmc.o rand.o python.o rotindex.o fsfcc.o
+OBJS = kmc.o rand.o python.o rotindex.o jump.o rw.o types.o fsfcc.o
 
 all:	$(TARGET_D) $(TARGET_S)
 

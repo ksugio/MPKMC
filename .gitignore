@@ -160,7 +160,6 @@ $RECYCLE.BIN/
 
 # for python
 *.mpkmc
-*.etb
 
 # for linux
 *~
