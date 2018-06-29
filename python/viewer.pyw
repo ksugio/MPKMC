@@ -57,10 +57,11 @@ class GLWidget(QtOpenGL.QGLWidget):
       self.drawColormap()
       if self.dispMode == 0:
         s = str(self.kmc.step) + ' step'
+        self.drawString(10, 20, s)
       elif self.dispMode == 1:
         item = self.kmc.table_item(self.tabid)
         s = 'ID %d,   Energy %f,   Count %d' % (self.tabid, item[1], item[2])
-      self.drawString(10, 20, s)
+        self.drawString(10, 20, s)
 
   def drawColormap(self):
     GL.glPushMatrix()
@@ -282,9 +283,9 @@ class MainWindow(QtGui.QMainWindow):
       self.glwidget.kmc = MPKMC.read(str(fname))
       self.glwidget.kmc.total_energy(None)
       region = self.glwidget.draw.atoms_region(self.glwidget.kmc)
-      self.glwidget.model[0] = MPGLKMC.model((0,0,0), region)
+      self.glwidget.model[0] = MPGLKMC.model((1,0,0,0,0,1), region)
       region = self.glwidget.draw.cluster_region(self.glwidget.kmc)
-      self.glwidget.model[1] = MPGLKMC.model((0,0,0), region)
+      self.glwidget.model[1] = MPGLKMC.model((1,0,0,0,0,1), region)
       self.glwidget.updateGL()
 
   def fileSave(self):

@@ -68,14 +68,12 @@ static void MatInverse(float mat[4][4], float mati[4][4])
 	}
 }
 
-void MPGL_ModelInit(MPGL_Model *model, float init_rot[], float region[])
+void MPGL_ModelInit(MPGL_Model *model, float init_dir[], float region[])
 {
 	int i;
 
-	for (i = 0; i < 3; i++) {
-		model->init_rot[i] = init_rot[i];
-	}
 	for (i = 0; i < 6; i++) {
+		model->init_dir[i] = init_dir[i];
 		model->region[i] = region[i];
 	}
 	MPGL_ModelReset(model);
@@ -87,9 +85,7 @@ void MPGL_ModelReset(MPGL_Model *model)
 	model->mat[1][0] = 0.0, model->mat[1][1] = 1.0, model->mat[1][2] = 0.0, model->mat[1][3] = 0.0;
 	model->mat[2][0] = 0.0, model->mat[2][1] = 0.0, model->mat[2][2] = 1.0, model->mat[2][3] = 0.0;
 	model->mat[3][0] = 0.0, model->mat[3][1] = 0.0, model->mat[3][2] = 0.0, model->mat[3][3] = 1.0;
-	MPGL_ModelRotateZ(model, (float)(model->init_rot[0]*M_PI/180.0));
-	MPGL_ModelRotateY(model, (float)(model->init_rot[1]*M_PI/180.0));
-	MPGL_ModelRotateX(model, (float)(model->init_rot[2]*M_PI/180.0));
+	MPGL_ModelSetDirection(model, model->init_dir);
 	MatInverse(model->mat, model->mat_inv);
 	model->center[0] = (model->region[0] + model->region[3]) / 2;
 	model->center[1] = (model->region[1] + model->region[4]) / 2;
@@ -272,7 +268,6 @@ void MPGL_ModelSetDirection(MPGL_Model *model, float dir[6])
 	
 	MatDir2Trigon(dir, trigon);
 	MatSetTrigon(model->mat, trigon);
-	MatInverse(model->mat, model->mat_inv);
 }
 
 void MPGL_ModelGetDirection(MPGL_Model *model, float dir[6])
@@ -304,7 +299,6 @@ void MPGL_ModelSetAngle(MPGL_Model *model, float angle[3])
 	trigon[4] = cos((double)angle[2]*M_PI/180.0);
 	trigon[5] = sin((double)angle[2]*M_PI/180.0);
 	MatSetTrigon(model->mat, trigon);
-	MatInverse(model->mat, model->mat_inv);
 }
 
 void MPGL_ModelGetAngle(MPGL_Model *model, float angle[3])
@@ -349,7 +343,7 @@ void MPGL_ModelButton(MPGL_Model *model, int x, int y, int down)
 		model->button_y = y;
 	}
 	else {
-		MPGL_ModelInverse(model);
+		MatInverse(model->mat, model->mat_inv);
 	}
 }
 
@@ -418,18 +412,18 @@ static void PyDealloc(MPGL_Model* self)
 
 static PyObject *PyNew(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
-	float init_rot[3];
+	float init_dir[6];
 	float region[6];
-	static char *kwlist[] = { "init_rot", "region", NULL };
+	static char *kwlist[] = { "init_dir", "region", NULL };
 	MPGL_Model *self;
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "(fff)(ffffff)", kwlist,
-		&(init_rot[0]), &(init_rot[1]), &(init_rot[2]),
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "(ffffff)(ffffff)", kwlist,
+		&(init_dir[0]), &(init_dir[1]), &(init_dir[2]), &(init_dir[3]), &(init_dir[4]), &(init_dir[5]),
 		&(region[0]), &(region[1]), &(region[2]), &(region[3]), &(region[4]), &(region[5]))) {
 		return NULL;
 	}
 	self = (MPGL_Model *)type->tp_alloc(type, 0);
-	MPGL_ModelInit(self, init_rot, region);
+	MPGL_ModelInit(self, init_dir, region);
 	return (PyObject *)self;
 }
 

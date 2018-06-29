@@ -117,20 +117,34 @@ int main(int argc, char *argv[])
 				{ -0.5, 0, 0.5 },{ -0.5, -0.5, 0 },{ 0, -0.5, -0.5 },{ 0.5, 0, -0.5 },
 				{ 1.0, 0, 0 },{ -1.0, 0, 0 },{ 0, 1.0, 0 },{ 0, -1.0, 0 },{ 0, 0, 1.0 },{ 0, 0, -1.0}};
 	short jcluster[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0 };
-//	int i;
+	int i;
 //	double pos0[3], pos1[3];
+	short types[256];
+	char str[256];
+	int count;
 
 //	MP_KMCRead(&data, "Al-Cu_5.kmc", 0);
 	MP_KMCAlloc(&data, 4, 4, 4, 4, 19, 100, 1000, 10000);
-	data.rand_seed = 12345;
-	data.table_use = TRUE;
-	MP_KMCSetUnitCell(&data, uc, uc_types, pv);
-	MP_KMCSetCluster(&data, cluster, jcluster);
-	MP_KMCCalcRotIndex(&data, 5.0, 1.0e-6);
-	MP_KMCAddSoluteRandom(&data, 3, 0, TRUE);
-	ene = MP_KMCTotalEnergy(&data, calcFSFCC, &update);
-	printf("%d %.15e\n", data.ntable, ene);
-	GlutWindow(&data, 800, 600, argc, argv);
+	for (i = 0; i < 120; i++) {
+		types[i] = i;
+		printf("%d ", types[i]);
+	}
+	printf("\n");
+	MP_KMCTypes2String(120, types, str);
+	printf("%s\n", str);
+	count = MP_KMCString2Types(str, types);
+	for (i = 0; i < count; i++) {
+		printf("%d ", types[i]);
+	}
+//	data.rand_seed = 12345;
+//	data.table_use = TRUE;
+//	MP_KMCSetUnitCell(&data, uc, uc_types, pv);
+//	MP_KMCSetCluster(&data, cluster, jcluster);
+//	MP_KMCCalcRotIndex(&data, 5.0, 1.0e-6);
+//	MP_KMCAddSoluteRandom(&data, 3, 0, TRUE);
+//	ene = MP_KMCTotalEnergy(&data, calcFSFCC, &update);
+//	printf("%d %.15e\n", data.ntable, ene);
+//	GlutWindow(&data, 800, 600, argc, argv);
 //	MP_KMCJump(&data, 1000, Kb*T, calcFSFCC, &update);
 //	printf("%d %.15e\n", data.ntable, data.tote);
 //	for (i = 0; i < data.nevent; i++) {

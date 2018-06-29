@@ -51,7 +51,7 @@ extern "C" {
 #define MP_KMC_NUC_MAX 32
 #define MP_KMC_NCLUSTER_MAX 64
 #define MP_KMC_NROT_MAX 64
-
+#define MP_KMC_MEM_ERR -99
 
 enum {MP_KMCFCC};
 
@@ -136,15 +136,23 @@ int MP_KMCAddSolute(MP_KMCData *data, int id, short type, short jump);
 void MP_KMCAddSoluteRandom(MP_KMCData *data, int num, short type, short jump);
 double MP_KMCCalcEnergy(MP_KMCData *data, int id, double(*func)(MP_KMCData *, short *), int *update);
 double MP_KMCTotalEnergy(MP_KMCData *data, double(*func)(MP_KMCData *, short *), int *update);
+void MP_KMCSortTable(MP_KMCData *data);
+void MP_KMCResetTable(MP_KMCData *data);
+
+/*--------------------------------------------------
+* jump functions
+*/
 int MP_KMCJump(MP_KMCData *data, int ntry, double kt, double(*func)(MP_KMCData *, short *), int *update);
 void MP_KMCStepForward(MP_KMCData *data, int count);
 void MP_KMCStepBackward(MP_KMCData *data, int count);
 void MP_KMCStepGo(MP_KMCData *data, int step);
 void MP_KMCEnergyHistory(MP_KMCData *data, int nhist, double ehist[]);
+
+/*--------------------------------------------------
+* rw functions
+*/
 int MP_KMCWriteTable(MP_KMCData *data, char *filename);
 int MP_KMCReadTable(MP_KMCData *data, char *filename);
-void MP_KMCSortTable(MP_KMCData *data);
-void MP_KMCResetTable(MP_KMCData *data);
 int MP_KMCWrite(MP_KMCData *data, char *filename, int comp);
 int MP_KMCRead(MP_KMCData *data, char *filename, int version);
 
@@ -153,6 +161,12 @@ int MP_KMCRead(MP_KMCData *data, char *filename, int version);
 */
 int MP_KMCAddRotIndex(MP_KMCData *data, int ids[]);
 int MP_KMCCalcRotIndex(MP_KMCData *data, double step, double tol);
+
+/*--------------------------------------------------
+* types functions
+*/
+void MP_KMCTypes2String(int ncluster, short types[], char str[]);
+int MP_KMCString2Types(char str[], short types[]);
 
 /*--------------------------------------------------
 * rand functions

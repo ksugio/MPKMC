@@ -17,19 +17,26 @@ EXPORTS
 	MP_KMCAddSoluteRandom
 	MP_KMCCalcEnergy
 	MP_KMCTotalEnergy
+	MP_KMCSortTable
+	MP_KMCResetTable
+	; jump
 	MP_KMCJump
 	MP_KMCStepForward
 	MP_KMCStepBackward
 	MP_KMCStepGo
 	MP_KMCEnergyHistory
+	; rw
 	MP_KMCWriteTable
 	MP_KMCReadTable
-	MP_KMCSortTable
-	MP_KMCResetTable
 	MP_KMCWrite
 	MP_KMCRead
+	; rotindex
 	MP_KMCAddRotIndex
 	MP_KMCCalcRotIndex
+	; types
+	MP_KMCTypes2String
+	MP_KMCString2Types
+	; rand
 	MP_Rand
 	MP_RandGauss
 	; fsfcc

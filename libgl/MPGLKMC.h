@@ -115,7 +115,7 @@ typedef struct MPGL_Model {
 	float center[3];
 	float scale;
 	float mat_inv[4][4];
-	float init_rot[3];
+	float init_dir[6];
 	float region[6];
 	int button_down;
 	int button_x, button_y;
@@ -126,7 +126,7 @@ typedef struct MPGL_Model {
 PyTypeObject MPGL_ModelPyType;
 #endif
 
-void MPGL_ModelInit(MPGL_Model *model, float init_rot[], float region[]);
+void MPGL_ModelInit(MPGL_Model *model, float init_dir[], float region[]);
 void MPGL_ModelReset(MPGL_Model *model);
 void MPGL_ModelFit(MPGL_Model *model);
 void MPGL_ModelZoom(MPGL_Model *model, float s);

@@ -102,7 +102,7 @@ static void SubMenu3(int value)
 void GlutWindow(MP_KMCData *data, int width, int height, int argc, char **argv)
 {
 	int sub1, sub2, sub3;
-	float init_rot[] = { 0.0, 0.0, 0.0 };
+	float init_dir[] = { 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 };
 	float region[6];
 
 	glutInit(&argc, argv);
@@ -121,9 +121,9 @@ void GlutWindow(MP_KMCData *data, int width, int height, int argc, char **argv)
 	Scene.proj = 0;
 	MPGL_SceneSetup(&Scene);
 	MPGL_KMCDrawAtomsRegion(data, region);
-	MPGL_ModelInit(&Model[0], init_rot, region);
+	MPGL_ModelInit(&Model[0], init_dir, region);
 	MPGL_KMCDrawClusterRegion(data, region);
-	MPGL_ModelInit(&Model[1], init_rot, region);
+	MPGL_ModelInit(&Model[1], init_dir, region);
 	Data = data;
 	// menu
 	sub1 = glutCreateMenu(SubMenu1);

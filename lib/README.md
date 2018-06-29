@@ -24,7 +24,11 @@ Edit Makefile and execute make.
 MPKMC.so is created and copied to python directory.
 
 # References
-## new(...), read(...)
++ METHODS
+  + string2types(str) : return types from an unique string
+  + types2string(types) : generate an unique string from types and return
+
+## Class new(...), read(...)
 + new(nuc, nx, ny, nz, ncluster, nsolute_max, ntable_step, nevent_step) : create new kmc data
   + nuc : number of atoms in unit cell
   + nx, ny, nz : size of simulation cell in x, y, z direction
@@ -87,7 +91,7 @@ MPKMC.so is created and copied to python directory.
   + uc : atom positions of unit cell
   + uc_types : atom types of unit cell
 
-## fsfcc()
+## Class fsfcc()
 + CLASS METHODS
   + energy(kmc, types) : return cluster energy
 + CLASS DATA

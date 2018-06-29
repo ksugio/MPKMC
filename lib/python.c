@@ -829,7 +829,51 @@ static PyTypeObject PyKMCReadType = {
 	PyKMCReadNew,				/* tp_new */
 };
 
+static PyObject *PyKMCTypes2String(MP_KMCData *self, PyObject *args, PyObject *kwds)
+{
+	PyObject *types;
+	static char *kwlist[] = { "types", NULL };
+	int i;
+	int ncluster;
+	short stypes[MP_KMC_NCLUSTER_MAX];
+	char str[512];
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O", kwlist, &types)) {
+		return NULL;
+	}
+	ncluster = PyTuple_Size(types);
+	for (i = 0; i < ncluster; i++) {
+		stypes[i] = (short)PyInt_AsLong(PyTuple_GetItem(types, (Py_ssize_t)i));
+	}
+	MP_KMCTypes2String(ncluster, stypes, str);
+	return Py_BuildValue("s", str);
+}
+
+static PyObject *PyKMCString2Types(MP_KMCData *self, PyObject *args, PyObject *kwds)
+{
+	char *str;
+	static char *kwlist[] = { "str", NULL };
+	short types[MP_KMC_NCLUSTER_MAX];
+	int count;
+	PyObject *tps;
+	int i;
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "s", kwlist, &str)) {
+		return NULL;
+	}
+	count = MP_KMCString2Types(str, types);
+	tps = PyTuple_New((Py_ssize_t)count);
+	for (i = 0; i < count; i++) {
+		PyTuple_SetItem(tps, (Py_ssize_t)i, PyInt_FromLong(types[i]));
+	}
+	return tps;
+}
+
 static PyMethodDef MPKMCPyMethods[] = {
+	{ "types2string", (PyCFunction)PyKMCTypes2String, METH_VARARGS | METH_KEYWORDS,
+	"types2string(types) : generate an unique string from types and return" },
+	{ "string2types", (PyCFunction)PyKMCString2Types, METH_VARARGS | METH_KEYWORDS,
+	"string2types(str) : return types from an unique string" },
 	{ NULL }  /* Sentinel */
 };
 
