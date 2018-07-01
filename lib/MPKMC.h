@@ -138,6 +138,7 @@ double MP_KMCCalcEnergy(MP_KMCData *data, int id, double(*func)(MP_KMCData *, sh
 double MP_KMCTotalEnergy(MP_KMCData *data, double(*func)(MP_KMCData *, short *), int *update);
 void MP_KMCSortTable(MP_KMCData *data);
 void MP_KMCResetTable(MP_KMCData *data);
+int MP_KMCSearchTable(MP_KMCData *data, char ss[], MP_KMCTableItem list[], int list_max);
 
 /*--------------------------------------------------
 * jump functions

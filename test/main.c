@@ -101,47 +101,43 @@ static double calcFSFCC(MP_KMCData *data, short types[])
 int main(int argc, char *argv[])
 {
 	//	int i;
-	int update;
+	//int update;
 	MP_KMCData data;
 	//int njump;
 	double Kb = 86.1735e-6; // ev/K
 	//double Ry = 13.6058; // ev
 	double T = 500.0;
 	//double ehist[100];
-	double ene;
+	//double ene;
 	double uc[][3] = { { 0.0, 0.0, 0.0 }, { 0.5, 0.5, 0.0 }, { 0.5, 0.0, 0.5 }, { 0.0, 0.5, 0.5 } };
-	short uc_types[] = { 29, 29, 29, 29 };
+	short uc_types[] = { 13, 13, 13, 13 };
 	double pv[][3] = { { 3.615, 0.0, 0.0 }, { 0.0, 3.615, 0.0 }, { 0.0, 0.0, 3.615 } };
-	double cluster[][3] = {{ 0, 0, 0 }, { 0.5, 0.5, 0 }, { 0, 0.5, -0.5 }, { -0.5, 0, -0.5 }, { -0.5, 0.5, 0 },
+	double cluster[][3] = { { 0, 0, 0 }, { 0.5, 0.5, 0 }, { 0, 0.5, -0.5 }, { -0.5, 0, -0.5 }, { -0.5, 0.5, 0 },
 				{ 0, 0.5, 0.5 },{ 0.5, 0, 0.5 },{ 0.5, -0.5, 0 },{ 0, -0.5, 0.5 },
-				{ -0.5, 0, 0.5 },{ -0.5, -0.5, 0 },{ 0, -0.5, -0.5 },{ 0.5, 0, -0.5 },
-				{ 1.0, 0, 0 },{ -1.0, 0, 0 },{ 0, 1.0, 0 },{ 0, -1.0, 0 },{ 0, 0, 1.0 },{ 0, 0, -1.0}};
-	short jcluster[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0 };
-	int i;
+				{ -0.5, 0, 0.5 },{ -0.5, -0.5, 0 },{ 0, -0.5, -0.5 },{ 0.5, 0, -0.5 }};
+//				{ 1.0, 0, 0 },{ -1.0, 0, 0 },{ 0, 1.0, 0 },{ 0, -1.0, 0 },{ 0, 0, 1.0 },{ 0, 0, -1.0}};
+	short jcluster[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }; //0, 0, 0, 0, 0, 0 };
+//	int i;
 //	double pos0[3], pos1[3];
-	short types[256];
-	char str[256];
-	int count;
+//	short types[256];
+//	char str[256];
+//	int count;
+	short types[] = { 14 };
+	int nums[] = { 2 };
+	MP_KMCTableItem list[100];
 
 //	MP_KMCRead(&data, "Al-Cu_5.kmc", 0);
-	MP_KMCAlloc(&data, 4, 4, 4, 4, 19, 100, 1000, 10000);
-	for (i = 0; i < 120; i++) {
-		types[i] = i;
-		printf("%d ", types[i]);
-	}
-	printf("\n");
-	MP_KMCTypes2String(120, types, str);
-	printf("%s\n", str);
-	count = MP_KMCString2Types(str, types);
-	for (i = 0; i < count; i++) {
-		printf("%d ", types[i]);
-	}
+	MP_KMCAlloc(&data, 4, 4, 4, 4, 13, 100, 1000, 10000);
+	MP_KMCSetUnitCell(&data, uc, uc_types, pv);
+	MP_KMCSetCluster(&data, cluster, jcluster);
+	MP_KMCReadTable(&data, "../python/Al-Si.etb");
+	MP_KMCSearchTable(&data, "14&13\0", list, 100);
 //	data.rand_seed = 12345;
 //	data.table_use = TRUE;
 //	MP_KMCSetUnitCell(&data, uc, uc_types, pv);
 //	MP_KMCSetCluster(&data, cluster, jcluster);
 //	MP_KMCCalcRotIndex(&data, 5.0, 1.0e-6);
-//	MP_KMCAddSoluteRandom(&data, 3, 0, TRUE);
+//	MP_KMCAddSoluteRandom(&data, 3, 14, TRUE);
 //	ene = MP_KMCTotalEnergy(&data, calcFSFCC, &update);
 //	printf("%d %.15e\n", data.ntable, ene);
 //	GlutWindow(&data, 800, 600, argc, argv);

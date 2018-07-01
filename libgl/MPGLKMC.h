@@ -177,7 +177,7 @@ PyTypeObject MPGL_KMCDrawDataPyType;
 void MPGL_KMCDrawInit(MPGL_KMCDraw *draw);
 void MPGL_KMCDrawColormapRange(MPGL_KMCDraw *draw, MP_KMCData *data, MPGL_Colormap *colormap);
 void MPGL_KMCDrawAtoms(MPGL_KMCDraw *draw, MP_KMCData *data, MPGL_Colormap *colormap);
-void MPGL_KMCDrawCluster(MPGL_KMCDraw *draw, MP_KMCData *data, MPGL_Colormap *colormap, int id);
+void MPGL_KMCDrawCluster(MPGL_KMCDraw *draw, MP_KMCData *data, MPGL_Colormap *colormap, short types[]);
 void MPGL_KMCDrawAtomsRegion(MP_KMCData *data, float region[]);
 void MPGL_KMCDrawClusterRegion(MP_KMCData *data, float region[]);
 

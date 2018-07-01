@@ -142,29 +142,6 @@ static void DrawSphere(MPGL_KMCDraw *draw, MP_KMCData *data, MPGL_Colormap *colo
 	}
 }
 
-static void AddTypes(MPGL_KMCDraw *draw, short type)
-{
-	int i;
-
-	for (i = 0; i < draw->ntypes; i++) {
-		if (draw->types[i] == type) return;
-	}
-	draw->types[draw->ntypes++] = type;
-}
-
-static void UpdateTypes(MPGL_KMCDraw *draw, MP_KMCData *data)
-{
-	int i;
-
-	draw->ntypes = 0;
-	for (i = 0; i < data->nuc; i++) {
-		AddTypes(draw, data->uc_types[i]);
-	}
-	for (i = 0; i < data->nsolute; i++) {
-		AddTypes(draw, data->solute[i].type);
-	}
-}
-
 static void DrawFrame(MPGL_KMCDraw *draw)
 {
 	int i, j;
@@ -231,13 +208,29 @@ static void DrawAxis(float dia, float lx, float ly, float lz)
 	glPopMatrix();
 }
 
+static void AddTypes(MPGL_KMCDraw *draw, short type)
+{
+	int i;
+
+	for (i = 0; i < draw->ntypes; i++) {
+		if (draw->types[i] == type) return;
+	}
+	draw->types[draw->ntypes++] = type;
+}
+
 void MPGL_KMCDrawAtoms(MPGL_KMCDraw *draw, MP_KMCData *data, MPGL_Colormap *colormap)
 {
 	int i;
 
 	SphereList(draw->res);
 	CylinderList(draw->res);
-	UpdateTypes(draw, data);
+	draw->ntypes = 0;
+	for (i = 0; i < data->nuc; i++) {
+		AddTypes(draw, data->uc_types[i]);
+	}
+	for (i = 0; i < data->nsolute; i++) {
+		AddTypes(draw, data->solute[i].type);
+	}
 	if (draw->kind == MPGL_KMCKindType) {
 		colormap->mode = MPGL_ColormapStep;
 		sprintf(colormap->title, "Type");
@@ -262,7 +255,7 @@ void MPGL_KMCDrawAtoms(MPGL_KMCDraw *draw, MP_KMCData *data, MPGL_Colormap *colo
 	DrawAxis(draw->axis_dia, (float)data->size[0], (float)data->size[1], (float)data->size[2]);
 }
 
-void MPGL_KMCDrawCluster(MPGL_KMCDraw *draw, MP_KMCData *data, MPGL_Colormap *colormap, int id)
+void MPGL_KMCDrawCluster(MPGL_KMCDraw *draw, MP_KMCData *data, MPGL_Colormap *colormap, short types[])
 {
 	int i, j;
 	short type;
@@ -270,7 +263,10 @@ void MPGL_KMCDrawCluster(MPGL_KMCDraw *draw, MP_KMCData *data, MPGL_Colormap *co
 
 	SphereList(draw->res);
 	CylinderList(draw->res);
-	UpdateTypes(draw, data);
+	draw->ntypes = 0;
+	for (i = 0; i < data->ncluster; i++) {
+		AddTypes(draw, types[i]);
+	}
 	colormap->mode = MPGL_ColormapStep;
 	sprintf(colormap->title, "Type");
 	colormap->nstep = draw->ntypes;
@@ -279,7 +275,7 @@ void MPGL_KMCDrawCluster(MPGL_KMCDraw *draw, MP_KMCData *data, MPGL_Colormap *co
 	}
 	DrawTransform(data);
 	for (i = 0; i < data->ncluster; i++) {
-		type = data->table[id].types[i];
+		type = types[i];
 		for (j = 0; j < draw->ntypes; j++) {
 			if (draw->types[j] == type) break;
 		}
@@ -382,13 +378,21 @@ static PyObject *PyKMCDrawCluster(MPGL_KMCDraw *self, PyObject *args, PyObject *
 {
 	MP_KMCData *data;
 	MPGL_Colormap *cmp;
-	int id;
-	static char *kwlist[] = { "kmc", "cmp", "id", NULL };
+	PyObject *types;
+	static char *kwlist[] = { "kmc", "cmp", "types", NULL };
+	int i;
+	short stypes[MP_KMC_NCLUSTER_MAX];
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "OO!i", kwlist, &data, &MPGL_ColormapPyType, &cmp, &id)) {
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "OO!O", kwlist, &data, &MPGL_ColormapPyType, &cmp, &types)) {
 		return NULL;
 	}
-	MPGL_KMCDrawCluster(self, data, cmp, id);
+	if (PyTuple_Size(types) != data->ncluster) {
+		return NULL;
+	}
+	for (i = 0; i < data->ncluster; i++) {
+		stypes[i] = (short)PyInt_AsLong(PyTuple_GetItem(types, (Py_ssize_t)i));
+	}
+	MPGL_KMCDrawCluster(self, data, cmp, stypes);
 	Py_RETURN_NONE;
 }
 
@@ -495,7 +499,7 @@ static PyMethodDef PyMethods[] = {
 	{ "atoms", (PyCFunction)PyKMCDrawAtoms, METH_VARARGS | METH_KEYWORDS,
 	"atoms(kmc, cmp) : draw atoms" },
 	{ "cluster", (PyCFunction)PyKMCDrawCluster, METH_VARARGS | METH_KEYWORDS,
-	"cluster(kmc, cmp, id) : draw a cluster registered in energy table" },
+	"cluster(kmc, cmp, types) : draw a cluster" },
 	{ "get_disp", (PyCFunction)PyKMCDrawGetDisp, METH_VARARGS | METH_KEYWORDS,
 	"set_disp(id) : get display of spheres" },
 	{ "set_disp", (PyCFunction)PyKMCDrawSetDisp, METH_VARARGS | METH_KEYWORDS,

@@ -11,7 +11,18 @@ if __name__ == "__main__":
     #kmc.write('test2.mpkmc', 8)
     #kmc = MPKMC.read('Al-Cu_5.kmc', 0)
     #kmc.write('Al-Cu_5m2.kmc', 8)
-    types = (13, 14, 14, 0, 15, 12, 6, 16, 8, 1)
-    s = MPKMC.types2string(types)
-    print s
-    print MPKMC.string2types(s)
+    uc = ((0, 0, 0), (0.5, 0.5, 0.0), (0.5, 0.0, 0.5), (0.0, 0.5, 0.5))
+    uc_types = (13, 13, 13, 13)
+    pv = ((3.615, 0, 0), (0, 3.615, 0), (0, 0, 3.615))
+    clu = ((0, 0, 0), (0.5, 0.5, 0), (0, 0.5, -0.5), (-0.5, 0, -0.5),\
+        (-0.5, 0.5, 0), (0, 0.5, 0.5), (0.5, 0, 0.5), (0.5, -0.5, 0),\
+        (0, -0.5, 0.5), (-0.5, 0, 0.5), (-0.5, -0.5, 0), (0, -0.5, -0.5),\
+        (0.5, 0, -0.5))
+    jclu = (1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)
+    kmc = MPKMC.new(4, 10, 10, 10, 13, 100, 1000, 10000)
+    kmc.set_unitcell(uc, uc_types, pv)
+    kmc.set_cluster(clu, jclu)
+    kmc.calc_rot_index(5.0, 1.0e-6)
+    kmc.read_table('Al-Si.etb')
+    print kmc.search_table(14, 1, (14), (2))
+

@@ -26,7 +26,7 @@ MPGLKMC.so is created and copied to python directory.
 + CLASS METHODS
   + atoms(kmc, cmp) : draw atoms
   + atoms_region(kmc) : return atoms region for drawing
-  + cluster(kmc, cmp, id) : draw a cluster registered in energy table  
+  + cluster(kmc, cmp, types) : draw a cluster
   + cluster_region(kmc) : return cluster region for drawing
   + colormap_range(kmc, cmp) : set colormap range
   + set_dia(id) : get diameter of spheres

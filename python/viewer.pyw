@@ -47,19 +47,21 @@ class GLWidget(QtOpenGL.QGLWidget):
   def paintGL(self):
     GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
     if self.kmc:
-      GL.glPushMatrix()
-      self.model[self.dispMode].transform()
       if self.dispMode == 0:
+        GL.glPushMatrix()
+        self.model[0].transform()
         self.draw.atoms(self.kmc, self.cmp)
-      elif self.dispMode == 1:
-        self.draw.cluster(self.kmc, self.cmp, self.tabid)
-      GL.glPopMatrix()
-      self.drawColormap()
-      if self.dispMode == 0:
+        GL.glPopMatrix()
+        self.drawColormap()
         s = str(self.kmc.step) + ' step'
         self.drawString(10, 20, s)
       elif self.dispMode == 1:
+        GL.glPushMatrix()
+        self.model[1].transform()
         item = self.kmc.table_item(self.tabid)
+        self.draw.cluster(self.kmc, self.cmp, item[0])
+        GL.glPopMatrix()
+        self.drawColormap()
         s = 'ID %d,   Energy %f,   Count %d' % (self.tabid, item[1], item[2])
         self.drawString(10, 20, s)
 

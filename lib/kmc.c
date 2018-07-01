@@ -98,6 +98,7 @@ static int SearchClusterIndex(MP_KMCData *data, int p, double cluster[], int *np
 {
 	int i, j;
 	double x, y, z;
+	double tol = 1.0e-12;
 	int neigh[27][3] = {
 		{ 0, 0, 0 },{ 1, 0, 0 },{ -1, 0, 0 },{ 0, 1, 0 },{ 0, -1, 0 },{ 1, 1, 0 },
 		{ 1, -1, 0 },{ -1, 1, 0 },{ -1, -1, 0 },{ 0, 0, 1 },{ 1, 0, 1 },{ -1, 0, 1 },
@@ -110,7 +111,7 @@ static int SearchClusterIndex(MP_KMCData *data, int p, double cluster[], int *np
 			x = neigh[i][0] + data->uc[j][0] - data->uc[p][0];
 			y = neigh[i][1] + data->uc[j][1] - data->uc[p][1];
 			z = neigh[i][2] + data->uc[j][2] - data->uc[p][2];
-			if (x == cluster[0] && y == cluster[1] && z == cluster[2]) {
+			if (fabs(x - cluster[0]) < tol && fabs(y - cluster[1]) < tol && fabs(z - cluster[2]) < tol) {
 				*np = j;
 				*dx = neigh[i][0];
 				*dy = neigh[i][1];
@@ -395,7 +396,7 @@ double MP_KMCTotalEnergy(MP_KMCData *data, double(*func)(MP_KMCData *, short *),
 	return data->tote;
 }
 
-static int SortComp(const void *c1, const void *c2)
+static int SortCompRefcount(const void *c1, const void *c2)
 {
 	MP_KMCTableItem *t1 = (MP_KMCTableItem *)c1;
 	MP_KMCTableItem *t2 = (MP_KMCTableItem *)c2;
@@ -405,9 +406,19 @@ static int SortComp(const void *c1, const void *c2)
 	else return -1;
 }
 
+static int SortCompEnergy(const void *c1, const void *c2)
+{
+	MP_KMCTableItem *t1 = (MP_KMCTableItem *)c1;
+	MP_KMCTableItem *t2 = (MP_KMCTableItem *)c2;
+
+	if (t1->energy > t2->energy) return 1;
+	else if (t1->energy == t2->energy) return 0;
+	else return -1;
+}
+
 void MP_KMCSortTable(MP_KMCData *data)
 {
-	qsort(data->table, data->ntable, sizeof(MP_KMCTableItem), SortComp);
+	qsort(data->table, data->ntable, sizeof(MP_KMCTableItem), SortCompRefcount);
 }
 
 void MP_KMCResetTable(MP_KMCData *data)
@@ -417,4 +428,47 @@ void MP_KMCResetTable(MP_KMCData *data)
 	for (i = 0; i < data->ntable; i++) {
 		data->table[i].refcount = 0;
 	}
+}
+
+static int SearchTable(MP_KMCData *data, short type0, int ncond, short types[], int nums[], MP_KMCTableItem list[], int list_max)
+{
+	int i, j, k;
+	int c, cm;
+	int nlist = 0;
+
+	for (i = 0; i < data->ntable; i++) {
+		if (data->table[i].types[0] == type0) {
+			for (j = 0, cm = 0; j < ncond; j++) {
+				for (k = 1, c = 0; k < data->ncluster; k++) {
+					if (types[j] == data->table[i].types[k]) c++;
+				}
+				if (c == nums[j]) cm++;
+			}
+			if (cm == ncond) {
+				list[nlist++] = data->table[i];
+				if (nlist >= list_max) break;
+			}
+		}
+	}
+	qsort(list, nlist, sizeof(MP_KMCTableItem), SortCompEnergy);
+	for (i = 0; i < nlist; i++) {
+		for (j = 0; j < data->ncluster; j++) {
+			printf("%d ", list[i].types[j]);
+		}
+		printf("%f\n", list[i].energy);
+	}
+	return nlist;
+}
+
+int MP_KMCSearchTable(MP_KMCData *data, char ss[], MP_KMCTableItem list[], int list_max)
+{
+	char *tok;
+	short type0;
+
+	tok = strtok(ss, "&");
+//	type0 = atoi(tok);
+//	while (tok != NULL) {
+//		tok = strtok(NULL, "&");
+//		printf("%s\n", tok);
+//	}
 }

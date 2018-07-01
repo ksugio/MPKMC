@@ -19,6 +19,7 @@ EXPORTS
 	MP_KMCTotalEnergy
 	MP_KMCSortTable
 	MP_KMCResetTable
+	MP_KMCSearchTable
 	; jump
 	MP_KMCJump
 	MP_KMCStepForward

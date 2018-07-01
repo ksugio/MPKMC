@@ -8,6 +8,7 @@ static MPGL_Scene Scene;
 static MPGL_Model Model[2];
 
 static int dispMode = 0;
+static int tbID = 1;
 
 static void DisplayFunc(void)
 {
@@ -17,7 +18,7 @@ static void DisplayFunc(void)
 	glPushMatrix();
 	MPGL_ModelTransform(&Model[dispMode]);
 	if (dispMode == 0) MPGL_KMCDrawAtoms(&Draw, Data, &Colormap);
-	else if (dispMode == 1) MPGL_KMCDrawCluster(&Draw, Data, &Colormap, 0);
+	else if (dispMode == 1) MPGL_KMCDrawCluster(&Draw, Data, &Colormap, Data->table[tbID].types);
 	glPopMatrix();
 	/* colormap draw */
 	glPushMatrix();

@@ -499,6 +499,47 @@ static PyObject *PyKMCResetTable(MP_KMCData *self, PyObject *args)
 	Py_RETURN_NONE;
 }
 
+static PyObject *TableItem(int ncluster, MP_KMCTableItem item)
+{
+	int i;
+	PyObject *tps;
+
+	tps = PyTuple_New((Py_ssize_t)ncluster);
+	for (i = 0; i < ncluster; i++) {
+		PyTuple_SetItem(tps, (Py_ssize_t)i, PyInt_FromLong(item.types[i]));
+	}
+	return Py_BuildValue("Odl", tps, item.energy, item.refcount);
+}
+
+static PyObject *PyKMCSearchTable(MP_KMCData *self, PyObject *args, PyObject *kwds)
+{
+	short type0;
+	int ncond;
+	PyObject *types;
+	PyObject *nums;
+	static char *kwlist[] = { "type0", "ncond", "types", "nums", NULL };
+	int i;
+	short stypes[32];
+	int inums[32];
+	int count;
+	MP_KMCTableItem list[1024];
+	PyObject *tb;
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "hiOO", kwlist, &type0, &ncond, &types, &nums)) {
+		return NULL;
+	}
+	for (i = 0; i < ncond; i++) {
+		stypes[i] = (short)PyInt_AsLong(PyTuple_GetItem(types, (Py_ssize_t)i));
+		inums[i] = (int)PyInt_AsLong(PyTuple_GetItem(nums, (Py_ssize_t)i));
+	}
+	count = MP_KMCSearchTable(self, type0, ncond, stypes, inums, list, 1024);
+	tb = PyTuple_New((Py_ssize_t)count);
+	for (i = 0; i < count; i++) {
+		PyTuple_SetItem(tb, (Py_ssize_t)i, TableItem(self->ncluster, list[i]));
+	}
+	return Py_BuildValue("iO", count, tb);
+}
+
 static PyObject *PyKMCWrite(MP_KMCData *self, PyObject *args, PyObject *kwds)
 {
 	char *filename;
@@ -515,18 +556,12 @@ static PyObject *PyKMCTableItem(MP_KMCData *self, PyObject *args, PyObject *kwds
 {
 	int id;
 	static char *kwlist[] = { "id", NULL };
-	PyObject *tps;
-	int i;
 
 	if (!PyArg_ParseTupleAndKeywords(args, kwds, "i", kwlist, &id)) {
 		return NULL;
 	}
 	if (id >= 0 && id < self->ntable) {
-		tps = PyTuple_New((Py_ssize_t)self->ncluster);
-		for (i = 0; i < self->ncluster; i++) {
-			PyTuple_SetItem(tps, (Py_ssize_t)i, PyInt_FromLong(self->table[id].types[i]));
-		}
-		return Py_BuildValue("Odl", tps, self->table[id].energy, self->table[id].refcount);
+		return TableItem(self->ncluster, self->table[id]);
 	}
 	else return NULL;
 }
@@ -639,6 +674,8 @@ static PyMethodDef PyKMCMethods[] = {
 	"sort_table() : sort energy table by reference count" },
 	{ "reset_table", (PyCFunction)PyKMCResetTable, METH_NOARGS,
 	"reset_table() : reset reference count of energy table" },
+	{ "search_table", (PyCFunction)PyKMCSearchTable, METH_VARARGS | METH_KEYWORDS,
+	"search_table(type0, ncond, types, nums) : search cluster with conditions" },
 	{ "write", (PyCFunction)PyKMCWrite, METH_VARARGS | METH_KEYWORDS,
 	"write(filename, comp) : write kmc data" },
 	{ "table_item", (PyCFunction)PyKMCTableItem, METH_VARARGS | METH_KEYWORDS,
