@@ -462,13 +462,20 @@ static int SearchTable(MP_KMCData *data, short type0, int ncond, short types[], 
 
 int MP_KMCSearchTable(MP_KMCData *data, char ss[], MP_KMCTableItem list[], int list_max)
 {
-	char *tok;
+	char *p = ss;
+	char s[256];
+	int c;
 	short type0;
 
-	tok = strtok(ss, "&");
-//	type0 = atoi(tok);
-//	while (tok != NULL) {
-//		tok = strtok(NULL, "&");
-//		printf("%s\n", tok);
-//	}
+	c = 0;
+	while (TRUE) {
+		if (*p == '&' || *p == '\0') {
+			s[c] = '\0';
+			printf("%s", s);
+			if (*p == '\0') break;
+			else c = 0;
+		}
+		else s[c++] = *p;
+		p++;
+	}
 }
