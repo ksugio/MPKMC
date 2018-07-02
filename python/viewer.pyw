@@ -33,6 +33,7 @@ class GLWidget(QtOpenGL.QGLWidget):
     self.scene.proj = 1    
     self.model = [None, None]
     self.cmp = MPGLKMC.colormap()
+    self.tab = None
     self.tabid = 0
 
   def minimumSizeHint(self):
@@ -258,34 +259,31 @@ class EnergyHistoryDialog(QtGui.QDialog):
 SearchTableDialog
 """
 class SearchTableDialog(QtGui.QDialog):
-  def __init__(self, parent, kmc):
+  def __init__(self, parent, kmc, tab):
     QtGui.QDialog.__init__(self, parent)
     self.kmc = kmc
+    self.tab = tab
     self.setWindowTitle("Search Table")
-    vbox1 = QtGui.QVBoxLayout(self)
-    vbox1.addWidget(QtGui.QLabel('pos, type, num'))
+    vbox = QtGui.QVBoxLayout(self)
     hbox1 = QtGui.QHBoxLayout()
-    vbox1.addLayout(hbox1)
-    spin_pos = QtGui.QSpinBox()
-    spin_pos.setMaximum(64)
-    spin_pos.setMinimum(-1)
-    hbox1.addWidget(spin_pos)
-    spin_type = QtGui.QSpinBox()
-    spin_type.setMaximum(120)
-    spin_type.setMinimum(0)
-    hbox1.addWidget(spin_type)    
-    spin_num = QtGui.QSpinBox()
-    spin_num.setMaximum(64)
-    spin_num.setMinimum(0)
-    hbox1.addWidget(spin_num)
-    self.button1 = QtGui.QPushButton('Add')
-    #self.button1.clicked[bool].connect(self.measureIMFP)
-    vbox1.addWidget(self.button1)
-    self.list1 = QtGui.QListWidget()
-    vbox1.addWidget(self.list1)
+    vbox.addLayout(hbox1)
+    self.line1 = QtGui.QLineEdit()
+    hbox1.addWidget(self.line1)
     self.button1 = QtGui.QPushButton('Search')
-    vbox1.addWidget(self.button1)
+    self.button1.clicked[bool].connect(self.searchTable)
+    hbox1.addWidget(self.button1)
+    self.list1 = QtGui.QListWidget()
+    vbox.addWidget(self.list1)
 
+  def searchTable(self):
+    self.tab = self.kmc.search_table(str(self.line1.text()))
+    nlist = self.tab[0]
+    item = self.tab[1]
+    self.list1.clear()
+    for i in range(nlist):
+      it = '%d %f %d' % (i, item[i][1], item[i][2])
+      self.list1.addItem(it)
+    
 """
 MainWindow
 """    
@@ -355,9 +353,9 @@ class MainWindow(QtGui.QMainWindow):
       dlg.exec_()
 
   def searchTableDialog(self):
-    #if self.glwidget.kmc:
-    dlg = SearchTableDialog(self, self.glwidget.kmc)
-    dlg.exec_()
+    if self.glwidget.kmc:
+      dlg = SearchTableDialog(self, self.glwidget.kmc, self.glwidget.tab)
+      dlg.exec_()
       
   def MainToolBar(self):
     toolbar = QtGui.QToolBar(self)
