@@ -408,8 +408,8 @@ static int SortCompRefcount(const void *c1, const void *c2)
 
 static int SortCompEnergy(const void *c1, const void *c2)
 {
-	MP_KMCTableItem *t1 = (MP_KMCTableItem *)c1;
-	MP_KMCTableItem *t2 = (MP_KMCTableItem *)c2;
+	MP_KMCTableItem *t1 = *(MP_KMCTableItem **)c1;
+	MP_KMCTableItem *t2 = *(MP_KMCTableItem **)c2;
 
 	if (t1->energy > t2->energy) return 1;
 	else if (t1->energy == t2->energy) return 0;
@@ -430,52 +430,87 @@ void MP_KMCResetTable(MP_KMCData *data)
 	}
 }
 
-static int SearchTable(MP_KMCData *data, short type0, int ncond, short types[], int nums[], MP_KMCTableItem list[], int list_max)
+struct KMCTableCond {
+	int pos;
+	short type;
+	int num;
+};
+
+static int KMCSearchTable(MP_KMCData *data, int ncond, struct KMCTableCond cond[], MP_KMCTableItem list[], int list_max)
 {
 	int i, j, k;
 	int c, cm;
 	int nlist = 0;
+	MP_KMCTableItem **table;
 
+	table = (MP_KMCTableItem **)malloc(data->ntable*sizeof(MP_KMCTableItem *));
 	for (i = 0; i < data->ntable; i++) {
-		if (data->table[i].types[0] == type0) {
-			for (j = 0, cm = 0; j < ncond; j++) {
-				for (k = 1, c = 0; k < data->ncluster; k++) {
-					if (types[j] == data->table[i].types[k]) c++;
+		table[i] = &(data->table[i]);
+	}
+	qsort(table, data->ntable, sizeof(MP_KMCTableItem *), SortCompEnergy);
+	for (i = 0; i < data->ntable; i++) {
+		for (j = 0, cm = 0; j < ncond; j++) {
+			if (cond[j].pos >= 0 && cond[j].pos < data->ncluster) {
+				if (cond[j].type == table[i]->types[cond[j].pos]) cm++;
+			}
+			else {
+				for (k = 0, c = 0; k < data->ncluster; k++) {
+					if (cond[j].type == table[i]->types[k]) c++;
 				}
-				if (c == nums[j]) cm++;
-			}
-			if (cm == ncond) {
-				list[nlist++] = data->table[i];
-				if (nlist >= list_max) break;
+				if (c == cond[j].num) cm++;
 			}
 		}
-	}
-	qsort(list, nlist, sizeof(MP_KMCTableItem), SortCompEnergy);
-	for (i = 0; i < nlist; i++) {
-		for (j = 0; j < data->ncluster; j++) {
-			printf("%d ", list[i].types[j]);
+		if (cm == ncond) {
+			list[nlist++] = *(table[i]);
+			if (nlist >= list_max) break;
 		}
-		printf("%f\n", list[i].energy);
 	}
+	free(table);
 	return nlist;
+}
+
+static int GetValue(char *p)
+{
+	char s[256];
+	int c = 0;
+
+	while (TRUE) {
+		if (*p == 'p' || *p == 't' || *p == 'n'
+			|| *p == ',' || *p == '\0') {
+			s[c] = '\0';
+			return atoi(s);
+		}
+		s[c++] = *p++;
+	}
 }
 
 int MP_KMCSearchTable(MP_KMCData *data, char ss[], MP_KMCTableItem list[], int list_max)
 {
 	char *p = ss;
-	char s[256];
-	int c;
-	short type0;
+	int ncond = 0;
+	struct KMCTableCond cond[64];
 
-	c = 0;
-	while (TRUE) {
-		if (*p == '&' || *p == '\0') {
-			s[c] = '\0';
-			printf("%s", s);
-			if (*p == '\0') break;
-			else c = 0;
+	cond[ncond].pos = -1;
+	cond[ncond].type = -1;
+	cond[ncond].num = -1;
+	while (*p != '\0') {
+		if (*p == 'p') {
+			cond[ncond].pos = GetValue(++p);
 		}
-		else s[c++] = *p;
-		p++;
+		else if (*p == 't') {
+			cond[ncond].type = (short)GetValue(++p);
+		}
+		else if (*p == 'n') {
+			cond[ncond].num = GetValue(++p);
+		}
+		else ++p;
+		if (*p == ',' || *p == '\0') {
+			ncond++;
+			if (ncond >= 64) break;
+			cond[ncond].pos = -1;
+			cond[ncond].type = -1;
+			cond[ncond].num = -1;
+		}
 	}
+	return KMCSearchTable(data, ncond, cond, list, list_max);
 }

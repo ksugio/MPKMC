@@ -84,19 +84,22 @@ class GLWidget(QtOpenGL.QGLWidget):
     self.scene.resize(width, height) 
 
   def mousePressEvent(self, event):
-    self.model[self.dispMode].button(event.x(), event.y(), 1)
+    if self.model[self.dispMode]:
+      self.model[self.dispMode].button(event.x(), event.y(), 1)
 
   def mouseReleaseEvent(self, event):
-    self.model[self.dispMode].button(event.x(), event.y(), 0)
+    if self.model[self.dispMode]:
+      self.model[self.dispMode].button(event.x(), event.y(), 0)
 
   def mouseMoveEvent(self, event):
-    if event.buttons() & QtCore.Qt.LeftButton:
-      if QtGui.QApplication.keyboardModifiers() == QtCore.Qt.ControlModifier:
-        ctrl = 1 
-      else:
-        ctrl = 0
-      if self.model[self.dispMode].motion(self.scene, event.x(), event.y(), ctrl):
-        self.updateGL()
+    if self.model[self.dispMode]:
+      if event.buttons() & QtCore.Qt.LeftButton:
+        if QtGui.QApplication.keyboardModifiers() == QtCore.Qt.ControlModifier:
+          ctrl = 1 
+        else:
+          ctrl = 0
+        if self.model[self.dispMode].motion(self.scene, event.x(), event.y(), ctrl):
+          self.updateGL()
 
   def screenShot(self):
     screenshot = GL.glReadPixels(0, 0, self.width(), self.height(), GL.GL_RGBA, GL.GL_UNSIGNED_BYTE)
@@ -252,6 +255,38 @@ class EnergyHistoryDialog(QtGui.QDialog):
       self.canvas.saveGraph(str(fname))    
 
 """
+SearchTableDialog
+"""
+class SearchTableDialog(QtGui.QDialog):
+  def __init__(self, parent, kmc):
+    QtGui.QDialog.__init__(self, parent)
+    self.kmc = kmc
+    self.setWindowTitle("Search Table")
+    vbox1 = QtGui.QVBoxLayout(self)
+    vbox1.addWidget(QtGui.QLabel('pos, type, num'))
+    hbox1 = QtGui.QHBoxLayout()
+    vbox1.addLayout(hbox1)
+    spin_pos = QtGui.QSpinBox()
+    spin_pos.setMaximum(64)
+    spin_pos.setMinimum(-1)
+    hbox1.addWidget(spin_pos)
+    spin_type = QtGui.QSpinBox()
+    spin_type.setMaximum(120)
+    spin_type.setMinimum(0)
+    hbox1.addWidget(spin_type)    
+    spin_num = QtGui.QSpinBox()
+    spin_num.setMaximum(64)
+    spin_num.setMinimum(0)
+    hbox1.addWidget(spin_num)
+    self.button1 = QtGui.QPushButton('Add')
+    #self.button1.clicked[bool].connect(self.measureIMFP)
+    vbox1.addWidget(self.button1)
+    self.list1 = QtGui.QListWidget()
+    vbox1.addWidget(self.list1)
+    self.button1 = QtGui.QPushButton('Search')
+    vbox1.addWidget(self.button1)
+
+"""
 MainWindow
 """    
 class MainWindow(QtGui.QMainWindow):
@@ -277,6 +312,7 @@ class MainWindow(QtGui.QMainWindow):
     view_menu.addAction('Set Display', self.setDispDialog)
     view_menu.addAction('Set Shift', self.setShiftDialog)
     view_menu.addAction('Energy History', self.energyHistoryDialog)
+    view_menu.addAction('Search Table', self.searchTableDialog)
     menubar.addMenu(view_menu)
 
   def fileOpen(self):
@@ -317,6 +353,11 @@ class MainWindow(QtGui.QMainWindow):
     if self.glwidget.kmc:
       dlg = EnergyHistoryDialog(self, self.glwidget.kmc)
       dlg.exec_()
+
+  def searchTableDialog(self):
+    #if self.glwidget.kmc:
+    dlg = SearchTableDialog(self, self.glwidget.kmc)
+    dlg.exec_()
       
   def MainToolBar(self):
     toolbar = QtGui.QToolBar(self)

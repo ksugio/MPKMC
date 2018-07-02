@@ -513,31 +513,22 @@ static PyObject *TableItem(int ncluster, MP_KMCTableItem item)
 
 static PyObject *PyKMCSearchTable(MP_KMCData *self, PyObject *args, PyObject *kwds)
 {
-	short type0;
-	int ncond;
-	PyObject *types;
-	PyObject *nums;
-	static char *kwlist[] = { "type0", "ncond", "types", "nums", NULL };
-	int i;
-	short stypes[32];
-	int inums[32];
-	int count;
+	char *ss;
+	static char *kwlist[] = { "ss", NULL };
+	int nlist;
 	MP_KMCTableItem list[1024];
 	PyObject *tb;
+	int i;
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "hiOO", kwlist, &type0, &ncond, &types, &nums)) {
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "s", kwlist, &ss)) {
 		return NULL;
 	}
-	for (i = 0; i < ncond; i++) {
-		stypes[i] = (short)PyInt_AsLong(PyTuple_GetItem(types, (Py_ssize_t)i));
-		inums[i] = (int)PyInt_AsLong(PyTuple_GetItem(nums, (Py_ssize_t)i));
-	}
-	count = MP_KMCSearchTable(self, type0, ncond, stypes, inums, list, 1024);
-	tb = PyTuple_New((Py_ssize_t)count);
-	for (i = 0; i < count; i++) {
+	nlist = MP_KMCSearchTable(self, ss, list, 1024);
+	tb = PyTuple_New((Py_ssize_t)nlist);
+	for (i = 0; i < nlist; i++) {
 		PyTuple_SetItem(tb, (Py_ssize_t)i, TableItem(self->ncluster, list[i]));
 	}
-	return Py_BuildValue("iO", count, tb);
+	return Py_BuildValue("iO", nlist, tb);
 }
 
 static PyObject *PyKMCWrite(MP_KMCData *self, PyObject *args, PyObject *kwds)
@@ -675,7 +666,7 @@ static PyMethodDef PyKMCMethods[] = {
 	{ "reset_table", (PyCFunction)PyKMCResetTable, METH_NOARGS,
 	"reset_table() : reset reference count of energy table" },
 	{ "search_table", (PyCFunction)PyKMCSearchTable, METH_VARARGS | METH_KEYWORDS,
-	"search_table(type0, ncond, types, nums) : search cluster with conditions" },
+	"search_table(ss) : search cluster with search string, ex. p0t14,t14n3" },
 	{ "write", (PyCFunction)PyKMCWrite, METH_VARARGS | METH_KEYWORDS,
 	"write(filename, comp) : write kmc data" },
 	{ "table_item", (PyCFunction)PyKMCTableItem, METH_VARARGS | METH_KEYWORDS,

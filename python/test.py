@@ -24,5 +24,6 @@ if __name__ == "__main__":
     kmc.set_cluster(clu, jclu)
     kmc.calc_rot_index(5.0, 1.0e-6)
     kmc.read_table('Al-Si.etb')
-    print kmc.search_table(14, 1, (14), (2))
-
+    count, tb = kmc.search_table("p0t14,t14n3")
+    print count, kmc.ntable
+    print tb

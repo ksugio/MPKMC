@@ -59,7 +59,7 @@ MPKMC.so is created and copied to python directory.
   + reset_table() : reset reference count of energy table
   + search_cluster(types) : search cluster in table and return table index
   + search_cluster_ids(ids) : search cluster in table from atom indexes and return table index
-  + search_table(type0, ncond, types, nums) : search cluster with conditions
+  + search_table(ss) : search cluster with search string, ex. p0t14,t14n3
   + set_cluster(cluster, jcluster) : set atom positions and jump flags of cluster, return true if it succeeds
   + set_unitcell(uc, types, pv) : set atom positons, types and primitive vector of unit cell
   + solute_item(id) : return i-th item in solute table

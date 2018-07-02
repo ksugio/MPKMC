@@ -122,8 +122,6 @@ int main(int argc, char *argv[])
 //	short types[256];
 //	char str[256];
 //	int count;
-	short types[] = { 14 };
-	int nums[] = { 2 };
 	MP_KMCTableItem list[100];
 
 //	MP_KMCRead(&data, "Al-Cu_5.kmc", 0);
@@ -131,7 +129,7 @@ int main(int argc, char *argv[])
 	MP_KMCSetUnitCell(&data, uc, uc_types, pv);
 	MP_KMCSetCluster(&data, cluster, jcluster);
 	MP_KMCReadTable(&data, "../python/Al-Si.etb");
-	MP_KMCSearchTable(&data, "14&13\0", list, 100);
+	MP_KMCSearchTable(&data, "p0t14,t14n5", list, 100);
 //	data.rand_seed = 12345;
 //	data.table_use = TRUE;
 //	MP_KMCSetUnitCell(&data, uc, uc_types, pv);
