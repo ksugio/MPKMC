@@ -35,6 +35,7 @@ class GLWidget(QtOpenGL.QGLWidget):
     self.cmp = MPGLKMC.colormap()
     self.tab = None
     self.tabid = 0
+    self.tabmax = 0
 
   def minimumSizeHint(self):
     return QtCore.QSize(320, 240)
@@ -56,10 +57,10 @@ class GLWidget(QtOpenGL.QGLWidget):
         self.drawColormap()
         s = str(self.kmc.step) + ' step'
         self.drawString(10, 20, s)
-      elif self.dispMode == 1:
+      elif self.tab and self.dispMode == 1:
         GL.glPushMatrix()
         self.model[1].transform()
-        item = self.kmc.table_item(self.tabid)
+        item = self.tab[self.tabid]
         self.draw.cluster(self.kmc, self.cmp, item[0])
         GL.glPopMatrix()
         self.drawColormap()
@@ -259,31 +260,46 @@ class EnergyHistoryDialog(QtGui.QDialog):
 SearchTableDialog
 """
 class SearchTableDialog(QtGui.QDialog):
-  def __init__(self, parent, kmc, tab):
+  def __init__(self, parent, glwidget):
     QtGui.QDialog.__init__(self, parent)
-    self.kmc = kmc
-    self.tab = tab
+    self.glwidget = glwidget
     self.setWindowTitle("Search Table")
     vbox = QtGui.QVBoxLayout(self)
     hbox1 = QtGui.QHBoxLayout()
     vbox.addLayout(hbox1)
     self.line1 = QtGui.QLineEdit()
     hbox1.addWidget(self.line1)
-    self.button1 = QtGui.QPushButton('Search')
-    self.button1.clicked[bool].connect(self.searchTable)
-    hbox1.addWidget(self.button1)
+    button1 = QtGui.QPushButton('Search')
+    button1.clicked[bool].connect(self.searchTable)
+    hbox1.addWidget(button1)
     self.list1 = QtGui.QListWidget()
+    self.list1.currentItemChanged.connect(self.searchChanged)
     vbox.addWidget(self.list1)
+    button2 = QtGui.QPushButton("Close")
+    button2.clicked.connect(self.reject)
+    vbox.addWidget(button2)
 
-  def searchTable(self):
-    self.tab = self.kmc.search_table(str(self.line1.text()))
-    nlist = self.tab[0]
-    item = self.tab[1]
+  def setTable(self, ss):
+    nlist, tab = self.glwidget.kmc.search_table(ss)
+    self.glwidget.tab = tab
+    self.glwidget.tabmax = nlist
+    self.glwidget.tabid = 0
     self.list1.clear()
     for i in range(nlist):
-      it = '%d %f %d' % (i, item[i][1], item[i][2])
+      it = '%d, %f, %d, %s' % (i, tab[i][1], tab[i][2], MPKMC.types2string(tab[i][0]))
       self.list1.addItem(it)
-    
+
+  def searchTable(self):
+    if self.glwidget.kmc:
+      self.setTable(str(self.line1.text()))
+      self.glwidget.updateGL()
+
+  def searchChanged(self, curr, prev):
+    if curr != None:
+      txt = curr.text().split(',')
+      self.glwidget.tabid = int(txt[0])
+      self.glwidget.updateGL()
+
 """
 MainWindow
 """    
@@ -296,6 +312,11 @@ class MainWindow(QtGui.QMainWindow):
     self.MainMenuBar()
     self.MainToolBar()
     self.compress = 8
+    self.searchtable = SearchTableDialog(self, self.glwidget)
+    self.searchtable.finished.connect(self.searchTableClose)
+
+  def closeEvent(self, event):
+    self.searchtable.destroy()
 
   def MainMenuBar(self):
     menubar = QtGui.QMenuBar(self)
@@ -304,13 +325,13 @@ class MainWindow(QtGui.QMainWindow):
     file_menu.addAction('Open', self.fileOpen)
     file_menu.addAction('Save', self.fileSave)
     file_menu.addAction('Save Image', self.fileSaveImage)
-    file_menu.addAction('Quit', QtCore.QCoreApplication.instance().quit)   
+    file_menu.addAction('Quit', self.close)   
     menubar.addMenu(file_menu)
     view_menu = QtGui.QMenu('View', self)
     view_menu.addAction('Set Display', self.setDispDialog)
     view_menu.addAction('Set Shift', self.setShiftDialog)
     view_menu.addAction('Energy History', self.energyHistoryDialog)
-    view_menu.addAction('Search Table', self.searchTableDialog)
+    view_menu.addAction('Search Table', self.searchTableShow)
     menubar.addMenu(view_menu)
 
   def fileOpen(self):
@@ -322,6 +343,7 @@ class MainWindow(QtGui.QMainWindow):
       self.glwidget.model[0] = MPGLKMC.model((1,0,0,0,0,1), region)
       region = self.glwidget.draw.cluster_region(self.glwidget.kmc)
       self.glwidget.model[1] = MPGLKMC.model((1,0,0,0,0,1), region)
+      self.searchtable.setTable('')
       self.glwidget.updateGL()
 
   def fileSave(self):
@@ -352,11 +374,18 @@ class MainWindow(QtGui.QMainWindow):
       dlg = EnergyHistoryDialog(self, self.glwidget.kmc)
       dlg.exec_()
 
-  def searchTableDialog(self):
-    if self.glwidget.kmc:
-      dlg = SearchTableDialog(self, self.glwidget.kmc, self.glwidget.tab)
-      dlg.exec_()
-      
+  def searchTableShow(self):
+    if self.searchtable.isHidden():
+      self.searchtable.show()
+    else:
+      self.searchtable.activateWindow()
+    self.glwidget.dispMode = 1
+    self.glwidget.updateGL()
+
+  def searchTableClose(self):
+    self.glwidget.dispMode = 0
+    self.glwidget.updateGL()
+
   def MainToolBar(self):
     toolbar = QtGui.QToolBar(self)
     toolbar.addAction('Reset', self.resetModel)
@@ -382,9 +411,6 @@ class MainWindow(QtGui.QMainWindow):
     button5 = ToolButton('Energy', self.setDrawKind)
     group2.addButton(button5)
     toolbar.addWidget(button5)
-    button6 = ToolButton('Cluster', self.setDrawKind)
-    group2.addButton(button6)
-    toolbar.addWidget(button6)
     toolbar.addSeparator()
     toolbar.addAction('<<', self.stepFirst)    
     toolbar.addAction('<', self.stepBackward)
@@ -393,9 +419,6 @@ class MainWindow(QtGui.QMainWindow):
     toolbar.addAction('>', self.stepForward)
     toolbar.addAction('>>', self.stepLast) 
     toolbar.addAction('Go', self.stepGo)
-    toolbar.addSeparator()
-    toolbar.addAction('TB-', self.tableDown)    
-    toolbar.addAction('TB+', self.tableUp)
     self.addToolBar(toolbar)
 
   def setMouseMode(self, pressed):
@@ -410,13 +433,9 @@ class MainWindow(QtGui.QMainWindow):
   def setDrawKind(self, pressed):
     txt = self.sender().text()
     if txt == "Type":
-      self.glwidget.dispMode = 0
       self.glwidget.draw.kind = 0
     elif txt == "Energy":
-      self.glwidget.dispMode = 0
       self.glwidget.draw.kind = 1
-    elif txt == "Cluster":
-      self.glwidget.dispMode = 1
     self.glwidget.updateGL()
 
   def resetModel(self):
@@ -469,16 +488,6 @@ class MainWindow(QtGui.QMainWindow):
         self.playb.toggle()
         return
       self.glwidget.kmc.step_forward(1)
-      self.glwidget.updateGL()
-      
-  def tableDown(self):
-    if self.glwidget.kmc and self.glwidget.tabid > 0:
-      self.glwidget.tabid = self.glwidget.tabid - 1
-      self.glwidget.updateGL()
-
-  def tableUp(self):
-    if self.glwidget.kmc and self.glwidget.tabid < self.glwidget.kmc.ntable - 1 :
-      self.glwidget.tabid = self.glwidget.tabid + 1
       self.glwidget.updateGL()
 
 class ToolButton(QtGui.QToolButton):

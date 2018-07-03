@@ -312,21 +312,25 @@ void MPGL_KMCDrawClusterRegion(MP_KMCData *data, float region[])
 	double ymax = -1.0e32;
 	double zmin = 1.0e32;
 	double zmax = -1.0e32;
+	double x0, y0, z0;
+	double x1, y1, z1;
 
 	for (i = 0; i < data->ncluster; i++) {
-		if (data->rcluster[i][0] < xmin) xmin = data->rcluster[i][0];
-		else if (data->rcluster[i][0] > xmax) xmax = data->rcluster[i][0];
-		if (data->rcluster[i][1] < ymin) ymin = data->rcluster[i][1];
-		else if (data->rcluster[i][1] > ymax) ymax = data->rcluster[i][1];
-		if (data->rcluster[i][2] < zmin) zmin = data->rcluster[i][2];
-		else if (data->rcluster[i][2] > zmax) zmax = data->rcluster[i][2];
+		if (data->cluster[i][0] < xmin) xmin = data->cluster[i][0];
+		else if (data->cluster[i][0] > xmax) xmax = data->cluster[i][0];
+		if (data->cluster[i][1] < ymin) ymin = data->cluster[i][1];
+		else if (data->cluster[i][1] > ymax) ymax = data->cluster[i][1];
+		if (data->cluster[i][2] < zmin) zmin = data->cluster[i][2];
+		else if (data->cluster[i][2] > zmax) zmax = data->cluster[i][2];
 	}
-	region[0] = (float)(xmin-0.5);
-	region[1] = (float)(ymin-0.5);
-	region[2] = (float)(zmin-0.5);
-	region[3] = (float)(xmax+0.5);
-	region[4] = (float)(ymax+0.5);
-	region[5] = (float)(zmax+0.5);
+	realPos(data->pv, xmin-0.5, ymin-0.5, zmin-0.5, &x0, &y0, &z0);
+	realPos(data->pv, xmax+0.5, ymax+0.5, zmax+0.5, &x1, &y1, &z1);
+	region[0] = (float)x0;
+	region[1] = (float)y0;
+	region[2] = (float)z0;
+	region[3] = (float)x1;
+	region[4] = (float)y1;
+	region[5] = (float)z1;
 }
 
 /**********************************************************
