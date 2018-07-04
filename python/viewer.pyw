@@ -421,13 +421,14 @@ class MainWindow(QtGui.QMainWindow):
     self.addToolBar(toolbar)
 
   def setMouseMode(self, pressed):
-    txt = self.sender().text()
-    if txt == "Rot":
-        self.glwidget.model[self.glwidget.dispMode].button_mode = 0
-    elif txt == "Trans":
-        self.glwidget.model[self.glwidget.dispMode].button_mode = 1
-    elif txt == "Zoom":
-        self.glwidget.model[self.glwidget.dispMode].button_mode = 2
+    if self.glwidget.model[self.glwidget.dispMode]:
+      txt = self.sender().text()
+      if txt == "Rot":
+          self.glwidget.model[self.glwidget.dispMode].button_mode = 0
+      elif txt == "Trans":
+          self.glwidget.model[self.glwidget.dispMode].button_mode = 1
+      elif txt == "Zoom":
+          self.glwidget.model[self.glwidget.dispMode].button_mode = 2
 
   def setDrawKind(self, pressed):
     txt = self.sender().text()
@@ -438,12 +439,14 @@ class MainWindow(QtGui.QMainWindow):
     self.glwidget.updateGL()
 
   def resetModel(self):
-    self.glwidget.model[self.glwidget.dispMode].reset()
-    self.glwidget.updateGL()
+    if self.glwidget.model[self.glwidget.dispMode]:
+      self.glwidget.model[self.glwidget.dispMode].reset()
+      self.glwidget.updateGL()
 
   def fitModel(self):
-    self.glwidget.model[self.glwidget.dispMode].fit()
-    self.glwidget.updateGL()
+    if self.glwidget.model[self.glwidget.dispMode]:
+      self.glwidget.model[self.glwidget.dispMode].fit()
+      self.glwidget.updateGL()
 
   def stepFirst(self):
     if self.glwidget.kmc:
