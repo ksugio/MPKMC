@@ -18,12 +18,10 @@ static double calcFSFCC(MP_KMCData *data, short types[])
 
 int main(int argc, char *argv[])
 {
-	int update;
 	MP_KMCData data;
-	int njump;
+	int njump, update;
 	double Kb = 86.1735e-6; // ev/K
-	double T;
-	
+	double T;	
 	double uc[][3] = { { 0.0, 0.0, 0.0 }, { 0.5, 0.5, 0.0 }, { 0.5, 0.0, 0.5 }, { 0.0, 0.5, 0.5 } };
 	short uc_types[] = { 29, 29, 29, 29 };
 	double pv[][3] = { { 3.615, 0.0, 0.0 }, { 0.0, 3.615, 0.0 }, { 0.0, 0.0, 3.615 } };
