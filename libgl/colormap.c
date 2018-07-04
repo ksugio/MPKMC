@@ -382,7 +382,7 @@ static PyGetSetDef PyGetSet[] = {
 PyTypeObject MPGL_ColormapPyType = {
 	PyObject_HEAD_INIT(NULL)
 	0,							/*ob_size*/
-	"MPGLGrid.colormap",			/*tp_name*/
+	"MPGLKMC.colormap",			/*tp_name*/
 	sizeof(MPGL_Colormap),		/*tp_basicsize*/
 	0,							/*tp_itemsize*/
 	(destructor)PyDealloc,		/*tp_dealloc*/

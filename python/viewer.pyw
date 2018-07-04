@@ -24,7 +24,6 @@ GLWidget Class
 class GLWidget(QtOpenGL.QGLWidget):
   def __init__(self, parent=None):
     QtOpenGL.QGLWidget.__init__(self, QtOpenGL.QGLFormat(QtOpenGL.QGL.SampleBuffers), parent)
-    self.lastPos = QtCore.QPoint()
     self.dispMode = 0
     self.kmc = None
     self.draw = MPGLKMC.draw()
