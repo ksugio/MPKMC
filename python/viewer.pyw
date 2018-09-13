@@ -465,7 +465,7 @@ class MainWindow(QtGui.QMainWindow):
 
   def stepLast(self):
     if self.glwidget.kmc:
-      self.glwidget.kmc.step_go(self.kmc.nevent)
+      self.glwidget.kmc.step_go(self.glwidget.kmc.nevent)
       self.glwidget.updateGL()
 
   def stepGo(self):
