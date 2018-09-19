@@ -98,7 +98,7 @@ static int SearchClusterIndex(MP_KMCData *data, int p, double cluster[], int *np
 {
 	int i, j;
 	double x, y, z;
-	double tol = 1.0e-12;
+	double tol = 1.0e-9;
 	int neigh[27][3] = {
 		{ 0, 0, 0 },{ 1, 0, 0 },{ -1, 0, 0 },{ 0, 1, 0 },{ 0, -1, 0 },{ 1, 1, 0 },
 		{ 1, -1, 0 },{ -1, 1, 0 },{ -1, -1, 0 },{ 0, 0, 1 },{ 1, 0, 1 },{ -1, 0, 1 },
