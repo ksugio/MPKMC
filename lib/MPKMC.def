@@ -15,6 +15,8 @@ EXPORTS
 	MP_KMCAddClusterIDs
 	MP_KMCAddSolute
 	MP_KMCAddSoluteRandom
+	MP_KMCCountSolute
+	MP_KMCCheckSolute
 	MP_KMCCalcEnergy
 	MP_KMCTotalEnergy
 	MP_KMCSortTable

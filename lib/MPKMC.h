@@ -134,6 +134,8 @@ int MP_KMCAddCluster(MP_KMCData *data, short types[], double energy, long refcou
 int MP_KMCAddClusterIDs(MP_KMCData *data, int ids[], double energy, long refcount);
 int MP_KMCAddSolute(MP_KMCData *data, int id, short type, short jump);
 void MP_KMCAddSoluteRandom(MP_KMCData *data, int num, short type, short jump);
+int MP_KMCCountSolute(MP_KMCData *data, short type);
+int MP_KMCCheckSolute(MP_KMCData *data);
 double MP_KMCCalcEnergy(MP_KMCData *data, int id, double(*func)(MP_KMCData *, short *), int *update);
 double MP_KMCTotalEnergy(MP_KMCData *data, double(*func)(MP_KMCData *, short *), int *update);
 void MP_KMCSortTable(MP_KMCData *data);

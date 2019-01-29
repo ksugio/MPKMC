@@ -40,7 +40,8 @@ int main(int argc, char *argv[])
 	printf("%d %.15e\n", data.ntable, data.tote);
 	for (T = 1100; T >= 1000; T -= 10) {
 		njump = MP_KMCJump(&data, 10000, Kb*T, calcFSFCC, &update);
-		printf("%f %d %d %.15e\n", T, njump, data.ntable, data.tote);
+		printf("%f %d %d %.15e %d %d\n", T, njump, data.ntable, data.tote,
+			MP_KMCCountSolute(&data, 0), MP_KMCCheckSolute(&data));
 	}
 	GlutWindow(&data, 800, 600, argc, argv);
 	MP_KMCWrite(&data, "test.mpkmc", 0);

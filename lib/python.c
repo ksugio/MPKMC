@@ -306,6 +306,22 @@ static PyObject *PyKMCAddSoluteRandom(MP_KMCData *self, PyObject *args, PyObject
 	Py_RETURN_NONE;
 }
 
+static PyObject *PyKMCCountSolute(MP_KMCData *self, PyObject *args, PyObject *kwds)
+{
+	short type;
+	static char *kwlist[] = { "type", NULL };
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "h", kwlist, &type)) {
+		return NULL;
+	}
+	return Py_BuildValue("i", MP_KMCCountSolute(self, type));
+}
+
+static PyObject *PyKMCCheckSolute(MP_KMCData *self, PyObject *args)
+{
+	return Py_BuildValue("i", MP_KMCCheckSolute(self));
+}
+
 static double calcEnergy(MP_KMCData *data, short types[])
 {
 	int i;
@@ -643,6 +659,10 @@ static PyMethodDef PyKMCMethods[] = {
 	"add_solute(id, type, jump) : add a solute atom by an atom index" },
 	{ "add_solute_random", (PyCFunction)PyKMCAddSoluteRandom, METH_VARARGS | METH_KEYWORDS,
 	"add_solute_random(num, type, jump) : add solute atoms randomly" },
+    { "count_solute", (PyCFunction)PyKMCCountSolute, METH_VARARGS | METH_KEYWORDS,
+    "count_solute(type) : count solute in grid" },
+	{ "check_solute", (PyCFunction)PyKMCCheckSolute, METH_NOARGS,
+	"check_solute() : check solute table" },
 	{ "calc_energy", (PyCFunction)PyKMCCalcEnergy, METH_VARARGS | METH_KEYWORDS,
 	"calc_energy(id, func) : calculate energy of i-th atom" },
 	{ "total_energy", (PyCFunction)PyKMCTotalEnergy, METH_VARARGS | METH_KEYWORDS,

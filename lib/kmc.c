@@ -342,6 +342,30 @@ void MP_KMCAddSoluteRandom(MP_KMCData *data, int num, short type, short jump)
 	}
 }
 
+int MP_KMCCountSolute(MP_KMCData *data, short type)
+{
+	int i;
+	int count = 0;
+
+	for (i = 0; i < data->ntot; i++) {
+		if (data->grid[i].type == type) count++;
+	}
+	return count;
+}
+
+int MP_KMCCheckSolute(MP_KMCData *data)
+{
+	int i, j;
+	int count = 0;
+
+	for (i = 0; i < data->nsolute; i++) {
+		for (j = 0; j < data->nsolute; j++) {
+			if (i != j && data->solute[i].id == data->solute[j].id) return FALSE;
+		}
+	}
+	return TRUE;
+}
+
 double MP_KMCCalcEnergy(MP_KMCData *data, int id, double(*func)(MP_KMCData *, short *), int *update)
 {
 	int i;

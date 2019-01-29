@@ -151,6 +151,10 @@ int MP_KMCJump(MP_KMCData *data, int ntry, double kt, double(*func)(MP_KMCData *
 					for (j = 0; j < nncluster; j++) {
 						data->grid[ids2[j]].energy = energy[j];
 					}
+					for (j = 0; j < data->nsolute; j++) {
+						if (j != dp && data->solute[j].id == id1) break;
+					}
+					if (j < data->nsolute) data->solute[j].id = id0;
 					data->solute[dp].id = id1;
 					data->solute[dp].njump++;
 					if (KMCAddEvent(data, dp, id0, id1, clde) < 0) return njump;

@@ -242,7 +242,7 @@ static int KMCRead1(MP_KMCData *data, char *filename)
 	for (i = 0; i < ntable; i++) {
 		gzgets(gfp, buf, 256);
 		ScanTable(buf, ncluster, types, &energy, &refcount);
-		if (MP_KMCAddCluster(data, types, energy, refcount) < 0) return FALSE;;
+		if (MP_KMCAddCluster(data, types, energy, refcount) < 0) return FALSE;
 	}
 	gzgets(gfp, buf, 256);
 	sscanf(buf, "%s %d", dum, &nsolute);
@@ -250,7 +250,10 @@ static int KMCRead1(MP_KMCData *data, char *filename)
 		gzgets(gfp, buf, 256);
 		sscanf(buf, "%d %hd %hd %d", &id, &type, &jump, &njump);
 		sid = MP_KMCAddSolute(data, id, type, jump);
-		if (sid < 0) return FALSE;
+		if (sid < 0) {
+			fprintf(stderr, "Error : overlapped ID, %d.(MP_KMCRead)\n", id);
+			return FALSE;
+		}
 		data->solute[sid].njump = njump;
 	}
 	gzgets(gfp, buf, 256);
