@@ -220,11 +220,10 @@ class EnergyHistoryCanvas(FigureCanvas):
     FigureCanvas.setSizePolicy(self, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
     FigureCanvas.updateGeometry(self)
 
-  def drawGraph(self, ehist):
+  def drawGraph(self, mcs, ene):
     self.axes.cla()
-    st = np.arange(ehist.shape[0])
-    self.axes.plot(st, ehist, 'k-')
-    self.axes.set_xlabel('Event Step')
+    self.axes.plot(mcs, ene, 'k-')
+    self.axes.set_xlabel('MCS')
     self.axes.set_ylabel('Total Energy')
     self.draw()
 
@@ -234,8 +233,9 @@ class EnergyHistoryCanvas(FigureCanvas):
 class EnergyHistoryDialog(QtGui.QDialog):
   def __init__(self, parent, kmc):
     QtGui.QDialog.__init__(self, parent)
-    self.ehist = np.zeros(kmc.nevent+1, dtype=np.float)
-    kmc.energy_history(self.ehist)
+    self.mcs = np.zeros(kmc.nevent, dtype=np.float64)
+    self.ene = np.zeros(kmc.nevent, dtype=np.float64)
+    kmc.energy_history(self.mcs, self.ene)
     self.setWindowTitle("Energy History")
     vbox = QtGui.QVBoxLayout(self)
     self.canvas = EnergyHistoryCanvas()
@@ -248,7 +248,7 @@ class EnergyHistoryDialog(QtGui.QDialog):
     button2 = QtGui.QPushButton("Close")
     button2.clicked.connect(self.reject)
     hbox1.addWidget(button2)
-    self.canvas.drawGraph(self.ehist)
+    self.canvas.drawGraph(self.mcs, self.ene)
 
   def saveFig(self):
     fname = QtGui.QFileDialog.getSaveFileName(self, 'Save Fig')

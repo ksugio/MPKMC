@@ -87,7 +87,7 @@ static double ClusterEnergy(MP_KMCData *data, double(*func)(MP_KMCData *, short 
 	return cle;
 }
 
-int KMCAddEvent(MP_KMCData *data, int dp, int id0, int id1, double de)
+int KMCAddEvent(MP_KMCData *data, int dp, int id0, int id1, double de, long mcs)
 {
 	int nevent_max;
 	int eid;
@@ -106,6 +106,7 @@ int KMCAddEvent(MP_KMCData *data, int dp, int id0, int id1, double de)
 	data->event[eid].id0 = id0;
 	data->event[eid].id1 = id1;
 	data->event[eid].de = de;
+	data->event[eid].mcs = mcs;
 	data->nevent++;
 	return eid;
 }
@@ -157,7 +158,7 @@ int MP_KMCJump(MP_KMCData *data, int ntry, double kt, double(*func)(MP_KMCData *
 					if (j < data->nsolute) data->solute[j].id = id0;
 					data->solute[dp].id = id1;
 					data->solute[dp].njump++;
-					if (KMCAddEvent(data, dp, id0, id1, clde) < 0) return njump;
+					if (KMCAddEvent(data, dp, id0, id1, clde, data->mcs) < 0) return njump;
 					data->tote += clde;
 					data->step++;
 					njump++;
@@ -167,6 +168,7 @@ int MP_KMCJump(MP_KMCData *data, int ntry, double kt, double(*func)(MP_KMCData *
 				}
 			}
 			ntried++;
+			data->mcs++;
 		}
 	}
 	return njump;
@@ -254,7 +256,7 @@ void MP_KMCStepGo(MP_KMCData *data, int step)
 	else if (count < 0) MP_KMCStepBackward(data, -count);
 }
 
-void MP_KMCEnergyHistory(MP_KMCData *data, int nhist, double ehist[])
+void MP_KMCEnergyHistory(MP_KMCData *data, int num, double mcs[], double ene[])
 {
 	int i;
 	double te;
@@ -262,11 +264,19 @@ void MP_KMCEnergyHistory(MP_KMCData *data, int nhist, double ehist[])
 	te = data->tote;
 	for (i = data->step - 1; i >= 0; i--) {
 		te -= data->event[i].de;
-		if (i < nhist) ehist[i] = te;
+		if (i < num) {
+			mcs[i] = data->event[i].mcs;
+			ene[i] = te;
+		}
 	}
 	te = data->tote;
 	for (i = data->step; i <= data->nevent; i++) {
-		if (i < nhist) ehist[i] = te;
+		if (i < num) {
+			mcs[i] = data->event[i].mcs;
+			ene[i] = te;
+		}
 		te += data->event[i].de;
 	}
 }
+
+

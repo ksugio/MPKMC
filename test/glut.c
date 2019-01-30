@@ -28,10 +28,10 @@ static void DisplayFunc(void)
 	MPGL_ColormapDraw(&Colormap);
 	glPopMatrix();
 	/* step */
-	sprintf(s, "%d step", Data->step);
 	glPushAttrib(GL_LIGHTING_BIT);
 	glDisable(GL_LIGHTING);
 	glColor3fv(Colormap.font_color);
+	sprintf(s, "%d step", Data->step);
 	MPGL_SceneFrontText(&Scene, 10, 20, s, Colormap.font_type);
 	glPopAttrib();
 	glutSwapBuffers();

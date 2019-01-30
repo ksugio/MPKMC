@@ -61,6 +61,7 @@ static PyMemberDef PyKMCMembers[] = {
 	{ "step", T_INT, offsetof(MP_KMCData, step), 1, "current step" },
 	{ "rand_seed", T_LONG, offsetof(MP_KMCData, rand_seed), 0, "seed of random number" },
 	{ "tote", T_DOUBLE, offsetof(MP_KMCData, tote), 1, "total energy" },
+	{ "mcs", T_INT, offsetof(MP_KMCData, mcs), 1, "Monte Carlo step" },
 	{ NULL }  /* Sentinel */
 };
 
@@ -306,7 +307,12 @@ static PyObject *PyKMCAddSoluteRandom(MP_KMCData *self, PyObject *args, PyObject
 	Py_RETURN_NONE;
 }
 
-static PyObject *PyKMCCountSolute(MP_KMCData *self, PyObject *args, PyObject *kwds)
+static PyObject *PyKMCCheckSolute(MP_KMCData *self, PyObject *args)
+{
+	return Py_BuildValue("i", MP_KMCCheckSolute(self));
+}
+
+static PyObject *PyKMCCountType(MP_KMCData *self, PyObject *args, PyObject *kwds)
 {
 	short type;
 	static char *kwlist[] = { "type", NULL };
@@ -314,12 +320,7 @@ static PyObject *PyKMCCountSolute(MP_KMCData *self, PyObject *args, PyObject *kw
 	if (!PyArg_ParseTupleAndKeywords(args, kwds, "h", kwlist, &type)) {
 		return NULL;
 	}
-	return Py_BuildValue("i", MP_KMCCountSolute(self, type));
-}
-
-static PyObject *PyKMCCheckSolute(MP_KMCData *self, PyObject *args)
-{
-	return Py_BuildValue("i", MP_KMCCheckSolute(self));
+	return Py_BuildValue("i", MP_KMCCountType(self, type));
 }
 
 static double calcEnergy(MP_KMCData *data, short types[])
@@ -459,25 +460,33 @@ static PyObject *PyKMCStepGo(MP_KMCData *self, PyObject *args, PyObject *kwds)
 
 static PyObject *PyKMCEnergyHistory(MP_KMCData *self, PyObject *args, PyObject *kwds)
 {
-	PyObject *ehist_obj;
-	static char *kwlist[] = { "ehist", NULL };
-	PyArrayObject *ehist_arr;
-	npy_intp nhist;
-	double *ehist;
+	PyObject *mcs_obj, *ene_obj;
+	static char *kwlist[] = { "mcs", "ene", NULL };
+	PyArrayObject *mcs_arr, *ene_arr;
+	npy_intp num;
+	double *mcs, *ene;
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O!", kwlist, &PyArray_Type, &ehist_obj)) {
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O!O!", kwlist, &PyArray_Type, &mcs_obj, &PyArray_Type, &ene_obj)) {
 		return NULL;
 	}
-	ehist_arr = (PyArrayObject *)PyArray_FROM_OTF(ehist_obj, NPY_DOUBLE, NPY_INOUT_ARRAY);
-	if (ehist_arr == NULL) return NULL;
-	if (PyArray_NDIM(ehist_arr) != 1) {
-		Py_XDECREF(ehist_arr);
-		PyErr_SetString(PyExc_ValueError, "invalid ehist data, ndim must be 1");
+	mcs_arr = (PyArrayObject *)PyArray_FROM_OTF(mcs_obj, NPY_FLOAT64, NPY_INOUT_ARRAY);
+	ene_arr = (PyArrayObject *)PyArray_FROM_OTF(ene_obj, NPY_FLOAT64, NPY_INOUT_ARRAY);
+	if (mcs_arr == NULL || ene_arr == NULL) return NULL;
+	if (PyArray_NDIM(mcs_arr) != 1 || PyArray_NDIM(ene_arr) != 1) {
+		Py_XDECREF(mcs_arr);
+		Py_XDECREF(ene_arr);
+		PyErr_SetString(PyExc_ValueError, "invalid data, ndim must be 1");
 		return NULL;
 	}
-	nhist = PyArray_DIM(ehist_arr, 0);
-	ehist = (double *)PyArray_DATA(ehist_arr);
-	MP_KMCEnergyHistory(self, nhist, ehist);
+	if (PyArray_DIM(mcs_arr, 0) <= PyArray_DIM(ene_arr, 0)) {
+		num = PyArray_DIM(mcs_arr, 0);
+	}
+	else {
+		num = PyArray_DIM(ene_arr, 0);
+	}
+	mcs = (double *)PyArray_DATA(mcs_arr);
+	ene = (double *)PyArray_DATA(ene_arr);
+	MP_KMCEnergyHistory(self, num, mcs, ene);
 	Py_RETURN_NONE;
 }
 
@@ -659,10 +668,10 @@ static PyMethodDef PyKMCMethods[] = {
 	"add_solute(id, type, jump) : add a solute atom by an atom index" },
 	{ "add_solute_random", (PyCFunction)PyKMCAddSoluteRandom, METH_VARARGS | METH_KEYWORDS,
 	"add_solute_random(num, type, jump) : add solute atoms randomly" },
-    { "count_solute", (PyCFunction)PyKMCCountSolute, METH_VARARGS | METH_KEYWORDS,
-    "count_solute(type) : count solute in grid" },
 	{ "check_solute", (PyCFunction)PyKMCCheckSolute, METH_NOARGS,
 	"check_solute() : check solute table" },
+    { "count_type", (PyCFunction)PyKMCCountType, METH_VARARGS | METH_KEYWORDS,
+    "count_type(type) : count type in grid" },
 	{ "calc_energy", (PyCFunction)PyKMCCalcEnergy, METH_VARARGS | METH_KEYWORDS,
 	"calc_energy(id, func) : calculate energy of i-th atom" },
 	{ "total_energy", (PyCFunction)PyKMCTotalEnergy, METH_VARARGS | METH_KEYWORDS,
@@ -676,7 +685,7 @@ static PyMethodDef PyKMCMethods[] = {
 	{ "step_go", (PyCFunction)PyKMCStepGo, METH_VARARGS | METH_KEYWORDS,
 	"step_go(step) : go to step" },
 	{ "energy_history", (PyCFunction)PyKMCEnergyHistory, METH_VARARGS | METH_KEYWORDS,
-	"energy_history(ehist) : setup energy history" },
+	"energy_history(mcs, ene) : setup energy history" },
 	{ "write_table", (PyCFunction)PyKMCWriteTable, METH_VARARGS | METH_KEYWORDS,
 	"write_table(filename) : write energy table" },
 	{ "read_table", (PyCFunction)PyKMCReadTable, METH_VARARGS | METH_KEYWORDS,

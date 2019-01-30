@@ -52,6 +52,7 @@ int MP_KMCAlloc(MP_KMCData *data, int nuc, int nx, int ny, int nz, int ncluster,
 	data->rand_seed = 12061969;
 	data->step = 0;
 	data->tote = 0.0;
+	data->mcs = 0;
 	return TRUE;
 }
 
@@ -342,7 +343,29 @@ void MP_KMCAddSoluteRandom(MP_KMCData *data, int num, short type, short jump)
 	}
 }
 
-int MP_KMCCountSolute(MP_KMCData *data, short type)
+int MP_KMCCheckSolute(MP_KMCData *data)
+{
+	int i, j;
+	int count = 0;
+
+	for (i = 0; i < data->nsolute; i++) {
+		for (j = 0; j < data->nsolute; j++) {
+			if (i != j && data->solute[i].id == data->solute[j].id) {
+				fprintf(stderr, "Error : overlapped ID, %d.(MP_KMCCheckSolute)\n", data->solute[i].id);
+				return FALSE;
+			}
+		}
+	}
+	for (i = 0; i < data->nsolute; i++) {
+		if (data->grid[data->solute[i].id].type != data->solute[i].type) {
+			fprintf(stderr, "Error : type mismatch, %d.(MP_KMCCheckSolute)\n", data->solute[i].id);
+			return FALSE;
+		}
+	}
+	return TRUE;
+}
+
+int MP_KMCCountType(MP_KMCData *data, short type)
 {
 	int i;
 	int count = 0;
@@ -351,19 +374,6 @@ int MP_KMCCountSolute(MP_KMCData *data, short type)
 		if (data->grid[i].type == type) count++;
 	}
 	return count;
-}
-
-int MP_KMCCheckSolute(MP_KMCData *data)
-{
-	int i, j;
-	int count = 0;
-
-	for (i = 0; i < data->nsolute; i++) {
-		for (j = 0; j < data->nsolute; j++) {
-			if (i != j && data->solute[i].id == data->solute[j].id) return FALSE;
-		}
-	}
-	return TRUE;
 }
 
 double MP_KMCCalcEnergy(MP_KMCData *data, int id, double(*func)(MP_KMCData *, short *), int *update)
