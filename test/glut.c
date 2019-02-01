@@ -31,7 +31,7 @@ static void DisplayFunc(void)
 	glPushAttrib(GL_LIGHTING_BIT);
 	glDisable(GL_LIGHTING);
 	glColor3fv(Colormap.font_color);
-	sprintf(s, "%d step", Data->step);
+	sprintf(s, "%d MCS", Data->mcs);
 	MPGL_SceneFrontText(&Scene, 10, 20, s, Colormap.font_type);
 	glPopAttrib();
 	glutSwapBuffers();

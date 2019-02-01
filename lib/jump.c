@@ -87,7 +87,32 @@ static double ClusterEnergy(MP_KMCData *data, double(*func)(MP_KMCData *, short 
 	return cle;
 }
 
-int KMCAddEvent(MP_KMCData *data, int dp, int id0, int id1, double de, long mcs)
+int KMCAddResult(MP_KMCData *data, long totmcs, double temp, int ntry, int njump, double fjump, double tote)
+{
+	int nresult_max;
+	int tid;
+
+	if (data->nresult >= data->nresult_max) {
+		nresult_max = data->nresult_max + data->nresult_step;
+		data->result = (MP_KMCResultItem *)realloc(data->result, nresult_max*sizeof(MP_KMCResultItem));
+		if (data->result == NULL) {
+			fprintf(stderr, "Error : allocation failure (KMCAddResult)\n");
+			return  MP_KMC_MEM_ERR;
+		}
+		data->nresult_max = nresult_max;
+	}
+	tid = data->nresult;
+	data->result[tid].totmcs = totmcs;
+	data->result[tid].temp = temp;
+	data->result[tid].ntry = ntry;
+	data->result[tid].njump = njump;
+	data->result[tid].fjump = fjump;
+	data->result[tid].tote = tote;
+	data->nresult++;
+	return tid;
+}
+
+int KMCAddEvent(MP_KMCData *data, int dp, int id0, int id1, double de, int dmcs)
 {
 	int nevent_max;
 	int eid;
@@ -106,12 +131,13 @@ int KMCAddEvent(MP_KMCData *data, int dp, int id0, int id1, double de, long mcs)
 	data->event[eid].id0 = id0;
 	data->event[eid].id1 = id1;
 	data->event[eid].de = de;
-	data->event[eid].mcs = mcs;
+	data->event[eid].dmcs = dmcs;
 	data->nevent++;
+	data->step = data->nevent;
 	return eid;
 }
 
-int MP_KMCJump(MP_KMCData *data, int ntry, double kt, double(*func)(MP_KMCData *, short *), int *update)
+int MP_KMCJump(MP_KMCData *data, int ntry, double temp, double(*func)(MP_KMCData *, short *), int *update)
 {
 	int j, c;
 	int dp, cp;
@@ -120,12 +146,18 @@ int MP_KMCJump(MP_KMCData *data, int ntry, double kt, double(*func)(MP_KMCData *
 	int ids1[MP_KMC_NCLUSTER_MAX];
 	int ids2[MP_KMC_NCLUSTER_MAX * 2];
 	int nncluster;
+	double kt;
 	double energy[MP_KMC_NCLUSTER_MAX * 2];
 	double cle0, cle1, clde;
 	int ntried = 0;
 	int njump = 0;
+	int dmcs;
 
 	*update = FALSE;
+	if (data->step != data->nevent) {
+		fprintf(stderr, "Error : invalid step, step must be the last step (MP_KMCJump)\n");
+		return -1;
+	}
 	for (j = 0, c = 0; j < data->nsolute; j++) {
 		if (data->solute[j].jump) c++;
 	}
@@ -134,10 +166,13 @@ int MP_KMCJump(MP_KMCData *data, int ntry, double kt, double(*func)(MP_KMCData *
 		if (data->jcluster[j]) c++;
 	}
 	if (c < 2) return -1;
+	kt = data->kb*temp;
+	dmcs = data->totmcs - data->mcs;
 	while (ntried < ntry) {
 		dp = (int)(MP_Rand(&(data->rand_seed)) * data->nsolute);
 		cp = (int)(MP_Rand(&(data->rand_seed)) * (data->ncluster - 1)) + 1;
 		if (dp < data->nsolute && cp < data->ncluster && data->solute[dp].jump && data->jcluster[cp]) {
+			data->totmcs++, dmcs++;
 			id0 = data->solute[dp].id;
 			MP_KMCClusterIndexes(data, id0, ids0);
 			id1 = ids0[cp];
@@ -158,9 +193,10 @@ int MP_KMCJump(MP_KMCData *data, int ntry, double kt, double(*func)(MP_KMCData *
 					if (j < data->nsolute) data->solute[j].id = id0;
 					data->solute[dp].id = id1;
 					data->solute[dp].njump++;
-					if (KMCAddEvent(data, dp, id0, id1, clde, data->mcs) < 0) return njump;
 					data->tote += clde;
-					data->step++;
+					if (KMCAddEvent(data, dp, id0, id1, clde, dmcs) < 0) return njump;
+					dmcs = 0;
+					data->mcs = data->totmcs;
 					njump++;
 				}
 				else {
@@ -168,9 +204,9 @@ int MP_KMCJump(MP_KMCData *data, int ntry, double kt, double(*func)(MP_KMCData *
 				}
 			}
 			ntried++;
-			data->mcs++;
 		}
 	}
+	KMCAddResult(data, data->totmcs, temp, ntry, njump, (double)njump/ntry, data->tote);
 	return njump;
 }
 
@@ -223,6 +259,7 @@ void MP_KMCStepForward(MP_KMCData *data, int count)
 		SwapType(data, id0, id1);
 		UpdateGridEnergy(data, id0, id1);
 		data->solute[dp].id = id1;
+		data->mcs += data->event[data->step].dmcs;
 		data->tote += data->event[data->step].de;
 		data->step++;
 	}
@@ -243,6 +280,7 @@ void MP_KMCStepBackward(MP_KMCData *data, int count)
 		SwapType(data, id0, id1);
 		UpdateGridEnergy(data, id0, id1);
 		data->solute[dp].id = id0;
+		data->mcs -= data->event[data->step].dmcs;
 		data->tote -= data->event[data->step].de;
 	}
 }
@@ -256,7 +294,24 @@ void MP_KMCStepGo(MP_KMCData *data, int step)
 	else if (count < 0) MP_KMCStepBackward(data, -count);
 }
 
-void MP_KMCEnergyHistory(MP_KMCData *data, int num, double mcs[], double ene[])
+void MP_KMCMCSHistory(MP_KMCData *data, int num, double mcs[])
+{
+	int i;
+	long st = 0;
+
+	st = data->mcs;
+	for (i = data->step - 1; i >= 0; i--) {
+		st -= data->event[i].dmcs;
+		if (i < num) mcs[i] = st;
+	}
+	st = data->mcs;
+	for (i = data->step; i <= data->nevent; i++) {
+		if (i < num) mcs[i] = st;
+		st += data->event[i].dmcs;
+	}
+}
+
+void MP_KMCEnergyHistory(MP_KMCData *data, int num, double ene[])
 {
 	int i;
 	double te;
@@ -264,17 +319,11 @@ void MP_KMCEnergyHistory(MP_KMCData *data, int num, double mcs[], double ene[])
 	te = data->tote;
 	for (i = data->step - 1; i >= 0; i--) {
 		te -= data->event[i].de;
-		if (i < num) {
-			mcs[i] = data->event[i].mcs;
-			ene[i] = te;
-		}
+		if (i < num) ene[i] = te;
 	}
 	te = data->tote;
 	for (i = data->step; i <= data->nevent; i++) {
-		if (i < num) {
-			mcs[i] = data->event[i].mcs;
-			ene[i] = te;
-		}
+		if (i < num) ene[i] = te;
 		te += data->event[i].de;
 	}
 }

@@ -54,7 +54,7 @@ class GLWidget(QtOpenGL.QGLWidget):
         self.draw.atoms(self.kmc, self.cmp)
         GL.glPopMatrix()
         self.drawColormap()
-        s = str(self.kmc.step) + ' step'
+        s = str(self.kmc.mcs) + ' MCS'
         self.drawString(10, 20, s)
       elif self.tab and self.dispMode == 1:
         GL.glPushMatrix()
@@ -233,9 +233,8 @@ class EnergyHistoryCanvas(FigureCanvas):
 class EnergyHistoryDialog(QtGui.QDialog):
   def __init__(self, parent, kmc):
     QtGui.QDialog.__init__(self, parent)
-    self.mcs = np.zeros(kmc.nevent, dtype=np.float64)
-    self.ene = np.zeros(kmc.nevent, dtype=np.float64)
-    kmc.energy_history(self.mcs, self.ene)
+    self.mcs = kmc.mcs_history()
+    self.ene = kmc.energy_history()
     self.setWindowTitle("Energy History")
     vbox = QtGui.QVBoxLayout(self)
     self.canvas = EnergyHistoryCanvas()
@@ -249,6 +248,91 @@ class EnergyHistoryDialog(QtGui.QDialog):
     button2.clicked.connect(self.reject)
     hbox1.addWidget(button2)
     self.canvas.drawGraph(self.mcs, self.ene)
+
+  def saveFig(self):
+    fname = QtGui.QFileDialog.getSaveFileName(self, 'Save Fig')
+    if fname:
+      self.canvas.saveGraph(str(fname))    
+
+"""
+ResultDialog
+"""
+class ResultCanvas(FigureCanvas):
+  def __init__(self, parent=None, width=8, height=6, dpi=72):
+    self.fig = Figure(figsize=(width, height), dpi=dpi)
+    self.axes = self.fig.add_subplot(111)
+    self.axes.hold(False)
+    FigureCanvas.__init__(self, self.fig)
+    self.setParent(parent)
+    FigureCanvas.setSizePolicy(self, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
+    FigureCanvas.updateGeometry(self)
+
+  def drawGraph(self, result, index):
+    self.axes.cla()
+    if index == 0:
+      self.axes.step(result[0], result[1], 'k-')
+      self.axes.set_xlabel('MCS')
+      self.axes.set_ylabel('Temperature')
+    elif index == 1:
+      self.axes.plot(result[0], result[3], 'ko-')
+      self.axes.set_xlabel('MCS')
+      self.axes.set_ylabel('Number of Jumps')
+    elif index == 2:
+      self.axes.plot(result[0], result[4], 'ko-')
+      self.axes.set_xlabel('MCS')
+      self.axes.set_ylabel('Frequency of Jumps')
+    elif index == 3:
+      self.axes.plot(result[0], result[5], 'ko-')
+      self.axes.set_xlabel('MCS')
+      self.axes.set_ylabel('Total Energy')
+    elif index == 4:
+      self.axes.plot(result[1], result[3], 'ko-')
+      self.axes.set_xlabel('Temperature')
+      self.axes.set_ylabel('Number of Jumps')
+    elif index == 5:
+      self.axes.plot(result[1], result[4], 'ko-')
+      self.axes.set_xlabel('Temperature')
+      self.axes.set_ylabel('Frequency of Jumps')
+    self.draw()
+
+  def saveGraph(self, fname):
+    self.fig.savefig(fname)
+
+class ResultDialog(QtGui.QDialog):
+  def __init__(self, parent, kmc):
+    QtGui.QDialog.__init__(self, parent)
+    self.result = self.getResult(kmc)
+    self.setWindowTitle("Result")
+    vbox = QtGui.QVBoxLayout(self)
+    self.combo = QtGui.QComboBox()
+    self.combo.addItem('MCS - Temparature')
+    self.combo.addItem('MCS - Number of Jumps')
+    self.combo.addItem('MCS - Frequency of Jumps')
+    self.combo.addItem('MCS - Total Energy')
+    self.combo.addItem('Temperature - Number of Jumps')
+    self.combo.addItem('Temperature - Frequency of Jumps')  
+    self.combo.currentIndexChanged[int].connect(self.graphChanged)
+    vbox.addWidget(self.combo)
+    self.canvas = ResultCanvas()
+    vbox.addWidget(self.canvas)
+    hbox1 = QtGui.QHBoxLayout()
+    vbox.addLayout(hbox1)
+    button1 = QtGui.QPushButton("Save Fig")
+    button1.clicked.connect(self.saveFig)
+    hbox1.addWidget(button1)
+    button2 = QtGui.QPushButton("Close")
+    button2.clicked.connect(self.reject)
+    hbox1.addWidget(button2)
+    self.canvas.drawGraph(self.result, self.combo.currentIndex())
+
+  def getResult(self, kmc):
+    res = []
+    for i in range(kmc.nresult):
+      res.append(kmc.result_item(i))
+    return np.array(res).T
+
+  def graphChanged(self, index):
+    self.canvas.drawGraph(self.result, index)
 
   def saveFig(self):
     fname = QtGui.QFileDialog.getSaveFileName(self, 'Save Fig')
@@ -329,6 +413,7 @@ class MainWindow(QtGui.QMainWindow):
     view_menu = QtGui.QMenu('View', self)
     view_menu.addAction('Set Display', self.setDispDialog)
     view_menu.addAction('Set Shift', self.setShiftDialog)
+    view_menu.addAction('Result', self.resultDialog)    
     view_menu.addAction('Energy History', self.energyHistoryDialog)
     view_menu.addAction('Search Table', self.searchTableShow)
     menubar.addMenu(view_menu)
@@ -366,6 +451,11 @@ class MainWindow(QtGui.QMainWindow):
   def setShiftDialog(self):
     if self.glwidget.kmc:
       dlg = SetShiftDialog(self, self.glwidget.kmc, self.glwidget.draw)
+      dlg.exec_()
+
+  def resultDialog(self):
+    if self.glwidget.kmc:
+      dlg = ResultDialog(self, self.glwidget.kmc)
       dlg.exec_()
 
   def energyHistoryDialog(self):

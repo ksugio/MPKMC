@@ -1,6 +1,7 @@
 #include "MPKMC.h"
 
-int KMCAddEvent(MP_KMCData *data, int dp, int id0, int id1, double de, long mcs);
+int KMCAddResult(MP_KMCData *data, long mcs, double temp, int ntry, int njump, double fjump, double tote);
+int KMCAddEvent(MP_KMCData *data, int dp, int id0, int id1, double de, int dmcs);
 
 int MP_KMCWriteTable(MP_KMCData *data, char *filename)
 {
@@ -108,9 +109,10 @@ int MP_KMCWrite(MP_KMCData *data, char *filename, int comp)
 	for (i = 0; i < data->ncluster; i++) {
 		gzprintf(gfp, "%.15e %.15e %.15e %d\n", data->cluster[i][0], data->cluster[i][1], data->cluster[i][2], data->jcluster[i]);
 	}
-	gzprintf(gfp, "nsolute_max %d\n", data->nsolute_max);
+	gzprintf(gfp, "nsolute_step %d\n", data->nsolute_step);
 	gzprintf(gfp, "ntable_step %d\n", data->ntable_step);
 	gzprintf(gfp, "nevent_step %d\n", data->nevent_step);
+	gzprintf(gfp, "nresult_step %d\n", data->nresult_step);
 	gzprintf(gfp, "nrot %d\n", data->nrot);
 	for (i = 0; i < data->nrot; i++) {
 		sp = i * data->ncluster;
@@ -120,9 +122,10 @@ int MP_KMCWrite(MP_KMCData *data, char *filename, int comp)
 		gzprintf(gfp, "\n");
 	}
 	gzprintf(gfp, "rand_seed %d\n", data->rand_seed);
-	gzprintf(gfp, "step %d\n", data->step);
-	gzprintf(gfp, "tote %.15e\n", data->tote);
+	gzprintf(gfp, "totmcs %d\n", data->totmcs);
 	gzprintf(gfp, "mcs %d\n", data->mcs);
+	gzprintf(gfp, "tote %.15e\n", data->tote);
+	gzprintf(gfp, "kb %.15e\n", data->kb);
 	gzprintf(gfp, "table_use %d\n", data->table_use);
 	gzprintf(gfp, "%s\n", data->htable);
 	gzprintf(gfp, "ntable %d\n", data->ntable);
@@ -138,7 +141,12 @@ int MP_KMCWrite(MP_KMCData *data, char *filename, int comp)
 	}
 	gzprintf(gfp, "nevent %d\n", data->nevent);
 	for (i = 0; i < data->nevent; i++) {
-		gzprintf(gfp, "%d %d %d %.15e %d\n", data->event[i].dp, data->event[i].id0, data->event[i].id1, data->event[i].de, data->event[i].mcs);
+		gzprintf(gfp, "%d %d %d %.15e %d\n", data->event[i].dp, data->event[i].id0, data->event[i].id1, data->event[i].de, data->event[i].dmcs);
+	}
+	gzprintf(gfp, "nresult %d\n", data->nresult);
+	for (i = 0; i < data->nresult; i++) {
+		gzprintf(gfp, "%d %.15e %d %d %.15e %.15e\n",  data->result[i].totmcs, data->result[i].temp,
+			data->result[i].ntry, data->result[i].njump, data->result[i].fjump, data->result[i].tote);
 	}
 	gzclose(gfp);
 	return TRUE;
@@ -170,9 +178,10 @@ static int KMCRead1(MP_KMCData *data, char *filename)
 	int ncluster;
 	double cluster[MP_KMC_NCLUSTER_MAX][3];
 	short jcluster[MP_KMC_NCLUSTER_MAX];
-	int nsolute_max;
+	int nsolute_step;
 	int ntable_step;
 	int nevent_step;
+	int ntemp_step;
 	int nrot;
 	int ids[MP_KMC_NCLUSTER_MAX];
 	int ntable;
@@ -181,13 +190,17 @@ static int KMCRead1(MP_KMCData *data, char *filename)
 	long refcount;
 	int nsolute;
 	int nevent;
+	int nresult;
 	int id;
 	short type, jump;
 	int sid;
 	int njump;
 	int dp, id0, id1;
 	double de;
+	int dmcs;
+	double temp, fjump, tote;
 	long mcs;
+	int ntry;
 
 	if ((gfp = gzopen(filename, "rb")) == NULL) {
 		fprintf(stderr, "Error : can't open %s.(MP_KMCRead)\n", filename);
@@ -213,12 +226,14 @@ static int KMCRead1(MP_KMCData *data, char *filename)
 		sscanf(buf, "%le %le %le %hd", &(cluster[i][0]), &(cluster[i][1]), &(cluster[i][2]), &(jcluster[i]));
 	}
 	gzgets(gfp, buf, 256);
-	sscanf(buf, "%s %d", dum, &nsolute_max);
+	sscanf(buf, "%s %d", dum, &nsolute_step);
 	gzgets(gfp, buf, 256);
 	sscanf(buf, "%s %d", dum, &ntable_step);
 	gzgets(gfp, buf, 256);
 	sscanf(buf, "%s %d", dum, &nevent_step);
-	if (!MP_KMCAlloc(data, nuc, nx, ny, nz, ncluster, nsolute_max, ntable_step, nevent_step)) return FALSE;
+	gzgets(gfp, buf, 256);
+	sscanf(buf, "%s %d", dum, &ntemp_step);
+	if (!MP_KMCAlloc(data, nuc, nx, ny, nz, ncluster, nsolute_step, ntable_step, nevent_step, ntemp_step)) return FALSE;
 	MP_KMCSetUnitCell(data, uc, uc_types, pv);
 	MP_KMCSetCluster(data, cluster, jcluster);
 	gzgets(gfp, buf, 256);
@@ -231,11 +246,13 @@ static int KMCRead1(MP_KMCData *data, char *filename)
 	gzgets(gfp, buf, 256);
 	sscanf(buf, "%s %ld", dum, &(data->rand_seed));
 	gzgets(gfp, buf, 256);
-	sscanf(buf, "%s %ld", dum, &(data->step));
+	sscanf(buf, "%s %ld", dum, &(data->totmcs));
+	gzgets(gfp, buf, 256);
+	sscanf(buf, "%s %ld", dum, &(data->mcs));
 	gzgets(gfp, buf, 256);
 	sscanf(buf, "%s %le", dum, &(data->tote));
 	gzgets(gfp, buf, 256);
-	sscanf(buf, "%s %ld", dum, &(data->mcs));
+	sscanf(buf, "%s %le", dum, &(data->kb));
 	gzgets(gfp, buf, 256);
 	sscanf(buf, "%s %d", dum, &(data->table_use));
 	gzgets(gfp, data->htable, 256);
@@ -264,8 +281,15 @@ static int KMCRead1(MP_KMCData *data, char *filename)
 	sscanf(buf, "%s %d", dum, &nevent);
 	for (i = 0; i < nevent; i++) {
 		gzgets(gfp, buf, 256);
-		sscanf(buf, "%d %d %d %le %ld", &dp, &id0, &id1, &de, &mcs);
-		if (KMCAddEvent(data, dp, id0, id1, de, mcs) < 0) return FALSE;
+		sscanf(buf, "%d %d %d %le %d", &dp, &id0, &id1, &de, &dmcs);
+		if (KMCAddEvent(data, dp, id0, id1, de, dmcs) < 0) return FALSE;
+	}
+	gzgets(gfp, buf, 256);
+	sscanf(buf, "%s %d", dum, &nresult);
+	for (i = 0; i < nresult; i++) {
+		gzgets(gfp, buf, 256);
+		sscanf(buf, "%ld %le %d %d %le %le", &mcs, &temp, &ntry, &njump, &fjump, &tote);
+		if (KMCAddResult(data, mcs, temp, ntry, njump, fjump, tote) < 0) return FALSE;
 	}
 	gzclose(gfp);
 	return TRUE;
@@ -347,7 +371,7 @@ static int KMCRead0(MP_KMCData *data, char *filename)
 	sscanf(buf, "%s %d", dum, &ntable_step);
 	gzgets(gfp, buf, 256);
 	sscanf(buf, "%s %d", dum, &nevent_step);
-	if (!MP_KMCAlloc(data, 4, nx / 2, ny / 2, nz / 2, 13, nsolute_max, ntable_step, nevent_step)) return FALSE;
+	if (!MP_KMCAlloc(data, 4, nx / 2, ny / 2, nz / 2, 13, nsolute_max, ntable_step, nevent_step, 100)) return FALSE;
 	MP_KMCSetUnitCell(data, uc, uc_types, pv);
 	MP_KMCSetCluster(data, cluster, jcluster);
 	for (i = 0; i < 24; i++) {

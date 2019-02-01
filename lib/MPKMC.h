@@ -78,8 +78,17 @@ typedef struct MP_KMCEventItem {
 	int id0;
 	int id1;
 	double de;
-	long mcs;
+	int dmcs;
 } MP_KMCEventItem;
+
+typedef struct MP_KMCResultItem {
+	long totmcs;
+	double temp;
+	int ntry;
+	int njump;
+	double fjump;
+	double tote;
+} MP_KMCResultItem;
 
 typedef struct MP_KMCData {
 #ifdef MP_PYTHON_LIB
@@ -108,20 +117,27 @@ typedef struct MP_KMCData {
 	MP_KMCTableItem *table;
 	short *table_types;
 	int nsolute;
+	int nsolute_step;
 	int nsolute_max;
 	MP_KMCSoluteItem *solute;
 	int nevent;
 	int nevent_step;
 	int nevent_max;
+	int step;
 	MP_KMCEventItem *event;
+	int nresult;
+	int nresult_step;
+	int nresult_max;
+	MP_KMCResultItem *result;
 	long rand_seed;
-	long step;
-	double tote;
+	long totmcs;
 	long mcs;
+	double tote;
+	double kb;
 } MP_KMCData;
 
 int MP_KMCAlloc(MP_KMCData *data, int nuc, int nx, int ny, int nz, int ncluster,
-	int nsolute_max, int ntable_step, int nevent_step);
+	int nsolute_step, int ntable_step, int nevent_step, int nresult_step);
 void MP_KMCFree(MP_KMCData *data);
 void MP_KMCSetUnitCell(MP_KMCData *data, double uc[][3], short types[], double pv[][3]);
 int MP_KMCSetCluster(MP_KMCData *data, double cluster[][3], short jcluster[]);
@@ -147,11 +163,12 @@ int MP_KMCSearchTable(MP_KMCData *data, char ss[], MP_KMCTableItem list[], int l
 /*--------------------------------------------------
 * jump functions
 */
-int MP_KMCJump(MP_KMCData *data, int ntry, double kt, double(*func)(MP_KMCData *, short *), int *update);
+int MP_KMCJump(MP_KMCData *data, int ntry, double temp, double(*func)(MP_KMCData *, short *), int *update);
 void MP_KMCStepForward(MP_KMCData *data, int count);
 void MP_KMCStepBackward(MP_KMCData *data, int count);
 void MP_KMCStepGo(MP_KMCData *data, int step);
-void MP_KMCEnergyHistory(MP_KMCData *data, int num, double mcs[], double ene[]);
+void MP_KMCMCSHistory(MP_KMCData *data, int num, double mcs[]);
+void MP_KMCEnergyHistory(MP_KMCData *data, int num, double ene[]);
 
 /*--------------------------------------------------
 * rw functions

@@ -11,16 +11,21 @@ static void PyKMCDealloc(MP_KMCData* self)
 
 static PyObject *PyKMCNewNew(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
-	int nuc, nx, ny, nz, ncluster, nsolute_max, ntable_step, nevent_step;
-	static char *kwlist[] = { "nuc", "nx", "ny", "nz", "ncluster", "nsolute_max", "ntable_step", "nevent_step", NULL };
+	int nuc, nx, ny, nz, ncluster;
+	int nsolute_step = 1000;
+	int ntable_step = 1000;
+	int nevent_step = 100000;
+	int nresult_step = 100;
+	static char *kwlist[] = { "nuc", "nx", "ny", "nz", "ncluster", "nsolute_step", "ntable_step", "nevent_step", "nresult_step", NULL };
 	MP_KMCData *self;
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "iiiiiiii", kwlist, &nuc, &nx, &ny, &nz, &ncluster, &nsolute_max, &ntable_step, &nevent_step)) {
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "iiiii|iiii", kwlist, &nuc, &nx, &ny, &nz, &ncluster,
+		&nsolute_step, &ntable_step, &nevent_step, &nresult_step)) {
 		return NULL;
 	}
 	self = (MP_KMCData *)type->tp_alloc(type, 0);
 	if (self != NULL) {
-		if (!MP_KMCAlloc(self, nuc, nx, ny, nz, ncluster, nsolute_max, ntable_step, nevent_step)) {
+		if (!MP_KMCAlloc(self, nuc, nx, ny, nz, ncluster, nsolute_step, ntable_step, nevent_step, nresult_step)) {
 			Py_DECREF(self);
 			return NULL;
 		}
@@ -56,12 +61,14 @@ static PyMemberDef PyKMCMembers[] = {
 	{ "table_use", T_INT, offsetof(MP_KMCData, table_use), 0, "flag for using table" },
 	{ "ntable", T_INT, offsetof(MP_KMCData, ntable), 1, "number of table" },
 	{ "nsolute", T_INT, offsetof(MP_KMCData, nsolute), 1, "number of solute atoms" },
-	{ "nsolute_max", T_INT, offsetof(MP_KMCData, nsolute_max), 1, "maximum number of solute atoms" },
 	{ "nevent", T_INT, offsetof(MP_KMCData, nevent), 1, "number of events" },
+    { "nresult", T_INT, offsetof(MP_KMCData, nresult), 1, "number of results" },
 	{ "step", T_INT, offsetof(MP_KMCData, step), 1, "current step" },
 	{ "rand_seed", T_LONG, offsetof(MP_KMCData, rand_seed), 0, "seed of random number" },
+	{ "totmcs", T_INT, offsetof(MP_KMCData, totmcs), 1, "total Monte Carlo step" },
+	{ "mcs", T_INT, offsetof(MP_KMCData, mcs), 1, "current Monte Carlo step" },
 	{ "tote", T_DOUBLE, offsetof(MP_KMCData, tote), 1, "total energy" },
-	{ "mcs", T_INT, offsetof(MP_KMCData, mcs), 1, "Monte Carlo step" },
+    { "kb", T_DOUBLE, offsetof(MP_KMCData, kb), 0, "Boltzmann constant" },
 	{ NULL }  /* Sentinel */
 };
 
@@ -399,17 +406,17 @@ static PyObject *PyKMCTotalEnergy(MP_KMCData *self, PyObject *args, PyObject *kw
 static PyObject *PyKMCJump(MP_KMCData *self, PyObject *args, PyObject *kwds)
 {
 	int ntry;
-	double kt;
+	double temp;
 	PyObject *func;
-	static char *kwlist[] = { "ntry", "kt", "func", NULL };
+	static char *kwlist[] = { "ntry", "temp", "func", NULL };
 	int njump;
 	int update;
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "idO", kwlist, &ntry, &kt, &func)) {
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "idO", kwlist, &ntry, &temp, &func)) {
 		return NULL;
 	}
 	if (func == Py_None) {
-		njump = MP_KMCJump(self, ntry, kt, NULL, &update);
+		njump = MP_KMCJump(self, ntry, temp, NULL, &update);
 	}
 	else {
 		if (!PyCallable_Check(func)) {
@@ -417,7 +424,7 @@ static PyObject *PyKMCJump(MP_KMCData *self, PyObject *args, PyObject *kwds)
 			return NULL;
 		}
 		self->pyfunc = func;
-		njump = MP_KMCJump(self, ntry, kt, calcEnergy, &update);
+		njump = MP_KMCJump(self, ntry, temp, calcEnergy, &update);
 	}
 	return Py_BuildValue("ii", njump, update);
 }
@@ -458,36 +465,28 @@ static PyObject *PyKMCStepGo(MP_KMCData *self, PyObject *args, PyObject *kwds)
 	Py_RETURN_NONE;
 }
 
-static PyObject *PyKMCEnergyHistory(MP_KMCData *self, PyObject *args, PyObject *kwds)
+static PyObject *PyKMCMCSHistory(MP_KMCData *self, PyObject *args)
 {
-	PyObject *mcs_obj, *ene_obj;
-	static char *kwlist[] = { "mcs", "ene", NULL };
-	PyArrayObject *mcs_arr, *ene_arr;
-	npy_intp num;
-	double *mcs, *ene;
+	PyObject *mcs_obj;
+	npy_intp dims[1];
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O!O!", kwlist, &PyArray_Type, &mcs_obj, &PyArray_Type, &ene_obj)) {
-		return NULL;
-	}
-	mcs_arr = (PyArrayObject *)PyArray_FROM_OTF(mcs_obj, NPY_FLOAT64, NPY_INOUT_ARRAY);
-	ene_arr = (PyArrayObject *)PyArray_FROM_OTF(ene_obj, NPY_FLOAT64, NPY_INOUT_ARRAY);
-	if (mcs_arr == NULL || ene_arr == NULL) return NULL;
-	if (PyArray_NDIM(mcs_arr) != 1 || PyArray_NDIM(ene_arr) != 1) {
-		Py_XDECREF(mcs_arr);
-		Py_XDECREF(ene_arr);
-		PyErr_SetString(PyExc_ValueError, "invalid data, ndim must be 1");
-		return NULL;
-	}
-	if (PyArray_DIM(mcs_arr, 0) <= PyArray_DIM(ene_arr, 0)) {
-		num = PyArray_DIM(mcs_arr, 0);
-	}
-	else {
-		num = PyArray_DIM(ene_arr, 0);
-	}
-	mcs = (double *)PyArray_DATA(mcs_arr);
-	ene = (double *)PyArray_DATA(ene_arr);
-	MP_KMCEnergyHistory(self, num, mcs, ene);
-	Py_RETURN_NONE;
+	dims[0] = self->nevent + 1;
+	mcs_obj = PyArray_SimpleNew(1, dims, NPY_FLOAT64);
+	if (mcs_obj == NULL) return NULL;
+	MP_KMCMCSHistory(self, dims[0], (double *)PyArray_DATA(mcs_obj));
+	return mcs_obj;
+}
+
+static PyObject *PyKMCEnergyHistory(MP_KMCData *self, PyObject *args)
+{
+	PyObject *ene_obj;
+	npy_intp dims[1];
+
+	dims[0] = self->nevent + 1;
+	ene_obj = PyArray_SimpleNew(1, dims, NPY_FLOAT64);
+	if (ene_obj == NULL) return NULL;
+	MP_KMCEnergyHistory(self, dims[0], (double *)PyArray_DATA(ene_obj));
+	return ene_obj;
 }
 
 static PyObject *PyKMCWriteTable(MP_KMCData *self, PyObject *args, PyObject *kwds)
@@ -610,6 +609,21 @@ static PyObject *PyKMCSoluteItem(MP_KMCData *self, PyObject *args, PyObject *kwd
 	else return NULL;
 }
 
+static PyObject *PyKMCResultItem(MP_KMCData *self, PyObject *args, PyObject *kwds)
+{
+	int id;
+	static char *kwlist[] = { "id", NULL };
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "i", kwlist, &id)) {
+		return NULL;
+	}
+	if (id >= 0 && id < self->nresult) {
+		return Py_BuildValue("ldiidd", self->result[id].totmcs, self->result[id].temp, self->result[id].ntry,
+			self->result[id].njump, self->result[id].fjump, self->result[id].tote);
+	}
+	else return NULL;
+}
+
 static PyObject *PyKMCAddRotIndex(MP_KMCData *self, PyObject *args, PyObject *kwds)
 {
 	PyObject *ids;
@@ -677,15 +691,17 @@ static PyMethodDef PyKMCMethods[] = {
 	{ "total_energy", (PyCFunction)PyKMCTotalEnergy, METH_VARARGS | METH_KEYWORDS,
 	"total_energy(func) : calculate and return total energy" },
 	{ "jump", (PyCFunction)PyKMCJump, METH_VARARGS | METH_KEYWORDS,
-	"jump(ntry, kt, func) : jump solute atoms by KMC method and return number of jumps" },
+	"jump(ntry, temp, func) : jump solute atoms by KMC method and return number of jumps" },
 	{ "step_forward", (PyCFunction)PyKMCStepForward, METH_VARARGS | METH_KEYWORDS,
 	"step_forward(count) : take steps forward" },
 	{ "step_backward", (PyCFunction)PyKMCStepBackward, METH_VARARGS | METH_KEYWORDS,
 	"step_backward(count) : take steps backward" },
 	{ "step_go", (PyCFunction)PyKMCStepGo, METH_VARARGS | METH_KEYWORDS,
 	"step_go(step) : go to step" },
-	{ "energy_history", (PyCFunction)PyKMCEnergyHistory, METH_VARARGS | METH_KEYWORDS,
-	"energy_history(mcs, ene) : setup energy history" },
+    { "mcs_history", (PyCFunction)PyKMCMCSHistory, METH_NOARGS,
+    "mcs_history() : return MCS history" },
+	{ "energy_history", (PyCFunction)PyKMCEnergyHistory, METH_NOARGS,
+	"energy_history() : return energy history" },
 	{ "write_table", (PyCFunction)PyKMCWriteTable, METH_VARARGS | METH_KEYWORDS,
 	"write_table(filename) : write energy table" },
 	{ "read_table", (PyCFunction)PyKMCReadTable, METH_VARARGS | METH_KEYWORDS,
@@ -704,6 +720,8 @@ static PyMethodDef PyKMCMethods[] = {
 	"grid_item(id) : return grid item of i-th atom" },
 	{ "solute_item", (PyCFunction)PyKMCSoluteItem, METH_VARARGS | METH_KEYWORDS,
 	"solute_item(id) : return i-th item in solute table" },
+    { "result_item", (PyCFunction)PyKMCResultItem, METH_VARARGS | METH_KEYWORDS,
+    "result_item(id) : return i-th item in result table" },
 	{ "add_rot_index", (PyCFunction)PyKMCAddRotIndex, METH_VARARGS | METH_KEYWORDS,
 	"add_rot_index(ids) : add rotation index" },
 	{ "calc_rot_index", (PyCFunction)PyKMCCalcRotIndex, METH_VARARGS | METH_KEYWORDS,
@@ -824,7 +842,7 @@ static PyTypeObject PyKMCNewType = {
 	0,							/*tp_setattro*/
 	0,							/*tp_as_buffer*/
 	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,	/*tp_flags*/
-	"new(nuc, nx, ny, nz, ncluster, nsolute_max, ntable_step, nevent_step)", 	/* tp_doc */
+	"new(nuc, nx, ny, nz, ncluster, [nsolute_max=1000, ntable_step=1000, nevent_step=100000, nresult_step=100])", 	/* tp_doc */
 	0,							/* tp_traverse */
 	0,							/* tp_clear */
 	0,							/* tp_richcompare */

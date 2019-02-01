@@ -1,7 +1,7 @@
 #include "MPKMC.h"
 
 int MP_KMCAlloc(MP_KMCData *data, int nuc, int nx, int ny, int nz, int ncluster,
-	int nsolute_max, int ntable_step, int nevent_step)
+	int nsolute_step, int ntable_step, int nevent_step, int nresult_step)
 {
 	int i;
 	double init_pv[][3] = {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
@@ -17,11 +17,12 @@ int MP_KMCAlloc(MP_KMCData *data, int nuc, int nx, int ny, int nz, int ncluster,
 	data->table_types = (short *)malloc(ncluster*ntable_step*sizeof(short));
 	data->clusterid = (int *)malloc(nuc*ncluster*4*sizeof(int));
 	data->rotid = (int *)malloc(MP_KMC_NROT_MAX*ncluster*sizeof(int));
-	data->solute = (MP_KMCSoluteItem *)malloc(nsolute_max*sizeof(MP_KMCSoluteItem));
+	data->solute = (MP_KMCSoluteItem *)malloc(nsolute_step*sizeof(MP_KMCSoluteItem));
 	data->event = (MP_KMCEventItem *)malloc(nevent_step*sizeof(MP_KMCEventItem));
+	data->result = (MP_KMCResultItem *)malloc(nresult_step*sizeof(MP_KMCResultItem));
 	if (data->grid == NULL || data->table == NULL || data->table_types == NULL
 		|| data->clusterid == NULL || data->rotid == NULL || data->solute == NULL
-		|| data->event == NULL) return FALSE;
+		|| data->event == NULL || data->result == NULL) return FALSE;
 	for (i = 0; i < nuc; i++) {
 		data->uc[i][0] = 0.0, data->uc[i][1] = 0.0, data->uc[i][2] = 0.0;
 		data->uc_types[i] = -1;
@@ -46,13 +47,17 @@ int MP_KMCAlloc(MP_KMCData *data, int nuc, int nx, int ny, int nz, int ncluster,
 	data->ntable_max = data->ntable_step = ntable_step;
 	data->htable[0] = '\0';
 	data->nsolute = 0;
-	data->nsolute_max = nsolute_max;
+	data->nsolute_max = data->nsolute_step = nsolute_step;
 	data->nevent = 0;
 	data->nevent_max = data->nevent_step = nevent_step;
-	data->rand_seed = 12061969;
 	data->step = 0;
-	data->tote = 0.0;
+	data->nresult = 0;
+	data->nresult_max = data->nresult_step = nresult_step;
+	data->rand_seed = 12061969;
+	data->totmcs = 0;
 	data->mcs = 0;
+	data->tote = 0.0;
+	data->kb = 86.1735e-6; // ev/K
 	return TRUE;
 }
 
@@ -65,6 +70,7 @@ void MP_KMCFree(MP_KMCData *data)
 	free(data->rotid);
 	free(data->solute);
 	free(data->event);
+	free(data->result);
 }
 
 void MP_KMCSetUnitCell(MP_KMCData *data, double uc[][3], short types[], double pv[][3])
@@ -306,6 +312,7 @@ int MP_KMCAddClusterIDs(MP_KMCData *data, int ids[], double energy, long refcoun
 int MP_KMCAddSolute(MP_KMCData *data, int id, short type, short jump)
 {
 	int i;
+	int nsolute_max;
 	int sid;
 
 	if (id < 0 || id >= data->ntot) {
@@ -313,8 +320,13 @@ int MP_KMCAddSolute(MP_KMCData *data, int id, short type, short jump)
 		return -1;
 	}
 	if (data->nsolute >= data->nsolute_max) {
-		fprintf(stderr, "Error : maximum solute atoms is %d.\n", data->nsolute_max);
-		return MP_KMC_MEM_ERR;
+		nsolute_max = data->nsolute_max + data->nsolute_step;
+		data->solute = (MP_KMCSoluteItem *)realloc(data->solute, nsolute_max*sizeof(MP_KMCSoluteItem));
+		if (data->solute == NULL) {
+			fprintf(stderr, "Error : allocation failure (MP_KMCAddSolute)\n");
+			return MP_KMC_MEM_ERR;
+		}
+		data->nsolute_max = nsolute_max;
 	}
 	for (i = 0; i < data->nsolute; i++) {
 		if (data->solute[i].id == id) return -1;

@@ -27,6 +27,7 @@ EXPORTS
 	MP_KMCStepForward
 	MP_KMCStepBackward
 	MP_KMCStepGo
+	MP_KMCMCSHistory
 	MP_KMCEnergyHistory
 	; rw
 	MP_KMCWriteTable
