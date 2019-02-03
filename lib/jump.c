@@ -294,6 +294,30 @@ void MP_KMCStepGo(MP_KMCData *data, int step)
 	else if (count < 0) MP_KMCStepBackward(data, -count);
 }
 
+void MP_KMCMCSGo(MP_KMCData *data, long mcs)
+{
+	int i;
+	long st = 0;
+
+	st = data->mcs;
+	for (i = data->step - 1; i >= 0; i--) {
+		if (mcs >= st - data->event[i].dmcs && mcs < st) {
+			MP_KMCStepGo(data, i);
+			return;
+		}
+		st -= data->event[i].dmcs;
+	}
+	st = data->mcs;
+	for (i = data->step; i <= data->nevent; i++) {
+		if (mcs >= st && mcs < st + data->event[i].dmcs) {
+			MP_KMCStepGo(data, i);
+			return;
+		}
+		st += data->event[i].dmcs;
+	}
+	MP_KMCStepGo(data, data->nevent);
+}
+
 void MP_KMCMCSHistory(MP_KMCData *data, int num, double mcs[])
 {
 	int i;
@@ -328,4 +352,29 @@ void MP_KMCEnergyHistory(MP_KMCData *data, int num, double ene[])
 	}
 }
 
+void MP_KMCSoluteSD(MP_KMCData *data, int sid, int step)
+{
+	int i;
+	int flag = 0;
+	int id0, id1;
+	int p0, x0, y0, z0;
+	int p1, x1, y1, z1;
+	int ox, oy, oz;
 
+	ox = 0, oy = 0, oz = 0;
+	for (i = 0; i < step; i++) {
+		if (data->event[i].dp == sid) {
+			id0 = data->event[i].id0;
+			id1 = data->event[i].id1;
+			MP_KMCIndex2Grid(data, id0, &p0, &x0, &y0, &z0);
+			MP_KMCIndex2Grid(data, id1, &p1, &x1, &y1, &z1);
+			if (x1 - x0 >= data->size[0] - 1) ox -= data->size[0];
+			else if (x1 - x0 <= -data->size[0] + 1) ox += data->size[0];
+			if (y1 - y0 >= data->size[1] - 1) oy -= data->size[1];
+			else if (x1 - x0 <= -data->size[1] + 1) oy += data->size[1];
+			if (z1 - z0 >= data->size[2] - 1) oz -= data->size[2];
+			else if (z1 - z0 <= -data->size[2] + 1) oz += data->size[2];
+			fprintf(stderr, "%d %d %d %d\n", i, x1, x0, ox);
+		}
+	}
+}

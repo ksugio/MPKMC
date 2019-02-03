@@ -465,6 +465,18 @@ static PyObject *PyKMCStepGo(MP_KMCData *self, PyObject *args, PyObject *kwds)
 	Py_RETURN_NONE;
 }
 
+static PyObject *PyKMCMCSGo(MP_KMCData *self, PyObject *args, PyObject *kwds)
+{
+	long mcs;
+	static char *kwlist[] = { "mcs", NULL };
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "l", kwlist, &mcs)) {
+		return NULL;
+	}
+	MP_KMCMCSGo(self, mcs);
+	Py_RETURN_NONE;
+}
+
 static PyObject *PyKMCMCSHistory(MP_KMCData *self, PyObject *args)
 {
 	PyObject *mcs_obj;
@@ -698,6 +710,8 @@ static PyMethodDef PyKMCMethods[] = {
 	"step_backward(count) : take steps backward" },
 	{ "step_go", (PyCFunction)PyKMCStepGo, METH_VARARGS | METH_KEYWORDS,
 	"step_go(step) : go to step" },
+    { "mcs_go", (PyCFunction)PyKMCMCSGo, METH_VARARGS | METH_KEYWORDS,
+    "mcs_go(step) : go to Monte Carlo step" },
     { "mcs_history", (PyCFunction)PyKMCMCSHistory, METH_NOARGS,
     "mcs_history() : return MCS history" },
 	{ "energy_history", (PyCFunction)PyKMCEnergyHistory, METH_NOARGS,

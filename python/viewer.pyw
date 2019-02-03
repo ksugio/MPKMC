@@ -108,18 +108,17 @@ class GLWidget(QtOpenGL.QGLWidget):
     return img
 
 """
-StepGoDialog
+MCSGoDialog
 """ 
-class StepGoDialog(QtGui.QDialog):
+class MCSGoDialog(QtGui.QDialog):
   def __init__(self, parent, kmc):
     QtGui.QDialog.__init__(self, parent)
     self.kmc = kmc
-    self.setWindowTitle("Step Go")
+    self.setWindowTitle("MCS Go")
     vbox = QtGui.QVBoxLayout(self) 
     self.spin = QtGui.QSpinBox()
     self.spin.setMinimum(0)
-    self.spin.setMaximum(kmc.nevent)
-    self.spin.setValue(kmc.step)
+    self.spin.setMaximum(kmc.totmcs)
     vbox.addWidget(self.spin)
     self.buttonb = QtGui.QDialogButtonBox()
     vbox.addWidget(self.buttonb)
@@ -128,8 +127,8 @@ class StepGoDialog(QtGui.QDialog):
     self.buttonb.rejected.connect(self.reject)
 
   def Accept(self):
-    step = self.spin.value()
-    self.kmc.step_go(step)
+    mcs = self.spin.value()
+    self.kmc.mcs_go(mcs)
     self.accept()
 
 """
@@ -560,7 +559,7 @@ class MainWindow(QtGui.QMainWindow):
 
   def stepGo(self):
     if self.glwidget.kmc:
-      dlg = StepGoDialog(self, self.glwidget.kmc)
+      dlg = MCSGoDialog(self, self.glwidget.kmc)
       dlg.exec_()    
 
   def stepPlay(self):

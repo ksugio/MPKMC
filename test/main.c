@@ -30,18 +30,19 @@ int main(int argc, char *argv[])
 				{ 1.0, 0, 0 },{ -1.0, 0, 0 },{ 0, 1.0, 0 },{ 0, -1.0, 0 },{ 0, 0, 1.0 },{ 0, 0, -1.0}};
 	short jcluster[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0 };
 
-	MP_KMCAlloc(&data, 4, 10, 10, 10, 19, 1000, 1000, 100000, 100);
+	MP_KMCAlloc(&data, 4, 5, 5, 5, 19, 1000, 1000, 100000, 100);
 	MP_KMCSetUnitCell(&data, uc, uc_types, pv);
 	MP_KMCSetCluster(&data, cluster, jcluster);
 	MP_KMCCalcRotIndex(&data, 5.0, 1.0e-6);
-	MP_KMCAddSoluteRandom(&data, 30, 0, TRUE);
+	MP_KMCAddSoluteRandom(&data, 2, 0, TRUE);
 	MP_KMCTotalEnergy(&data, calcFSFCC, &update);
 	printf("%d %.15e\n", data.ntable, data.tote);
 	for (T = 1100; T >= 1000; T -= 10) {
-		njump = MP_KMCJump(&data, 100, T, calcFSFCC, &update);
+		njump = MP_KMCJump(&data, 1000, T, calcFSFCC, &update);
 		printf("%f %d %d %.15e %d %d\n", T, njump, data.ntable, data.tote,
 			MP_KMCCountType(&data, 0), MP_KMCCheckSolute(&data));
 	}
+	//MP_KMCSoluteSD(&data, 0, data.nevent);
 	GlutWindow(&data, 800, 600, argc, argv);
 	MP_KMCWrite(&data, "test.mpkmc", 0);
 	MP_KMCFree(&data);

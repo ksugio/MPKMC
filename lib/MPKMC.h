@@ -167,8 +167,10 @@ int MP_KMCJump(MP_KMCData *data, int ntry, double temp, double(*func)(MP_KMCData
 void MP_KMCStepForward(MP_KMCData *data, int count);
 void MP_KMCStepBackward(MP_KMCData *data, int count);
 void MP_KMCStepGo(MP_KMCData *data, int step);
+void MP_KMCMCSGo(MP_KMCData *data, long mcs);
 void MP_KMCMCSHistory(MP_KMCData *data, int num, double mcs[]);
 void MP_KMCEnergyHistory(MP_KMCData *data, int num, double ene[]);
+void MP_KMCSoluteSD(MP_KMCData *data, int sid, int step);
 
 /*--------------------------------------------------
 * rw functions
