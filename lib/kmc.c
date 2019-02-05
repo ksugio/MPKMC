@@ -36,11 +36,11 @@ int MP_KMCAlloc(MP_KMCData *data, int nuc, int nx, int ny, int nz, int ncluster,
 	}
 	for (i = 0; i < ncluster; i++) {
 		data->cluster[i][0] = 0.0, data->cluster[i][1] = 0.0, data->cluster[i][2] = 0.0;
-		data->jcluster[i] = FALSE;
 	}
 	for (i = 0; i < ntable_step; i++) {
 		data->table[i].types = data->table_types + i*ncluster;
 	}
+	data->cpmax = 0;
 	data->nrot = 0;
 	data->table_use = TRUE;
 	data->ntable = 0;
@@ -48,6 +48,8 @@ int MP_KMCAlloc(MP_KMCData *data, int nuc, int nx, int ny, int nz, int ncluster,
 	data->htable[0] = '\0';
 	data->nsolute = 0;
 	data->nsolute_max = data->nsolute_step = nsolute_step;
+	data->dpmax = 0;
+	data->event_record = TRUE;
 	data->nevent = 0;
 	data->nevent_max = data->nevent_step = nevent_step;
 	data->step = 0;
@@ -130,7 +132,7 @@ static int SearchClusterIndex(MP_KMCData *data, int p, double cluster[], int *np
 	return FALSE;
 }
 
-int MP_KMCSetCluster(MP_KMCData *data, double cluster[][3], short jcluster[])
+int MP_KMCSetCluster(MP_KMCData *data, double cluster[][3], int cpmax)
 {
 	int i, j;
 	int np, dx, dy, dz;
@@ -141,12 +143,12 @@ int MP_KMCSetCluster(MP_KMCData *data, double cluster[][3], short jcluster[])
 		data->cluster[i][0] = cluster[i][0];
 		data->cluster[i][1] = cluster[i][1];
 		data->cluster[i][2] = cluster[i][2];
-		data->jcluster[i] = jcluster[i];
 		MP_KMCRealPos(data, cluster[i], rp);
 		data->rcluster[i][0] = rp[0];
 		data->rcluster[i][1] = rp[1];
 		data->rcluster[i][2] = rp[2];
 	}
+	data->cpmax = cpmax;
 	for (i = 0; i < data->nuc; i++) {
 		for (j = 0; j < data->ncluster; j++) {
 			if (SearchClusterIndex(data, i, cluster[j], &np, &dx, &dy, &dz)) {
@@ -314,6 +316,7 @@ int MP_KMCAddSolute(MP_KMCData *data, int id, short type, short jump)
 	int i;
 	int nsolute_max;
 	int sid;
+	MP_KMCSoluteItem last;
 
 	if (id < 0 || id >= data->ntot) {
 		fprintf(stderr, "Error : invalid index %d.\n", id);
@@ -338,6 +341,17 @@ int MP_KMCAddSolute(MP_KMCData *data, int id, short type, short jump)
 	data->solute[sid].jump = jump;
 	data->solute[sid].njump = 0;
 	data->nsolute++;
+	if (jump) {
+		if (sid > data->dpmax) {
+			last = data->solute[sid];
+			for (i = sid; i >= data->dpmax; i--) {
+				data->solute[i + 1] = data->solute[i];
+			}
+			data->solute[data->dpmax] = last;
+			sid = data->dpmax;
+		}
+		data->dpmax++;
+	}
 	return sid;
 }
 

@@ -16,12 +16,12 @@ if __name__ == "__main__":
         (0, -0.5, 0.5), (-0.5, 0, 0.5), (-0.5, -0.5, 0), (0, -0.5, -0.5),\
         (0.5, 0, -0.5), (1.0, 0, 0), (-1.0, 0, 0), (0, 1.0, 0), (0, -1.0, 0),\
         (0, 0, 1.0), (0, 0, -1.0))
-    jclu = (1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0)
     kmc = MPKMC.new(4, 10, 10, 10, 19)
     kmc.kb = 86.1735e-6 # ev/K
     kmc.rand_seed = 12345
+    kmc.event_record = True
     kmc.set_unitcell(uc, uc_types, pv)
-    kmc.set_cluster(clu, jclu)
+    kmc.set_cluster(clu, 13)
     kmc.calc_rot_index(5.0, 1.0e-6)
     kmc.add_solute_random(30, 0, 1)
     kmc.total_energy(FSFCCEnergy)

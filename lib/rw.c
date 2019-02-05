@@ -107,8 +107,9 @@ int MP_KMCWrite(MP_KMCData *data, char *filename, int comp)
 	gzprintf(gfp, "size %d %d %d\n", data->size[0], data->size[1], data->size[2]);
 	gzprintf(gfp, "ncluster %d\n", data->ncluster);
 	for (i = 0; i < data->ncluster; i++) {
-		gzprintf(gfp, "%.15e %.15e %.15e %d\n", data->cluster[i][0], data->cluster[i][1], data->cluster[i][2], data->jcluster[i]);
+		gzprintf(gfp, "%.15e %.15e %.15e\n", data->cluster[i][0], data->cluster[i][1], data->cluster[i][2]);
 	}
+	gzprintf(gfp, "cpmax %d\n", data->cpmax);
 	gzprintf(gfp, "nsolute_step %d\n", data->nsolute_step);
 	gzprintf(gfp, "ntable_step %d\n", data->ntable_step);
 	gzprintf(gfp, "nevent_step %d\n", data->nevent_step);
@@ -177,7 +178,7 @@ static int KMCRead1(MP_KMCData *data, char *filename)
 	int nx, ny, nz;
 	int ncluster;
 	double cluster[MP_KMC_NCLUSTER_MAX][3];
-	short jcluster[MP_KMC_NCLUSTER_MAX];
+	int cpmax;
 	int nsolute_step;
 	int ntable_step;
 	int nevent_step;
@@ -223,8 +224,10 @@ static int KMCRead1(MP_KMCData *data, char *filename)
 	sscanf(buf, "%s %d", dum, &ncluster);
 	for (i = 0; i < ncluster; i++) {
 		gzgets(gfp, buf, 256);
-		sscanf(buf, "%le %le %le %hd", &(cluster[i][0]), &(cluster[i][1]), &(cluster[i][2]), &(jcluster[i]));
+		sscanf(buf, "%le %le %le", &(cluster[i][0]), &(cluster[i][1]), &(cluster[i][2]));
 	}
+	gzgets(gfp, buf, 256);
+	sscanf(buf, "%s %d", dum, &cpmax);
 	gzgets(gfp, buf, 256);
 	sscanf(buf, "%s %d", dum, &nsolute_step);
 	gzgets(gfp, buf, 256);
@@ -235,7 +238,7 @@ static int KMCRead1(MP_KMCData *data, char *filename)
 	sscanf(buf, "%s %d", dum, &ntemp_step);
 	if (!MP_KMCAlloc(data, nuc, nx, ny, nz, ncluster, nsolute_step, ntable_step, nevent_step, ntemp_step)) return FALSE;
 	MP_KMCSetUnitCell(data, uc, uc_types, pv);
-	MP_KMCSetCluster(data, cluster, jcluster);
+	MP_KMCSetCluster(data, cluster, cpmax);
 	gzgets(gfp, buf, 256);
 	sscanf(buf, "%s %d", dum, &nrot);
 	for (i = 0; i < nrot; i++) {
@@ -340,7 +343,6 @@ static int KMCRead0(MP_KMCData *data, char *filename)
 	double cluster[][3] = { { 0, 0, 0 },{ 0.5, 0.5, 0 },{ 0, 0.5, -0.5 },{ -0.5, 0, -0.5 },{ -0.5, 0.5, 0 },
 	{ 0, 0.5, 0.5 },{ 0.5, 0, 0.5 },{ 0.5, -0.5, 0 },{ 0, -0.5, 0.5 },
 	{ -0.5, 0, 0.5 },{ -0.5, -0.5, 0 },{ 0, -0.5, -0.5 },{ 0.5, 0, -0.5 } };
-	short jcluster[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
 	int rotid[][13] = { { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 },{ 0, 6, 5, 4, 9, 8, 7, 12, 11, 10, 3, 2, 1 },
 	{ 0, 7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6 },{ 0, 12, 11, 10, 3, 2, 1, 6, 5, 4, 9, 8, 7 },
 	{ 0, 4, 3, 11, 10, 9, 5, 1, 6, 8, 7, 12, 2 },{ 0, 9, 4, 2, 3, 10, 8, 6, 7, 11, 12, 1, 5 },
@@ -373,7 +375,7 @@ static int KMCRead0(MP_KMCData *data, char *filename)
 	sscanf(buf, "%s %d", dum, &nevent_step);
 	if (!MP_KMCAlloc(data, 4, nx / 2, ny / 2, nz / 2, 13, nsolute_max, ntable_step, nevent_step, 100)) return FALSE;
 	MP_KMCSetUnitCell(data, uc, uc_types, pv);
-	MP_KMCSetCluster(data, cluster, jcluster);
+	MP_KMCSetCluster(data, cluster, 13);
 	for (i = 0; i < 24; i++) {
 		MP_KMCAddRotIndex(data, rotid[i]);
 	}

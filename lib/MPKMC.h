@@ -104,9 +104,9 @@ typedef struct MP_KMCData {
 	MP_KMCGridItem *grid;
 	int ncluster;
 	double cluster[MP_KMC_NCLUSTER_MAX][3];
-	short jcluster[MP_KMC_NCLUSTER_MAX];
 	double rcluster[MP_KMC_NCLUSTER_MAX][3];
 	int *clusterid;
+	int cpmax;
 	int nrot;
 	int *rotid;
 	int table_use;
@@ -119,7 +119,9 @@ typedef struct MP_KMCData {
 	int nsolute;
 	int nsolute_step;
 	int nsolute_max;
+	int dpmax;
 	MP_KMCSoluteItem *solute;
+	int event_record;
 	int nevent;
 	int nevent_step;
 	int nevent_max;
@@ -140,7 +142,7 @@ int MP_KMCAlloc(MP_KMCData *data, int nuc, int nx, int ny, int nz, int ncluster,
 	int nsolute_step, int ntable_step, int nevent_step, int nresult_step);
 void MP_KMCFree(MP_KMCData *data);
 void MP_KMCSetUnitCell(MP_KMCData *data, double uc[][3], short types[], double pv[][3]);
-int MP_KMCSetCluster(MP_KMCData *data, double cluster[][3], short jcluster[]);
+int MP_KMCSetCluster(MP_KMCData *data, double cluster[][3], int cpmax);
 void MP_KMCRealPos(MP_KMCData *data, double pos[], double rpos[]);
 void MP_KMCIndex2Grid(MP_KMCData *data, int id, int *p, int *x, int *y, int *z);
 int MP_KMCGrid2Index(MP_KMCData *data, int p, int x, int y, int z);
@@ -167,10 +169,10 @@ int MP_KMCJump(MP_KMCData *data, int ntry, double temp, double(*func)(MP_KMCData
 void MP_KMCStepForward(MP_KMCData *data, int count);
 void MP_KMCStepBackward(MP_KMCData *data, int count);
 void MP_KMCStepGo(MP_KMCData *data, int step);
-void MP_KMCMCSGo(MP_KMCData *data, long mcs);
+long MP_KMCStep2MCS(MP_KMCData *data, int step);
+int MP_KMCMCS2Step(MP_KMCData *data, long mcs);
 void MP_KMCMCSHistory(MP_KMCData *data, int num, double mcs[]);
 void MP_KMCEnergyHistory(MP_KMCData *data, int num, double ene[]);
-void MP_KMCSoluteSD(MP_KMCData *data, int sid, int step);
 
 /*--------------------------------------------------
 * rw functions

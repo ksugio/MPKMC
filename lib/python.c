@@ -61,7 +61,8 @@ static PyMemberDef PyKMCMembers[] = {
 	{ "table_use", T_INT, offsetof(MP_KMCData, table_use), 0, "flag for using table" },
 	{ "ntable", T_INT, offsetof(MP_KMCData, ntable), 1, "number of table" },
 	{ "nsolute", T_INT, offsetof(MP_KMCData, nsolute), 1, "number of solute atoms" },
-	{ "nevent", T_INT, offsetof(MP_KMCData, nevent), 1, "number of events" },
+    { "event_record", T_INT, offsetof(MP_KMCData, event_record), 0, "flag for recording event" },
+    { "nevent", T_INT, offsetof(MP_KMCData, nevent), 1, "number of events" },
     { "nresult", T_INT, offsetof(MP_KMCData, nresult), 1, "number of results" },
 	{ "step", T_INT, offsetof(MP_KMCData, step), 1, "current step" },
 	{ "rand_seed", T_LONG, offsetof(MP_KMCData, rand_seed), 0, "seed of random number" },
@@ -108,17 +109,16 @@ static PyObject *PyKMCSetUnitCell(MP_KMCData *self, PyObject *args, PyObject *kw
 static PyObject *PyKMCSetCluster(MP_KMCData *self, PyObject *args, PyObject *kwds)
 {
 	PyObject *cluster;
-	PyObject *jcluster;
-	static char *kwlist[] = { "cluster", "jcluster", NULL };
+	int cpmax;
+	static char *kwlist[] = { "cluster", "cpmax", NULL };
 	PyObject *tp;
 	double dcluster[MP_KMC_NCLUSTER_MAX][3];
-	short sjcluster[MP_KMC_NCLUSTER_MAX];
 	int i, j;
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "OO", kwlist, &cluster, &jcluster)) {
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "Oi", kwlist, &cluster, &cpmax)) {
 		return NULL;
 	}
-	if (PyTuple_Size(cluster) != self->ncluster || PyTuple_Size(jcluster) != self->ncluster) {
+	if (PyTuple_Size(cluster) != self->ncluster) {
 		return NULL;
 	}
 	for (i = 0; i < self->ncluster; i++) {
@@ -126,9 +126,8 @@ static PyObject *PyKMCSetCluster(MP_KMCData *self, PyObject *args, PyObject *kwd
 		for (j = 0; j < 3; j++) {
 			dcluster[i][j] = (double)PyFloat_AsDouble(PyTuple_GetItem(tp, (Py_ssize_t)j));
 		}
-		sjcluster[i] = (short)PyInt_AsLong(PyTuple_GetItem(jcluster, (Py_ssize_t)i));
 	}
-	return Py_BuildValue("i", MP_KMCSetCluster(self, dcluster, sjcluster));
+	return Py_BuildValue("i", MP_KMCSetCluster(self, dcluster, cpmax));
 }
 
 static PyObject *PyKMCRealPos(MP_KMCData *self, PyObject *args, PyObject *kwds)
@@ -465,7 +464,18 @@ static PyObject *PyKMCStepGo(MP_KMCData *self, PyObject *args, PyObject *kwds)
 	Py_RETURN_NONE;
 }
 
-static PyObject *PyKMCMCSGo(MP_KMCData *self, PyObject *args, PyObject *kwds)
+static PyObject *PyKMCStep2MCS(MP_KMCData *self, PyObject *args, PyObject *kwds)
+{
+	int step;
+	static char *kwlist[] = { "step", NULL };
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "i", kwlist, &step)) {
+		return NULL;
+	}
+	return Py_BuildValue("l", MP_KMCStep2MCS(self, step));
+}
+
+static PyObject *PyKMCMCS2Step(MP_KMCData *self, PyObject *args, PyObject *kwds)
 {
 	long mcs;
 	static char *kwlist[] = { "mcs", NULL };
@@ -473,8 +483,7 @@ static PyObject *PyKMCMCSGo(MP_KMCData *self, PyObject *args, PyObject *kwds)
 	if (!PyArg_ParseTupleAndKeywords(args, kwds, "l", kwlist, &mcs)) {
 		return NULL;
 	}
-	MP_KMCMCSGo(self, mcs);
-	Py_RETURN_NONE;
+	return Py_BuildValue("i", MP_KMCMCS2Step(self, mcs));
 }
 
 static PyObject *PyKMCMCSHistory(MP_KMCData *self, PyObject *args)
@@ -671,7 +680,7 @@ static PyMethodDef PyKMCMethods[] = {
 	{ "set_unitcell", (PyCFunction)PyKMCSetUnitCell, METH_VARARGS | METH_KEYWORDS,
 	"set_unitcell(uc, types, pv) : set atom positons, types and primitive vector of unit cell" },
 	{ "set_cluster", (PyCFunction)PyKMCSetCluster, METH_VARARGS | METH_KEYWORDS,
-	"set_cluster(cluster, jcluster) : set atom positions and jump flags of cluster, return true if it succeeds" },
+	"set_cluster(cluster, cpmax) : set atom positions of cluster and maximum jump pointer, return true if it succeeds" },
 	{ "real_pos", (PyCFunction)PyKMCRealPos, METH_VARARGS | METH_KEYWORDS,
 	"real_pos(cp) : return real position from unit cell position" },
 	{ "index2grid", (PyCFunction)PyKMCIndex2Grid, METH_VARARGS | METH_KEYWORDS,
@@ -710,8 +719,10 @@ static PyMethodDef PyKMCMethods[] = {
 	"step_backward(count) : take steps backward" },
 	{ "step_go", (PyCFunction)PyKMCStepGo, METH_VARARGS | METH_KEYWORDS,
 	"step_go(step) : go to step" },
-    { "mcs_go", (PyCFunction)PyKMCMCSGo, METH_VARARGS | METH_KEYWORDS,
-    "mcs_go(step) : go to Monte Carlo step" },
+    { "step2mcs", (PyCFunction)PyKMCStep2MCS, METH_VARARGS | METH_KEYWORDS,
+    "step2mcs(mcs) : event step to Monte Carlo step" },
+    { "mcs2step", (PyCFunction)PyKMCMCS2Step, METH_VARARGS | METH_KEYWORDS,
+    "mcs2step(mcs) : Monte Carlo step to event step" },
     { "mcs_history", (PyCFunction)PyKMCMCSHistory, METH_NOARGS,
     "mcs_history() : return MCS history" },
 	{ "energy_history", (PyCFunction)PyKMCEnergyHistory, METH_NOARGS,

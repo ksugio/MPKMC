@@ -90,7 +90,7 @@ static double ClusterEnergy(MP_KMCData *data, double(*func)(MP_KMCData *, short 
 int KMCAddResult(MP_KMCData *data, long totmcs, double temp, int ntry, int njump, double fjump, double tote)
 {
 	int nresult_max;
-	int tid;
+	int rid;
 
 	if (data->nresult >= data->nresult_max) {
 		nresult_max = data->nresult_max + data->nresult_step;
@@ -101,15 +101,15 @@ int KMCAddResult(MP_KMCData *data, long totmcs, double temp, int ntry, int njump
 		}
 		data->nresult_max = nresult_max;
 	}
-	tid = data->nresult;
-	data->result[tid].totmcs = totmcs;
-	data->result[tid].temp = temp;
-	data->result[tid].ntry = ntry;
-	data->result[tid].njump = njump;
-	data->result[tid].fjump = fjump;
-	data->result[tid].tote = tote;
+	rid = data->nresult;
+	data->result[rid].totmcs = totmcs;
+	data->result[rid].temp = temp;
+	data->result[rid].ntry = ntry;
+	data->result[rid].njump = njump;
+	data->result[rid].fjump = fjump;
+	data->result[rid].tote = tote;
 	data->nresult++;
-	return tid;
+	return rid;
 }
 
 int KMCAddEvent(MP_KMCData *data, int dp, int id0, int id1, double de, int dmcs)
@@ -152,6 +152,7 @@ int MP_KMCJump(MP_KMCData *data, int ntry, double temp, double(*func)(MP_KMCData
 	int ntried = 0;
 	int njump = 0;
 	int dmcs;
+	int ret;
 
 	*update = FALSE;
 	if (data->step != data->nevent) {
@@ -161,17 +162,16 @@ int MP_KMCJump(MP_KMCData *data, int ntry, double temp, double(*func)(MP_KMCData
 	for (j = 0, c = 0; j < data->nsolute; j++) {
 		if (data->solute[j].jump) c++;
 	}
-	if (c < 1) return -1;
-	for (j = 0, c = 0; j < data->ncluster; j++) {
-		if (data->jcluster[j]) c++;
+	if (c < 1) {
+		fprintf(stderr, "Error : no solute that can jump (MP_KMCJump)\n");
+		return -1;
 	}
-	if (c < 2) return -1;
 	kt = data->kb*temp;
 	dmcs = data->totmcs - data->mcs;
 	while (ntried < ntry) {
-		dp = (int)(MP_Rand(&(data->rand_seed)) * data->nsolute);
-		cp = (int)(MP_Rand(&(data->rand_seed)) * (data->ncluster - 1)) + 1;
-		if (dp < data->nsolute && cp < data->ncluster && data->solute[dp].jump && data->jcluster[cp]) {
+		dp = (int)(MP_Rand(&(data->rand_seed)) * data->dpmax);
+		cp = (int)(MP_Rand(&(data->rand_seed)) * (data->cpmax - 1)) + 1;
+		if (dp < data->dpmax && cp < data->cpmax) {
 			data->totmcs++, dmcs++;
 			id0 = data->solute[dp].id;
 			MP_KMCClusterIndexes(data, id0, ids0);
@@ -190,12 +190,18 @@ int MP_KMCJump(MP_KMCData *data, int ntry, double temp, double(*func)(MP_KMCData
 					for (j = 0; j < data->nsolute; j++) {
 						if (j != dp && data->solute[j].id == id1) break;
 					}
-					if (j < data->nsolute) data->solute[j].id = id0;
+					if (j < data->nsolute) {
+						data->solute[j].id = id0;
+						data->solute[j].njump++;
+					}
 					data->solute[dp].id = id1;
 					data->solute[dp].njump++;
 					data->tote += clde;
-					if (KMCAddEvent(data, dp, id0, id1, clde, dmcs) < 0) return njump;
-					dmcs = 0;
+					if (data->event_record) {
+						ret = KMCAddEvent(data, dp, id0, id1, clde, dmcs);
+						if (ret < 0) return ret;
+						dmcs = 0;
+					}
 					data->mcs = data->totmcs;
 					njump++;
 				}
@@ -294,34 +300,50 @@ void MP_KMCStepGo(MP_KMCData *data, int step)
 	else if (count < 0) MP_KMCStepBackward(data, -count);
 }
 
-void MP_KMCMCSGo(MP_KMCData *data, long mcs)
+long MP_KMCStep2MCS(MP_KMCData *data, int step)
 {
 	int i;
-	long st = 0;
+	long st;
+
+	st = data->mcs;
+	for (i = data->step - 1; i >= 0; i--) {
+		st -= data->event[i].dmcs;
+		if (i == step) return st;
+	}
+	st = data->mcs;
+	for (i = data->step; i <= data->nevent; i++) {
+		if (i == step) return st;
+		st += data->event[i].dmcs;
+	}
+	return st;
+}
+
+int MP_KMCMCS2Step(MP_KMCData *data, long mcs)
+{
+	int i;
+	long st;
 
 	st = data->mcs;
 	for (i = data->step - 1; i >= 0; i--) {
 		if (mcs >= st - data->event[i].dmcs && mcs < st) {
-			MP_KMCStepGo(data, i);
-			return;
+			return i;
 		}
 		st -= data->event[i].dmcs;
 	}
 	st = data->mcs;
 	for (i = data->step; i <= data->nevent; i++) {
 		if (mcs >= st && mcs < st + data->event[i].dmcs) {
-			MP_KMCStepGo(data, i);
-			return;
+			return i;
 		}
 		st += data->event[i].dmcs;
 	}
-	MP_KMCStepGo(data, data->nevent);
+	return data->nevent;
 }
 
 void MP_KMCMCSHistory(MP_KMCData *data, int num, double mcs[])
 {
 	int i;
-	long st = 0;
+	long st;
 
 	st = data->mcs;
 	for (i = data->step - 1; i >= 0; i--) {
@@ -352,14 +374,16 @@ void MP_KMCEnergyHistory(MP_KMCData *data, int num, double ene[])
 	}
 }
 
-void MP_KMCSoluteSD(MP_KMCData *data, int sid, int step)
+/*double MP_KMCSoluteSD(MP_KMCData *data, int sid, int step)
 {
 	int i;
-	int flag = 0;
+	int count = 0;
 	int id0, id1;
 	int p0, x0, y0, z0;
 	int p1, x1, y1, z1;
+	int p2, x2, y2, z2;
 	int ox, oy, oz;
+	double dx, dy, dz;
 
 	ox = 0, oy = 0, oz = 0;
 	for (i = 0; i < step; i++) {
@@ -368,13 +392,50 @@ void MP_KMCSoluteSD(MP_KMCData *data, int sid, int step)
 			id1 = data->event[i].id1;
 			MP_KMCIndex2Grid(data, id0, &p0, &x0, &y0, &z0);
 			MP_KMCIndex2Grid(data, id1, &p1, &x1, &y1, &z1);
+			if (count == 0) {
+				p2 = p0, x2 = x0, y2 = y0, z2 = z0;
+			}
 			if (x1 - x0 >= data->size[0] - 1) ox -= data->size[0];
 			else if (x1 - x0 <= -data->size[0] + 1) ox += data->size[0];
 			if (y1 - y0 >= data->size[1] - 1) oy -= data->size[1];
-			else if (x1 - x0 <= -data->size[1] + 1) oy += data->size[1];
+			else if (y1 - y0 <= -data->size[1] + 1) oy += data->size[1];
 			if (z1 - z0 >= data->size[2] - 1) oz -= data->size[2];
 			else if (z1 - z0 <= -data->size[2] + 1) oz += data->size[2];
-			fprintf(stderr, "%d %d %d %d\n", i, x1, x0, ox);
+			count++;
 		}
 	}
+	if (count > 0) {
+		dx = (x1 + data->uc[p1][0] + ox) - (x2 + data->uc[p2][0]);
+		dy = (y1 + data->uc[p1][1] + oy) - (y2 + data->uc[p2][1]);
+		dz = (z1 + data->uc[p1][2] + oz) - (z2 + data->uc[p2][2]);
+		return dx * dx + dy * dy + dz * dz;
+	}
+	else return 0.0;
 }
+
+double MP_KMCSoluteMSD(MP_KMCData *data, int step)
+{
+	int i;
+	double tsd = 0.0;
+
+	for (i = 0; i < data->nsolute; i++) {
+		tsd += MP_KMCSoluteSD(data, i, step);
+	}
+	return tsd / data->nsolute;
+}
+
+double MP_KMCSoluteTypeMSD(MP_KMCData *data, short type, int step)
+{
+	int i;
+	int nsolute = 0;
+	double tsd = 0.0;
+
+	for (i = 0; i < data->nsolute; i++) {
+		if (data->solute[i].type == type) {
+			tsd += MP_KMCSoluteSD(data, i, step);
+			nsolute++;
+		}
+	}
+	return tsd / nsolute;
+}*/
+

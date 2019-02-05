@@ -127,8 +127,8 @@ class MCSGoDialog(QtGui.QDialog):
     self.buttonb.rejected.connect(self.reject)
 
   def Accept(self):
-    mcs = self.spin.value()
-    self.kmc.mcs_go(mcs)
+    step = self.kmc.mcs2step(self.spin.value())
+    self.kmc.step_go(step)
     self.accept()
 
 """
