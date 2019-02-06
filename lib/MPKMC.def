@@ -13,15 +13,17 @@ EXPORTS
 	MP_KMCSearchClusterIDs
 	MP_KMCAddCluster
 	MP_KMCAddClusterIDs
-	MP_KMCAddSolute
-	MP_KMCAddSoluteRandom
-	MP_KMCCheckSolute
 	MP_KMCCountType
 	MP_KMCCalcEnergy
 	MP_KMCTotalEnergy
 	MP_KMCSortTable
 	MP_KMCResetTable
 	MP_KMCSearchTable
+	; solute
+	MP_KMCAddSolute
+	MP_KMCAddSoluteRandom
+	MP_KMCCheckSolute
+	MP_KMCSoluteCluster
 	; jump
 	MP_KMCJump
 	MP_KMCStepForward

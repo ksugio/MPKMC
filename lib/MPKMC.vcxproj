@@ -170,6 +170,7 @@
     <ClCompile Include="python.c" />
     <ClCompile Include="rand.c" />
     <ClCompile Include="rotindex.c" />
+    <ClCompile Include="solute.c" />
     <ClCompile Include="types.c" />
   </ItemGroup>
   <ItemGroup>

@@ -39,6 +39,9 @@
     <ClCompile Include="jump.c">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="solute.c">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MPKMC.h">

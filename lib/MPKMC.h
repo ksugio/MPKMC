@@ -152,15 +152,20 @@ int MP_KMCSearchCluster(MP_KMCData *data, short types[]);
 int MP_KMCSearchClusterIDs(MP_KMCData *data, int ids[]);
 int MP_KMCAddCluster(MP_KMCData *data, short types[], double energy, long refcount);
 int MP_KMCAddClusterIDs(MP_KMCData *data, int ids[], double energy, long refcount);
-int MP_KMCAddSolute(MP_KMCData *data, int id, short type, short jump);
-void MP_KMCAddSoluteRandom(MP_KMCData *data, int num, short type, short jump);
-int MP_KMCCheckSolute(MP_KMCData *data);
 int MP_KMCCountType(MP_KMCData *data, short type);
 double MP_KMCCalcEnergy(MP_KMCData *data, int id, double(*func)(MP_KMCData *, short *), int *update);
 double MP_KMCTotalEnergy(MP_KMCData *data, double(*func)(MP_KMCData *, short *), int *update);
 void MP_KMCSortTable(MP_KMCData *data);
 void MP_KMCResetTable(MP_KMCData *data);
 int MP_KMCSearchTable(MP_KMCData *data, char ss[], MP_KMCTableItem list[], int list_max);
+
+/*--------------------------------------------------
+* solute functions
+*/
+int MP_KMCAddSolute(MP_KMCData *data, int id, short type, short jump);
+void MP_KMCAddSoluteRandom(MP_KMCData *data, int num, short type, short jump);
+int MP_KMCCheckSolute(MP_KMCData *data);
+int MP_KMCSoluteCluster(MP_KMCData *data, int ncluster_max, int nsolute_max, int *nsolute, int **ids, short **types);
 
 /*--------------------------------------------------
 * jump functions
