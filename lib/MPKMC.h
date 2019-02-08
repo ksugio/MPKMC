@@ -45,6 +45,10 @@ extern "C" {
 #include <windows.h>
 #endif
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 /*--------------------------------------------------
 * kmc typedef and functions
 */
@@ -56,7 +60,7 @@ extern "C" {
 enum {MP_KMCFCC};
 
 typedef struct MP_KMCTableItem {
-	short *types;
+	short types[MP_KMC_NCLUSTER_MAX];
 	double energy;
 	long refcount;
 } MP_KMCTableItem;
@@ -71,6 +75,7 @@ typedef struct MP_KMCSoluteItem {
 	short type;
 	short jump;
 	int njump;
+	int group;
 } MP_KMCSoluteItem;
 
 typedef struct MP_KMCEventItem {
@@ -86,7 +91,7 @@ typedef struct MP_KMCResultItem {
 	double temp;
 	int ntry;
 	int njump;
-	double fjump;
+	int ntable;
 	double tote;
 } MP_KMCResultItem;
 
@@ -115,7 +120,6 @@ typedef struct MP_KMCData {
 	int ntable_max;
 	char htable[256];
 	MP_KMCTableItem *table;
-	short *table_types;
 	int nsolute;
 	int nsolute_step;
 	int nsolute_max;
@@ -148,16 +152,16 @@ void MP_KMCIndex2Grid(MP_KMCData *data, int id, int *p, int *x, int *y, int *z);
 int MP_KMCGrid2Index(MP_KMCData *data, int p, int x, int y, int z);
 void MP_KMCIndex2Pos(MP_KMCData *data, int id, double pos[]);
 void MP_KMCClusterIndexes(MP_KMCData *data, int id, int ids[]);
+void MP_KMCClusterTypes(MP_KMCData *data, int id, short types[]);
 int MP_KMCSearchCluster(MP_KMCData *data, short types[]);
 int MP_KMCSearchClusterIDs(MP_KMCData *data, int ids[]);
 int MP_KMCAddCluster(MP_KMCData *data, short types[], double energy, long refcount);
 int MP_KMCAddClusterIDs(MP_KMCData *data, int ids[], double energy, long refcount);
 int MP_KMCCountType(MP_KMCData *data, short type);
-double MP_KMCCalcEnergy(MP_KMCData *data, int id, double(*func)(MP_KMCData *, short *), int *update);
-double MP_KMCTotalEnergy(MP_KMCData *data, double(*func)(MP_KMCData *, short *), int *update);
 void MP_KMCSortTable(MP_KMCData *data);
 void MP_KMCResetTable(MP_KMCData *data);
 int MP_KMCSearchTable(MP_KMCData *data, char ss[], MP_KMCTableItem list[], int list_max);
+int MP_KMCAddResult(MP_KMCData *data, double temp, int ntry, int njump);
 
 /*--------------------------------------------------
 * solute functions
@@ -165,11 +169,12 @@ int MP_KMCSearchTable(MP_KMCData *data, char ss[], MP_KMCTableItem list[], int l
 int MP_KMCAddSolute(MP_KMCData *data, int id, short type, short jump);
 void MP_KMCAddSoluteRandom(MP_KMCData *data, int num, short type, short jump);
 int MP_KMCCheckSolute(MP_KMCData *data);
-int MP_KMCSoluteCluster(MP_KMCData *data, int ncluster_max, int nsolute_max, int *nsolute, int **ids, short **types);
+int MP_KMCFindSoluteGroup(MP_KMCData *data, double rcut);
 
 /*--------------------------------------------------
 * jump functions
 */
+double MP_KMCTotalEnergy(MP_KMCData *data, double(*func)(MP_KMCData *, short *), int *update);
 int MP_KMCJump(MP_KMCData *data, int ntry, double temp, double(*func)(MP_KMCData *, short *), int *update);
 void MP_KMCStepForward(MP_KMCData *data, int count);
 void MP_KMCStepBackward(MP_KMCData *data, int count);

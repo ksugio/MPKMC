@@ -9,22 +9,23 @@ EXPORTS
 	MP_KMCGrid2Index
 	MP_KMCIndex2Pos
 	MP_KMCClusterIndexes
+	MP_KMCClusterTypes
 	MP_KMCSearchCluster
 	MP_KMCSearchClusterIDs
 	MP_KMCAddCluster
 	MP_KMCAddClusterIDs
 	MP_KMCCountType
-	MP_KMCCalcEnergy
-	MP_KMCTotalEnergy
 	MP_KMCSortTable
 	MP_KMCResetTable
 	MP_KMCSearchTable
+	MP_KMCAddResult
 	; solute
 	MP_KMCAddSolute
 	MP_KMCAddSoluteRandom
 	MP_KMCCheckSolute
-	MP_KMCSoluteCluster
+	MP_KMCFindSoluteGroup
 	; jump
+	MP_KMCTotalEnergy
 	MP_KMCJump
 	MP_KMCStepForward
 	MP_KMCStepBackward

@@ -275,11 +275,11 @@ class ResultCanvas(FigureCanvas):
     elif index == 1:
       self.axes.plot(result[0], result[3], 'ko-')
       self.axes.set_xlabel('MCS')
-      self.axes.set_ylabel('Number of Jumps')
+      self.axes.set_ylabel('Number of Jump')
     elif index == 2:
       self.axes.plot(result[0], result[4], 'ko-')
       self.axes.set_xlabel('MCS')
-      self.axes.set_ylabel('Frequency of Jumps')
+      self.axes.set_ylabel('Number of Table')
     elif index == 3:
       self.axes.plot(result[0], result[5], 'ko-')
       self.axes.set_xlabel('MCS')
@@ -287,11 +287,7 @@ class ResultCanvas(FigureCanvas):
     elif index == 4:
       self.axes.plot(result[1], result[3], 'ko-')
       self.axes.set_xlabel('Temperature')
-      self.axes.set_ylabel('Number of Jumps')
-    elif index == 5:
-      self.axes.plot(result[1], result[4], 'ko-')
-      self.axes.set_xlabel('Temperature')
-      self.axes.set_ylabel('Frequency of Jumps')
+      self.axes.set_ylabel('Number of Jump')
     self.draw()
 
   def saveGraph(self, fname):
@@ -305,11 +301,10 @@ class ResultDialog(QtGui.QDialog):
     vbox = QtGui.QVBoxLayout(self)
     self.combo = QtGui.QComboBox()
     self.combo.addItem('MCS - Temparature')
-    self.combo.addItem('MCS - Number of Jumps')
-    self.combo.addItem('MCS - Frequency of Jumps')
+    self.combo.addItem('MCS - Number of Jump')
+    self.combo.addItem('MCS - Number of Table')
     self.combo.addItem('MCS - Total Energy')
-    self.combo.addItem('Temperature - Number of Jumps')
-    self.combo.addItem('Temperature - Frequency of Jumps')  
+    self.combo.addItem('Temperature - Number of Jump')
     self.combo.currentIndexChanged[int].connect(self.graphChanged)
     vbox.addWidget(self.combo)
     self.canvas = ResultCanvas()

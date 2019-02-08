@@ -14,15 +14,14 @@ int MP_KMCAlloc(MP_KMCData *data, int nuc, int nx, int ny, int nz, int ncluster,
 	data->ncluster = ncluster;
 	data->grid = (MP_KMCGridItem *)malloc(data->ntot*sizeof(MP_KMCGridItem));
 	data->table = (MP_KMCTableItem *)malloc(ntable_step*sizeof(MP_KMCTableItem));
-	data->table_types = (short *)malloc(ncluster*ntable_step*sizeof(short));
 	data->clusterid = (int *)malloc(nuc*ncluster*4*sizeof(int));
 	data->rotid = (int *)malloc(MP_KMC_NROT_MAX*ncluster*sizeof(int));
 	data->solute = (MP_KMCSoluteItem *)malloc(nsolute_step*sizeof(MP_KMCSoluteItem));
 	data->event = (MP_KMCEventItem *)malloc(nevent_step*sizeof(MP_KMCEventItem));
 	data->result = (MP_KMCResultItem *)malloc(nresult_step*sizeof(MP_KMCResultItem));
-	if (data->grid == NULL || data->table == NULL || data->table_types == NULL
-		|| data->clusterid == NULL || data->rotid == NULL || data->solute == NULL
-		|| data->event == NULL || data->result == NULL) return FALSE;
+	if (data->grid == NULL || data->table == NULL || data->clusterid == NULL
+		|| data->rotid == NULL || data->solute == NULL || data->event == NULL
+		|| data->result == NULL) return FALSE;
 	for (i = 0; i < nuc; i++) {
 		data->uc[i][0] = 0.0, data->uc[i][1] = 0.0, data->uc[i][2] = 0.0;
 		data->uc_types[i] = -1;
@@ -36,9 +35,6 @@ int MP_KMCAlloc(MP_KMCData *data, int nuc, int nx, int ny, int nz, int ncluster,
 	}
 	for (i = 0; i < ncluster; i++) {
 		data->cluster[i][0] = 0.0, data->cluster[i][1] = 0.0, data->cluster[i][2] = 0.0;
-	}
-	for (i = 0; i < ntable_step; i++) {
-		data->table[i].types = data->table_types + i*ncluster;
 	}
 	data->cpmax = 0;
 	data->nrot = 0;
@@ -67,7 +63,6 @@ void MP_KMCFree(MP_KMCData *data)
 {
 	free(data->grid);
 	free(data->table);
-	free(data->table_types);
 	free(data->clusterid);
 	free(data->rotid);
 	free(data->solute);
@@ -239,6 +234,17 @@ void MP_KMCClusterIndexes(MP_KMCData *data, int id, int ids[])
 	}
 }
 
+void MP_KMCClusterTypes(MP_KMCData *data, int id, short types[])
+{
+	int i;
+	int ids[MP_KMC_NCLUSTER_MAX];
+
+	MP_KMCClusterIndexes(data, id, ids);
+	for (i = 0; i < data->ncluster; i++) {
+		types[i] = data->grid[ids[i]].type;
+	}
+}
+
 int MP_KMCSearchCluster(MP_KMCData *data, short types[])
 {
 	int i, j, k;
@@ -280,13 +286,9 @@ int MP_KMCAddCluster(MP_KMCData *data, short types[], double energy, long refcou
 	if (data->ntable >= data->ntable_max) {
 		ntable_max = data->ntable_max + data->ntable_step;
 		data->table = (MP_KMCTableItem *)realloc(data->table, ntable_max*sizeof(MP_KMCTableItem));
-		data->table_types = (short *)realloc(data->table_types, data->ncluster*ntable_max*sizeof(short));
-		if (data->table == NULL || data->table_types == NULL) {
+		if (data->table == NULL) {
 			fprintf(stderr, "Error : allocation failure (MP_KMCAddCluster)\n");
 			return MP_KMC_MEM_ERR;
-		}
-		for (i = 0; i < ntable_max; i++) {
-			data->table[i].types = data->table_types + i*data->ncluster;
 		}
 		data->ntable_max = ntable_max;
 	}
@@ -322,19 +324,14 @@ int MP_KMCCountType(MP_KMCData *data, short type)
 	return count;
 }
 
-double MP_KMCCalcEnergy(MP_KMCData *data, int id, double(*func)(MP_KMCData *, short *), int *update)
+/*double MP_KMCCalcEnergy(MP_KMCData *data, int id, double(*func)(MP_KMCData *, short *), int *update)
 {
-	int i;
-	int ids[MP_KMC_NCLUSTER_MAX];
 	short types[MP_KMC_NCLUSTER_MAX];
 	int tid;
 
 	*update = FALSE;
 	if (data->grid[id].type > 0) {
-		MP_KMCClusterIndexes(data, id, ids);
-		for (i = 0; i < data->ncluster; i++) {
-			types[i] = data->grid[ids[i]].type;
-		}
+		MP_KMCClusterTypes(data, id, types);
 		if (data->table_use) {
 			tid = MP_KMCSearchCluster(data, types);
 			if (tid >= 0) {
@@ -360,21 +357,7 @@ double MP_KMCCalcEnergy(MP_KMCData *data, int id, double(*func)(MP_KMCData *, sh
 		data->grid[id].energy = 0.0;
 	}
 	return data->grid[id].energy;
-}
-
-double MP_KMCTotalEnergy(MP_KMCData *data, double(*func)(MP_KMCData *, short *), int *update)
-{
-	int i;
-	int tupdate;
-
-	*update = FALSE;
-	data->tote = 0.0;
-	for (i = 0; i < data->ntot; i++) {
-		data->tote += MP_KMCCalcEnergy(data, i, func, &tupdate);
-		if (tupdate) *update = TRUE;
-	}
-	return data->tote;
-}
+}*/
 
 static int SortCompRefcount(const void *c1, const void *c2)
 {
@@ -493,4 +476,29 @@ int MP_KMCSearchTable(MP_KMCData *data, char ss[], MP_KMCTableItem list[], int l
 		}
 	}
 	return KMCSearchTable(data, ncond, cond, list, list_max);
+}
+
+int MP_KMCAddResult(MP_KMCData *data, double temp, int ntry, int njump)
+{
+	int nresult_max;
+	int rid;
+
+	if (data->nresult >= data->nresult_max) {
+		nresult_max = data->nresult_max + data->nresult_step;
+		data->result = (MP_KMCResultItem *)realloc(data->result, nresult_max * sizeof(MP_KMCResultItem));
+		if (data->result == NULL) {
+			fprintf(stderr, "Error : allocation failure (KMCAddResult)\n");
+			return  MP_KMC_MEM_ERR;
+		}
+		data->nresult_max = nresult_max;
+	}
+	rid = data->nresult;
+	data->result[rid].totmcs = data->totmcs;
+	data->result[rid].temp = temp;
+	data->result[rid].ntry = ntry;
+	data->result[rid].njump = njump;
+	data->result[rid].ntable = data->ntable;
+	data->result[rid].tote = data->tote;
+	data->nresult++;
+	return rid;
 }

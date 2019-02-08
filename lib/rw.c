@@ -146,8 +146,8 @@ int MP_KMCWrite(MP_KMCData *data, char *filename, int comp)
 	}
 	gzprintf(gfp, "nresult %d\n", data->nresult);
 	for (i = 0; i < data->nresult; i++) {
-		gzprintf(gfp, "%d %.15e %d %d %.15e %.15e\n",  data->result[i].totmcs, data->result[i].temp,
-			data->result[i].ntry, data->result[i].njump, data->result[i].fjump, data->result[i].tote);
+		gzprintf(gfp, "%d %.15e %d %d %d %.15e\n",  data->result[i].totmcs, data->result[i].temp,
+			data->result[i].ntry, data->result[i].njump, data->result[i].ntable, data->result[i].tote);
 	}
 	gzclose(gfp);
 	return TRUE;
@@ -199,8 +199,9 @@ static int KMCRead1(MP_KMCData *data, char *filename)
 	int dp, id0, id1;
 	double de;
 	int dmcs;
-	double temp, fjump, tote;
-	long mcs;
+	int rid;
+	double temp, tote;
+	long totmcs;
 	int ntry;
 
 	if ((gfp = gzopen(filename, "rb")) == NULL) {
@@ -291,8 +292,12 @@ static int KMCRead1(MP_KMCData *data, char *filename)
 	sscanf(buf, "%s %d", dum, &nresult);
 	for (i = 0; i < nresult; i++) {
 		gzgets(gfp, buf, 256);
-		sscanf(buf, "%ld %le %d %d %le %le", &mcs, &temp, &ntry, &njump, &fjump, &tote);
-		if (KMCAddResult(data, mcs, temp, ntry, njump, fjump, tote) < 0) return FALSE;
+		sscanf(buf, "%ld %le %d %d %d %le", &totmcs, &temp, &ntry, &njump, &ntable, &tote);
+		rid = MP_KMCAddResult(data, temp, ntry, njump);
+		if (rid < 0) return FALSE;
+		data->result[rid].totmcs = totmcs;
+		data->result[rid].ntable = ntable;
+		data->result[rid].tote = tote;
 	}
 	gzclose(gfp);
 	return TRUE;

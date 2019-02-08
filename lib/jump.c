@@ -40,32 +40,47 @@ static double GridClusterEnergy(MP_KMCData *data, int nncluster, int ids[])
 	return cle;
 }
 
-static double ClusterEnergy(MP_KMCData *data, double(*func)(MP_KMCData *, short *),
-	int nncluster, int ids[], double energy[], int *update)
+static int CompareTypes(MP_KMCData *data, short types0[], short types1[])
 {
 	int j, k;
-	int tid;
-	double cle;
-	int eids[MP_KMC_NCLUSTER_MAX];
-	short types[MP_KMC_NCLUSTER_MAX];
+	int count;
+	int sp;
 
-	for (j = 0; j < nncluster; j++) {
-		if (data->grid[ids[j]].type > 0) {
-			MP_KMCClusterIndexes(data, ids[j], eids);
-			for (k = 0; k < data->ncluster; k++) {
-				types[k] = data->grid[eids[k]].type;
+	if (types0[0] == types1[0]) {
+		for (j = 0; j < data->nrot; j++) {
+			count = 0;
+			sp = j * data->ncluster;
+			for (k = 1; k < data->ncluster; k++) {
+				if (types0[k] == types1[data->rotid[sp + k]]) count++;
 			}
+			if (count == data->ncluster - 1) return TRUE;
+		}
+	}
+	return FALSE;
+}
+
+static void CalcClusterEnergies(MP_KMCData *data, double(*func)(MP_KMCData *, short *),
+	int ncluster, int ids[], double energy[], int *update)
+{
+	int j, k;
+	int ttid;
+	int tid[MP_KMC_NCLUSTER_MAX * 2];
+	short types[MP_KMC_NCLUSTER_MAX * 2][MP_KMC_NCLUSTER_MAX];
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+	for (j = 0; j < ncluster; j++) {
+		if (data->grid[ids[j]].type > 0) {
+			MP_KMCClusterTypes(data, ids[j], types[j]);
 			if (data->table_use) {
-				tid = MP_KMCSearchCluster(data, types);
-				if (tid >= 0) {
-					data->table[tid].refcount += 1;
-					energy[j] = data->table[tid].energy;
+				tid[j] = MP_KMCSearchCluster(data, types[j]);
+				if (tid[j] >= 0) {
+					energy[j] = data->table[tid[j]].energy;
 				}
 				else {
 					if (func != NULL) {
-						energy[j] = (func)(data, types);
-						MP_KMCAddCluster(data, types, energy[j], 0);
-						*update = TRUE;
+						energy[j] = (func)(data, types[j]);
 					}
 					else {
 						energy[j] = 0.0;
@@ -73,43 +88,43 @@ static double ClusterEnergy(MP_KMCData *data, double(*func)(MP_KMCData *, short 
 				}
 			}
 			else {
-				energy[j] = (func)(data, types);
+				energy[j] = (func)(data, types[j]);
 			}
 		}
 		else if (data->grid[ids[j]].type == 0) {
+			tid[j] = -99;
 			energy[j] = 0.0;
 		}
 	}
-	cle = 0.0;
-	for (j = 0; j < nncluster; j++) {
+	if (data->table_use) {
+		for (j = 0; j < ncluster; j++) {
+			if (tid[j] >= 0) {
+				data->table[tid[j]].refcount += 1;
+			}
+			else if (tid[j] == -1) {
+				ttid = MP_KMCAddCluster(data, types[j], energy[j], 0);
+				for (k = j + 1; k < ncluster; k++) {
+					if (tid[k] == -1 && CompareTypes(data, types[j], types[k])) {
+						tid[k] = ttid;
+					}
+				}
+				*update = TRUE;
+			}
+		}
+	}
+}
+
+static double ClusterEnergy(MP_KMCData *data, double(*func)(MP_KMCData *, short *),
+	int ncluster, int ids[], double energy[], int *update)
+{
+	int j;
+	double cle = 0.0;
+
+	CalcClusterEnergies(data, func, ncluster, ids, energy, update);
+	for (j = 0; j < ncluster; j++) {
 		cle += energy[j];
 	}
 	return cle;
-}
-
-int KMCAddResult(MP_KMCData *data, long totmcs, double temp, int ntry, int njump, double fjump, double tote)
-{
-	int nresult_max;
-	int rid;
-
-	if (data->nresult >= data->nresult_max) {
-		nresult_max = data->nresult_max + data->nresult_step;
-		data->result = (MP_KMCResultItem *)realloc(data->result, nresult_max*sizeof(MP_KMCResultItem));
-		if (data->result == NULL) {
-			fprintf(stderr, "Error : allocation failure (KMCAddResult)\n");
-			return  MP_KMC_MEM_ERR;
-		}
-		data->nresult_max = nresult_max;
-	}
-	rid = data->nresult;
-	data->result[rid].totmcs = totmcs;
-	data->result[rid].temp = temp;
-	data->result[rid].ntry = ntry;
-	data->result[rid].njump = njump;
-	data->result[rid].fjump = fjump;
-	data->result[rid].tote = tote;
-	data->nresult++;
-	return rid;
 }
 
 int KMCAddEvent(MP_KMCData *data, int dp, int id0, int id1, double de, int dmcs)
@@ -135,6 +150,30 @@ int KMCAddEvent(MP_KMCData *data, int dp, int id0, int id1, double de, int dmcs)
 	data->nevent++;
 	data->step = data->nevent;
 	return eid;
+}
+
+double MP_KMCTotalEnergy(MP_KMCData *data, double(*func)(MP_KMCData *, short *), int *update)
+{
+	int j;
+	int id = 0;
+	int ncluster = 0;
+	int step = MP_KMC_NCLUSTER_MAX * 2;
+	int ids[MP_KMC_NCLUSTER_MAX * 2];
+	double energy[MP_KMC_NCLUSTER_MAX * 2];
+
+	while (TRUE) {
+		ids[ncluster++] = id++;
+		if (ncluster >= step || id >= data->ntot) {
+			CalcClusterEnergies(data, func, ncluster, ids, energy, update);
+			for (j = 0; j < ncluster; j++) {
+				data->grid[ids[j]].energy = energy[j];
+				data->tote += energy[j];
+			}
+			ncluster = 0;
+			if (id >= data->ntot) break;
+		}
+	}
+	return data->tote;
 }
 
 int MP_KMCJump(MP_KMCData *data, int ntry, double temp, double(*func)(MP_KMCData *, short *), int *update)
@@ -212,18 +251,16 @@ int MP_KMCJump(MP_KMCData *data, int ntry, double temp, double(*func)(MP_KMCData
 			ntried++;
 		}
 	}
-	KMCAddResult(data, data->totmcs, temp, ntry, njump, (double)njump/ntry, data->tote);
 	return njump;
 }
 
 static void UpdateGridEnergy(MP_KMCData *data, int id0, int id1)
 {
-	int j, k;
+	int j;
 	int ids0[MP_KMC_NCLUSTER_MAX];
 	int ids1[MP_KMC_NCLUSTER_MAX];
 	int ids2[MP_KMC_NCLUSTER_MAX * 2];
-	int ids3[MP_KMC_NCLUSTER_MAX];
-	short types3[MP_KMC_NCLUSTER_MAX];
+	short types[MP_KMC_NCLUSTER_MAX];
 	int nncluster;
 	int tid;
 
@@ -233,11 +270,8 @@ static void UpdateGridEnergy(MP_KMCData *data, int id0, int id1)
 	nncluster = UniteIndexes(data->ncluster, ids0, ids1, ids2);
 	for (j = 0; j < nncluster; j++) {
 		if (data->grid[ids2[j]].type > 0) {
-			MP_KMCClusterIndexes(data, ids2[j], ids3);
-			for (k = 0; k < data->ncluster; k++) {
-				types3[k] = data->grid[ids3[k]].type;
-			}
-			tid = MP_KMCSearchCluster(data, types3);
+			MP_KMCClusterTypes(data, ids2[j], types);
+			tid = MP_KMCSearchCluster(data, types);
 			if (tid >= 0) {
 				data->grid[ids2[j]].energy = data->table[tid].energy;
 			}

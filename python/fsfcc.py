@@ -28,6 +28,7 @@ if __name__ == "__main__":
     print kmc.tote, kmc.ntable
     for temp in T:
         njump, update = kmc.jump(Ntry, temp, FSFCCEnergy)
+        kmc.add_result(temp, Ntry, njump)
         print kmc.totmcs, temp, njump, kmc.tote, kmc.ntable
     kmc.write_table('fsfcc.etb')
     kmc.write('fsfcc.mpkmc', 8)

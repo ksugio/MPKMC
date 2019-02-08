@@ -206,6 +206,25 @@ static PyObject *PyKMCClusterIndexes(MP_KMCData *self, PyObject *args, PyObject 
 	return pyids;
 }
 
+static PyObject *PyKMCClusterTypes(MP_KMCData *self, PyObject *args, PyObject *kwds)
+{
+	int id;
+	static char *kwlist[] = { "id", NULL };
+	short types[MP_KMC_NCLUSTER_MAX];
+	PyObject *pytypes;
+	int i;
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "i", kwlist, &id)) {
+		return NULL;
+	}
+	MP_KMCClusterTypes(self, id, types);
+	pytypes = PyTuple_New((Py_ssize_t)self->ncluster);
+	for (i = 0; i < self->ncluster; i++) {
+		PyTuple_SetItem(pytypes, (Py_ssize_t)i, PyInt_FromLong(types[i]));
+	}
+	return pytypes;
+}
+
 static PyObject *PyKMCSearchCluster(MP_KMCData *self, PyObject *args, PyObject *kwds)
 {
 	PyObject *types;
@@ -318,6 +337,17 @@ static PyObject *PyKMCCheckSolute(MP_KMCData *self, PyObject *args)
 	return Py_BuildValue("i", MP_KMCCheckSolute(self));
 }
 
+static PyObject *PyKMCFindSoluteGroup(MP_KMCData *self, PyObject *args, PyObject *kwds)
+{
+	double rcut;
+	static char *kwlist[] = { "rcut", NULL };
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "d", kwlist, &rcut)) {
+		return NULL;
+	}
+	return Py_BuildValue("i", MP_KMCFindSoluteGroup(self, rcut));
+}
+
 static PyObject *PyKMCCountType(MP_KMCData *self, PyObject *args, PyObject *kwds)
 {
 	short type;
@@ -327,6 +357,19 @@ static PyObject *PyKMCCountType(MP_KMCData *self, PyObject *args, PyObject *kwds
 		return NULL;
 	}
 	return Py_BuildValue("i", MP_KMCCountType(self, type));
+}
+
+static PyObject *PyKMCAddResult(MP_KMCData *self, PyObject *args, PyObject *kwds)
+{
+	double temp;
+	int ntry;
+	int njump;
+	static char *kwlist[] = { "temp", "ntry", "njump", NULL };
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "dii", kwlist, &temp, &ntry, &njump)) {
+		return NULL;
+	}
+	return Py_BuildValue("i", MP_KMCAddResult(self, temp, ntry, njump));
 }
 
 static double calcEnergy(MP_KMCData *data, short types[])
@@ -351,31 +394,6 @@ static double calcEnergy(MP_KMCData *data, short types[])
 	energy = PyFloat_AsDouble(res);
 	Py_DECREF(res);
 	return energy;
-}
-
-static PyObject *PyKMCCalcEnergy(MP_KMCData *self, PyObject *args, PyObject *kwds)
-{
-	int id;
-	PyObject *func;
-	static char *kwlist[] = { "id", "func", NULL };
-	double ene;
-	int update;
-
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "iO", kwlist, &id, &func)) {
-		return NULL;
-	}
-	if (func == Py_None) {
-		ene = MP_KMCCalcEnergy(self, id, NULL, &update);
-	}
-	else {
-		if (!PyCallable_Check(func)) {
-			PyErr_SetString(PyExc_TypeError, "func must be callable");
-			return NULL;
-		}
-		self->pyfunc = func;
-		ene = MP_KMCCalcEnergy(self, id, calcEnergy, &update);
-	}
-	return Py_BuildValue("di", ene, update);
 }
 
 static PyObject *PyKMCTotalEnergy(MP_KMCData *self, PyObject *args, PyObject *kwds)
@@ -625,7 +643,8 @@ static PyObject *PyKMCSoluteItem(MP_KMCData *self, PyObject *args, PyObject *kwd
 		return NULL;
 	}
 	if (id >= 0 && id < self->nsolute) {
-		return Py_BuildValue("ihh", self->solute[id].id, self->solute[id].type, self->solute[id].jump);
+		return Py_BuildValue("ihhii", self->solute[id].id, self->solute[id].type, self->solute[id].jump,
+			self->solute[id].njump, self->solute[id].group);
 	}
 	else return NULL;
 }
@@ -639,8 +658,8 @@ static PyObject *PyKMCResultItem(MP_KMCData *self, PyObject *args, PyObject *kwd
 		return NULL;
 	}
 	if (id >= 0 && id < self->nresult) {
-		return Py_BuildValue("ldiidd", self->result[id].totmcs, self->result[id].temp, self->result[id].ntry,
-			self->result[id].njump, self->result[id].fjump, self->result[id].tote);
+		return Py_BuildValue("ldiiid", self->result[id].totmcs, self->result[id].temp, self->result[id].ntry,
+			self->result[id].njump, self->result[id].ntable, self->result[id].tote);
 	}
 	else return NULL;
 }
@@ -691,6 +710,8 @@ static PyMethodDef PyKMCMethods[] = {
 	"index2pos(id) : return atom position of i-th atom" },
 	{ "cluster_indexes", (PyCFunction)PyKMCClusterIndexes, METH_VARARGS | METH_KEYWORDS,
 	"cluster_indexes(id) : return indexes around i-th atom" },
+    { "cluster_types", (PyCFunction)PyKMCClusterTypes, METH_VARARGS | METH_KEYWORDS,
+    "cluster_types(id) : return types around i-th atom" },
 	{ "search_cluster", (PyCFunction)PyKMCSearchCluster, METH_VARARGS | METH_KEYWORDS,
 	"search_cluster(types) : search cluster in table and return table index" },
 	{ "search_cluster_ids", (PyCFunction)PyKMCSearchClusterIDs, METH_VARARGS | METH_KEYWORDS,
@@ -705,10 +726,12 @@ static PyMethodDef PyKMCMethods[] = {
 	"add_solute_random(num, type, jump) : add solute atoms randomly" },
 	{ "check_solute", (PyCFunction)PyKMCCheckSolute, METH_NOARGS,
 	"check_solute() : check solute table" },
+    { "find_solute_group", (PyCFunction)PyKMCFindSoluteGroup, METH_VARARGS | METH_KEYWORDS,
+    "find_solute_group(rcut) : find solute group, rcut is cutoff radius" },
     { "count_type", (PyCFunction)PyKMCCountType, METH_VARARGS | METH_KEYWORDS,
     "count_type(type) : count type in grid" },
-	{ "calc_energy", (PyCFunction)PyKMCCalcEnergy, METH_VARARGS | METH_KEYWORDS,
-	"calc_energy(id, func) : calculate energy of i-th atom" },
+    { "add_result", (PyCFunction)PyKMCAddResult, METH_VARARGS | METH_KEYWORDS,
+    "add_result(temp, ntry, njump) : add result" },
 	{ "total_energy", (PyCFunction)PyKMCTotalEnergy, METH_VARARGS | METH_KEYWORDS,
 	"total_energy(func) : calculate and return total energy" },
 	{ "jump", (PyCFunction)PyKMCJump, METH_VARARGS | METH_KEYWORDS,

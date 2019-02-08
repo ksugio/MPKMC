@@ -29,6 +29,7 @@ int MP_KMCAddSolute(MP_KMCData *data, int id, short type, short jump)
 	data->solute[sid].type = type;
 	data->solute[sid].jump = jump;
 	data->solute[sid].njump = 0;
+	data->solute[sid].group = -1;
 	data->nsolute++;
 	if (jump) {
 		if (sid > data->dpmax) {
@@ -80,16 +81,47 @@ int MP_KMCCheckSolute(MP_KMCData *data)
 	return TRUE;
 }
 
-int MP_KMCSoluteCluster(MP_KMCData *data, int ncluster_max, int nsolute_max, int *nsolute, int **ids, short **types)
+static void KMCFindGroup(MP_KMCData *data, int sid, int group, double rcut)
 {
-	int i, j;
+	int i;
+	int p0, x0, y0, z0;
+	int p1, x1, y1, z1;
+	double dx, dy, dz, dr2;
 
-	for (i = 0; i < ncluster_max; i++) {
-		nsolute[i] = 0;
-		for (j = 0; j < nsolute_max; j++) {
-			ids[i][j] = 0, types[i][j] = 0;
+	data->solute[sid].group = group;
+	MP_KMCIndex2Grid(data, data->solute[sid].id, &p0, &x0, &y0, &z0);
+	for (i = 0; i < data->nsolute; i++) {
+		if (i != sid && data->solute[i].group < 0) {
+			MP_KMCIndex2Grid(data, data->solute[i].id, &p1, &x1, &y1, &z1);
+			if (x1 - x0 >= data->size[0] - 1) x1 -= data->size[0];
+			else if (x1 - x0 <= -data->size[0] + 1) x1 += data->size[0];
+			if (y1 - y0 >= data->size[1] - 1) y1 -= data->size[1];
+			else if (y1 - y0 <= -data->size[1] + 1) y1 += data->size[1];
+			if (z1 - z0 >= data->size[2] - 1) z1 -= data->size[2];
+			else if (z1 - z0 <= -data->size[2] + 1) z1 += data->size[2];
+			dx = (x1 + data->uc[p1][0]) - (x0 + data->uc[p0][0]);
+			dy = (y1 + data->uc[p1][1]) - (y0 + data->uc[p0][1]);
+			dz = (z1 + data->uc[p1][2]) - (z0 + data->uc[p0][2]);
+			dr2 = dx * dx + dy * dy + dz * dz;
+			if (dr2 <= rcut * rcut) {
+				KMCFindGroup(data, i, group, rcut);
+			}
 		}
 	}
+}
 
-	return 0;
+int MP_KMCFindSoluteGroup(MP_KMCData *data, double rcut)
+{
+	int i;
+	int group = 0;
+
+	for (i = 0; i < data->nsolute; i++) {
+		data->solute[i].group = -1;
+	}
+	for (i = 0; i < data->nsolute; i++) {
+		if (data->solute[i].group < 0) {
+			KMCFindGroup(data, i, group++, rcut);
+		}
+	}
+	return group;
 }
