@@ -35,6 +35,10 @@ extern "C" {
 #ifndef _INC_MATH
 #include <math.h>
 #endif
+#ifndef _INC_TIME
+#include <time.h>
+#endif
+
 
 #ifndef ZLIB_H
 #include <zlib.h>
@@ -86,14 +90,16 @@ typedef struct MP_KMCEventItem {
 	int dmcs;
 } MP_KMCEventItem;
 
-typedef struct MP_KMCResultItem {
+typedef struct MP_KMCHistoryItem {
 	long totmcs;
 	double temp;
 	int ntry;
 	int njump;
+	int table_update;
 	int ntable;
 	double tote;
-} MP_KMCResultItem;
+	double time;
+} MP_KMCHistoryItem;
 
 typedef struct MP_KMCData {
 #ifdef MP_PYTHON_LIB
@@ -129,12 +135,12 @@ typedef struct MP_KMCData {
 	int nevent;
 	int nevent_step;
 	int nevent_max;
-	int step;
+	int event_pt;
 	MP_KMCEventItem *event;
-	int nresult;
-	int nresult_step;
-	int nresult_max;
-	MP_KMCResultItem *result;
+	int nhistory;
+	int nhistory_step;
+	int nhistory_max;
+	MP_KMCHistoryItem *history;
 	long rand_seed;
 	long totmcs;
 	long mcs;
@@ -143,7 +149,7 @@ typedef struct MP_KMCData {
 } MP_KMCData;
 
 int MP_KMCAlloc(MP_KMCData *data, int nuc, int nx, int ny, int nz, int ncluster,
-	int nsolute_step, int ntable_step, int nevent_step, int nresult_step);
+	int nsolute_step, int ntable_step, int nevent_step, int nhistory_step);
 void MP_KMCFree(MP_KMCData *data);
 void MP_KMCSetUnitCell(MP_KMCData *data, double uc[][3], short types[], double pv[][3]);
 int MP_KMCSetCluster(MP_KMCData *data, double cluster[][3], int cpmax);
@@ -161,7 +167,6 @@ int MP_KMCCountType(MP_KMCData *data, short type);
 void MP_KMCSortTable(MP_KMCData *data);
 void MP_KMCResetTable(MP_KMCData *data);
 int MP_KMCSearchTable(MP_KMCData *data, char ss[], MP_KMCTableItem list[], int list_max);
-int MP_KMCAddResult(MP_KMCData *data, double temp, int ntry, int njump);
 
 /*--------------------------------------------------
 * solute functions
@@ -174,15 +179,19 @@ int MP_KMCFindSoluteGroup(MP_KMCData *data, double rcut);
 /*--------------------------------------------------
 * jump functions
 */
-double MP_KMCTotalEnergy(MP_KMCData *data, double(*func)(MP_KMCData *, short *), int *update);
-int MP_KMCJump(MP_KMCData *data, int ntry, double temp, double(*func)(MP_KMCData *, short *), int *update);
-void MP_KMCStepForward(MP_KMCData *data, int count);
-void MP_KMCStepBackward(MP_KMCData *data, int count);
-void MP_KMCStepGo(MP_KMCData *data, int step);
-long MP_KMCStep2MCS(MP_KMCData *data, int step);
-int MP_KMCMCS2Step(MP_KMCData *data, long mcs);
-void MP_KMCMCSHistory(MP_KMCData *data, int num, double mcs[]);
-void MP_KMCEnergyHistory(MP_KMCData *data, int num, double ene[]);
+int MP_KMCGridEnergy(MP_KMCData *data, double(*func)(MP_KMCData *, short *));
+MP_KMCHistoryItem MP_KMCJump(MP_KMCData *data, int ntry, double temp, double(*func)(MP_KMCData *, short *));
+
+/*--------------------------------------------------
+* event functions
+*/
+void MP_KMCEventForward(MP_KMCData *data, int count);
+void MP_KMCEventBackward(MP_KMCData *data, int count);
+void MP_KMCEventGo(MP_KMCData *data, int event_pt);
+long MP_KMCEventPt2MCS(MP_KMCData *data, int event_pt);
+int MP_KMCMCS2EventPt(MP_KMCData *data, long mcs);
+void MP_KMCEventMCS(MP_KMCData *data, int num, double mcs[]);
+void MP_KMCEventEnergy(MP_KMCData *data, int num, double ene[]);
 
 /*--------------------------------------------------
 * rw functions

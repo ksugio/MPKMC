@@ -20,7 +20,7 @@ static double calcFSFCC(MP_KMCData *data, short types[])
 int main(int argc, char *argv[])
 {
 	MP_KMCData data;
-	int njump, update;
+	MP_KMCHistoryItem ret;
 	double T;	
 	double uc[][3] = { { 0.0, 0.0, 0.0 }, { 0.5, 0.5, 0.0 }, { 0.5, 0.0, 0.5 }, { 0.0, 0.5, 0.5 } };
 	short uc_types[] = { 29, 29, 29, 29 };
@@ -38,12 +38,11 @@ int main(int argc, char *argv[])
 	MP_KMCAddSoluteRandom(&data, 100, 0, TRUE);
 	data.rand_seed = 543210;
 //	data.table_use = FALSE;
-	MP_KMCTotalEnergy(&data, calcFSFCC, &update);
+	MP_KMCGridEnergy(&data, calcFSFCC);
 	printf("%d %.15e\n", data.ntable, data.tote);
 	for (T = 1100; T >= 1000; T -= 10) {
-		njump = MP_KMCJump(&data, 10000, T, calcFSFCC, &update);
-		MP_KMCAddResult(&data, T, 10000, njump);
-		printf("%f %d %d %.15e\n", T, njump, data.ntable, data.tote);
+		ret = MP_KMCJump(&data, 1000, T, calcFSFCC);
+		printf("%f %d %d %.15e %f\n", T, ret.njump, ret.ntable, ret.tote, ret.time);
 //		MP_KMCSortTable(&data);
 	}
 	ngroup = MP_KMCFindSoluteGroup(&data, 0.71);

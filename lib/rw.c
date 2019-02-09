@@ -1,6 +1,6 @@
 #include "MPKMC.h"
 
-int KMCAddResult(MP_KMCData *data, long mcs, double temp, int ntry, int njump, double fjump, double tote);
+int KMCAddHistory(MP_KMCData *data, long totmcs, double temp, int ntry, int njump, int table_update, int ntable, double tote, double time);
 int KMCAddEvent(MP_KMCData *data, int dp, int id0, int id1, double de, int dmcs);
 
 int MP_KMCWriteTable(MP_KMCData *data, char *filename)
@@ -113,7 +113,7 @@ int MP_KMCWrite(MP_KMCData *data, char *filename, int comp)
 	gzprintf(gfp, "nsolute_step %d\n", data->nsolute_step);
 	gzprintf(gfp, "ntable_step %d\n", data->ntable_step);
 	gzprintf(gfp, "nevent_step %d\n", data->nevent_step);
-	gzprintf(gfp, "nresult_step %d\n", data->nresult_step);
+	gzprintf(gfp, "nhistory_step %d\n", data->nhistory_step);
 	gzprintf(gfp, "nrot %d\n", data->nrot);
 	for (i = 0; i < data->nrot; i++) {
 		sp = i * data->ncluster;
@@ -144,10 +144,11 @@ int MP_KMCWrite(MP_KMCData *data, char *filename, int comp)
 	for (i = 0; i < data->nevent; i++) {
 		gzprintf(gfp, "%d %d %d %.15e %d\n", data->event[i].dp, data->event[i].id0, data->event[i].id1, data->event[i].de, data->event[i].dmcs);
 	}
-	gzprintf(gfp, "nresult %d\n", data->nresult);
-	for (i = 0; i < data->nresult; i++) {
-		gzprintf(gfp, "%d %.15e %d %d %d %.15e\n",  data->result[i].totmcs, data->result[i].temp,
-			data->result[i].ntry, data->result[i].njump, data->result[i].ntable, data->result[i].tote);
+	gzprintf(gfp, "nhistory %d\n", data->nhistory);
+	for (i = 0; i < data->nhistory; i++) {
+		gzprintf(gfp, "%d %.15e %d %d %d %d %.15e %.15e\n",  data->history[i].totmcs, data->history[i].temp,
+			data->history[i].ntry, data->history[i].njump, data->history[i].table_update, data->history[i].ntable,
+			data->history[i].tote, data->history[i].time);
 	}
 	gzclose(gfp);
 	return TRUE;
@@ -182,7 +183,7 @@ static int KMCRead1(MP_KMCData *data, char *filename)
 	int nsolute_step;
 	int ntable_step;
 	int nevent_step;
-	int ntemp_step;
+	int nhistory_step;
 	int nrot;
 	int ids[MP_KMC_NCLUSTER_MAX];
 	int ntable;
@@ -191,7 +192,7 @@ static int KMCRead1(MP_KMCData *data, char *filename)
 	long refcount;
 	int nsolute;
 	int nevent;
-	int nresult;
+	int nhistory;
 	int id;
 	short type, jump;
 	int sid;
@@ -199,10 +200,9 @@ static int KMCRead1(MP_KMCData *data, char *filename)
 	int dp, id0, id1;
 	double de;
 	int dmcs;
-	int rid;
-	double temp, tote;
 	long totmcs;
-	int ntry;
+	double temp, tote, time;
+	int ntry, table_update;
 
 	if ((gfp = gzopen(filename, "rb")) == NULL) {
 		fprintf(stderr, "Error : can't open %s.(MP_KMCRead)\n", filename);
@@ -236,8 +236,8 @@ static int KMCRead1(MP_KMCData *data, char *filename)
 	gzgets(gfp, buf, 256);
 	sscanf(buf, "%s %d", dum, &nevent_step);
 	gzgets(gfp, buf, 256);
-	sscanf(buf, "%s %d", dum, &ntemp_step);
-	if (!MP_KMCAlloc(data, nuc, nx, ny, nz, ncluster, nsolute_step, ntable_step, nevent_step, ntemp_step)) return FALSE;
+	sscanf(buf, "%s %d", dum, &nhistory_step);
+	if (!MP_KMCAlloc(data, nuc, nx, ny, nz, ncluster, nsolute_step, ntable_step, nevent_step, nhistory_step)) return FALSE;
 	MP_KMCSetUnitCell(data, uc, uc_types, pv);
 	MP_KMCSetCluster(data, cluster, cpmax);
 	gzgets(gfp, buf, 256);
@@ -289,15 +289,11 @@ static int KMCRead1(MP_KMCData *data, char *filename)
 		if (KMCAddEvent(data, dp, id0, id1, de, dmcs) < 0) return FALSE;
 	}
 	gzgets(gfp, buf, 256);
-	sscanf(buf, "%s %d", dum, &nresult);
-	for (i = 0; i < nresult; i++) {
+	sscanf(buf, "%s %d", dum, &nhistory);
+	for (i = 0; i < nhistory; i++) {
 		gzgets(gfp, buf, 256);
-		sscanf(buf, "%ld %le %d %d %d %le", &totmcs, &temp, &ntry, &njump, &ntable, &tote);
-		rid = MP_KMCAddResult(data, temp, ntry, njump);
-		if (rid < 0) return FALSE;
-		data->result[rid].totmcs = totmcs;
-		data->result[rid].ntable = ntable;
-		data->result[rid].tote = tote;
+		sscanf(buf, "%ld %le %d %d %d %d %le %le", &totmcs, &temp, &ntry, &njump, &table_update, &ntable, &tote, &time);
+		if (KMCAddHistory(data, totmcs, temp, ntry, njump, table_update, ntable, tote, time) < 0) return FALSE;
 	}
 	gzclose(gfp);
 	return TRUE;
@@ -387,7 +383,7 @@ static int KMCRead0(MP_KMCData *data, char *filename)
 	gzgets(gfp, buf, 256);
 	sscanf(buf, "%s %ld", dum, &(data->rand_seed));
 	gzgets(gfp, buf, 256);
-	sscanf(buf, "%s %ld", dum, &(data->step));
+	//sscanf(buf, "%s %ld", dum, &(data->step));
 	gzgets(gfp, data->htable, 256);
 	p = strchr(data->htable, '\n');
 	if (p != NULL) *p = '\0';

@@ -119,6 +119,7 @@ class MCSGoDialog(QtGui.QDialog):
     self.spin = QtGui.QSpinBox()
     self.spin.setMinimum(0)
     self.spin.setMaximum(kmc.totmcs)
+    self.spin.setValue(kmc.mcs)
     vbox.addWidget(self.spin)
     self.buttonb = QtGui.QDialogButtonBox()
     vbox.addWidget(self.buttonb)
@@ -127,8 +128,8 @@ class MCSGoDialog(QtGui.QDialog):
     self.buttonb.rejected.connect(self.reject)
 
   def Accept(self):
-    step = self.kmc.mcs2step(self.spin.value())
-    self.kmc.step_go(step)
+    eventpt = self.kmc.mcs2eventpt(self.spin.value())
+    self.kmc.event_go(eventpt)
     self.accept()
 
 """
@@ -207,9 +208,9 @@ class SetShiftDialog(QtGui.QDialog):
     self.accept()
 
 """
-EnergyHistoryDialog
+EventDialog
 """ 
-class EnergyHistoryCanvas(FigureCanvas):
+class EventPlotCanvas(FigureCanvas):
   def __init__(self, parent=None, width=8, height=6, dpi=72):
     self.fig = Figure(figsize=(width, height), dpi=dpi)
     self.axes = self.fig.add_subplot(111)
@@ -229,14 +230,14 @@ class EnergyHistoryCanvas(FigureCanvas):
   def saveGraph(self, fname):
     self.fig.savefig(fname)
 
-class EnergyHistoryDialog(QtGui.QDialog):
+class EventPlotDialog(QtGui.QDialog):
   def __init__(self, parent, kmc):
     QtGui.QDialog.__init__(self, parent)
-    self.mcs = kmc.mcs_history()
-    self.ene = kmc.energy_history()
-    self.setWindowTitle("Energy History")
+    self.mcs = kmc.event_mcs()
+    self.ene = kmc.event_energy()
+    self.setWindowTitle("Event Plot")
     vbox = QtGui.QVBoxLayout(self)
-    self.canvas = EnergyHistoryCanvas()
+    self.canvas = EventPlotCanvas()
     vbox.addWidget(self.canvas)
     hbox1 = QtGui.QHBoxLayout()
     vbox.addLayout(hbox1)
@@ -254,9 +255,9 @@ class EnergyHistoryDialog(QtGui.QDialog):
       self.canvas.saveGraph(str(fname))    
 
 """
-ResultDialog
+HistoryPlotDialog
 """
-class ResultCanvas(FigureCanvas):
+class HistoryPlotCanvas(FigureCanvas):
   def __init__(self, parent=None, width=8, height=6, dpi=72):
     self.fig = Figure(figsize=(width, height), dpi=dpi)
     self.axes = self.fig.add_subplot(111)
@@ -266,48 +267,58 @@ class ResultCanvas(FigureCanvas):
     FigureCanvas.setSizePolicy(self, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
     FigureCanvas.updateGeometry(self)
 
-  def drawGraph(self, result, index):
+  def drawGraph(self, history, index):
     self.axes.cla()
     if index == 0:
-      self.axes.step(result[0], result[1], 'k-')
+      self.axes.step(history[0], history[1], 'k-')
       self.axes.set_xlabel('MCS')
       self.axes.set_ylabel('Temperature')
     elif index == 1:
-      self.axes.plot(result[0], result[3], 'ko-')
+      self.axes.plot(history[0], history[3], 'ko-')
       self.axes.set_xlabel('MCS')
       self.axes.set_ylabel('Number of Jump')
     elif index == 2:
-      self.axes.plot(result[0], result[4], 'ko-')
+      self.axes.plot(history[0], history[5], 'ko-')
       self.axes.set_xlabel('MCS')
       self.axes.set_ylabel('Number of Table')
     elif index == 3:
-      self.axes.plot(result[0], result[5], 'ko-')
+      self.axes.plot(history[0], history[6], 'ko-')
       self.axes.set_xlabel('MCS')
       self.axes.set_ylabel('Total Energy')
     elif index == 4:
-      self.axes.plot(result[1], result[3], 'ko-')
+      self.axes.step(history[0], history[7], 'k-')
+      self.axes.set_xlabel('MCS')
+      self.axes.set_ylabel('CPU Time')
+    elif index == 5:
+      self.axes.plot(history[1], history[3], 'ko-')
       self.axes.set_xlabel('Temperature')
       self.axes.set_ylabel('Number of Jump')
+    elif index == 6:
+      self.axes.plot(history[1], history[6], 'ko-')
+      self.axes.set_xlabel('Temperature')
+      self.axes.set_ylabel('Total Energy')
     self.draw()
 
   def saveGraph(self, fname):
     self.fig.savefig(fname)
 
-class ResultDialog(QtGui.QDialog):
+class HistoryPlotDialog(QtGui.QDialog):
   def __init__(self, parent, kmc):
     QtGui.QDialog.__init__(self, parent)
-    self.result = self.getResult(kmc)
-    self.setWindowTitle("Result")
+    self.history = self.getHistory(kmc)
+    self.setWindowTitle("History Plot")
     vbox = QtGui.QVBoxLayout(self)
     self.combo = QtGui.QComboBox()
     self.combo.addItem('MCS - Temparature')
     self.combo.addItem('MCS - Number of Jump')
     self.combo.addItem('MCS - Number of Table')
     self.combo.addItem('MCS - Total Energy')
+    self.combo.addItem('MCS - CPU Time')
     self.combo.addItem('Temperature - Number of Jump')
+    self.combo.addItem('Temperature - Total Energy')
     self.combo.currentIndexChanged[int].connect(self.graphChanged)
     vbox.addWidget(self.combo)
-    self.canvas = ResultCanvas()
+    self.canvas = HistoryPlotCanvas()
     vbox.addWidget(self.canvas)
     hbox1 = QtGui.QHBoxLayout()
     vbox.addLayout(hbox1)
@@ -317,16 +328,16 @@ class ResultDialog(QtGui.QDialog):
     button2 = QtGui.QPushButton("Close")
     button2.clicked.connect(self.reject)
     hbox1.addWidget(button2)
-    self.canvas.drawGraph(self.result, self.combo.currentIndex())
+    self.canvas.drawGraph(self.history, self.combo.currentIndex())
 
-  def getResult(self, kmc):
-    res = []
-    for i in range(kmc.nresult):
-      res.append(kmc.result_item(i))
-    return np.array(res).T
+  def getHistory(self, kmc):
+    hist = []
+    for i in range(kmc.nhistory):
+      hist.append(kmc.history_item(i))
+    return np.array(hist).T
 
   def graphChanged(self, index):
-    self.canvas.drawGraph(self.result, index)
+    self.canvas.drawGraph(self.history, index)
 
   def saveFig(self):
     fname = QtGui.QFileDialog.getSaveFileName(self, 'Save Fig')
@@ -407,8 +418,8 @@ class MainWindow(QtGui.QMainWindow):
     view_menu = QtGui.QMenu('View', self)
     view_menu.addAction('Set Display', self.setDispDialog)
     view_menu.addAction('Set Shift', self.setShiftDialog)
-    view_menu.addAction('Result', self.resultDialog)    
-    view_menu.addAction('Energy History', self.energyHistoryDialog)
+    view_menu.addAction('History Plot', self.historyPlotDialog)    
+    view_menu.addAction('Event Plot', self.eventPlotDialog)
     view_menu.addAction('Search Table', self.searchTableShow)
     menubar.addMenu(view_menu)
 
@@ -416,7 +427,7 @@ class MainWindow(QtGui.QMainWindow):
     fname = QtGui.QFileDialog.getOpenFileName(self, 'Open file')
     if fname:
       self.glwidget.kmc = MPKMC.read(str(fname))
-      self.glwidget.kmc.total_energy(None)
+      self.glwidget.kmc.grid_energy(None)
       region = self.glwidget.draw.atoms_region(self.glwidget.kmc)
       self.glwidget.model[0] = MPGLKMC.model((1,0,0,0,0,1), region)
       region = self.glwidget.draw.cluster_region(self.glwidget.kmc)
@@ -447,14 +458,14 @@ class MainWindow(QtGui.QMainWindow):
       dlg = SetShiftDialog(self, self.glwidget.kmc, self.glwidget.draw)
       dlg.exec_()
 
-  def resultDialog(self):
+  def historyPlotDialog(self):
     if self.glwidget.kmc:
-      dlg = ResultDialog(self, self.glwidget.kmc)
+      dlg = HistoryPlotDialog(self, self.glwidget.kmc)
       dlg.exec_()
 
-  def energyHistoryDialog(self):
+  def eventPlotDialog(self):
     if self.glwidget.kmc:
-      dlg = EnergyHistoryDialog(self, self.glwidget.kmc)
+      dlg = EventPlotDialog(self, self.glwidget.kmc)
       dlg.exec_()
 
   def searchTableShow(self):
@@ -495,13 +506,13 @@ class MainWindow(QtGui.QMainWindow):
     group2.addButton(button5)
     toolbar.addWidget(button5)
     toolbar.addSeparator()
-    toolbar.addAction('<<', self.stepFirst)    
-    toolbar.addAction('<', self.stepBackward)
-    self.playb = ToolButton('Play', self.stepPlay)    
+    toolbar.addAction('<<', self.eventFirst)    
+    toolbar.addAction('<', self.eventBackward)
+    self.playb = ToolButton('Play', self.eventPlay)    
     toolbar.addWidget(self.playb)
-    toolbar.addAction('>', self.stepForward)
-    toolbar.addAction('>>', self.stepLast) 
-    toolbar.addAction('Go', self.stepGo)
+    toolbar.addAction('>', self.eventForward)
+    toolbar.addAction('>>', self.eventLast) 
+    toolbar.addAction('Go', self.eventGo)
     self.addToolBar(toolbar)
 
   def setMouseMode(self, pressed):
@@ -532,32 +543,32 @@ class MainWindow(QtGui.QMainWindow):
       self.glwidget.model[self.glwidget.dispMode].fit()
       self.glwidget.updateGL()
 
-  def stepFirst(self):
+  def eventFirst(self):
     if self.glwidget.kmc:
-      self.glwidget.kmc.step_go(0)
+      self.glwidget.kmc.event_go(0)
       self.glwidget.updateGL()
       
-  def stepBackward(self):
+  def eventBackward(self):
     if self.glwidget.kmc:
-      self.glwidget.kmc.step_backward(1)
+      self.glwidget.kmc.event_backward(1)
       self.glwidget.updateGL() 
     
-  def stepForward(self):
+  def eventForward(self):
     if self.glwidget.kmc:
-      self.glwidget.kmc.step_forward(1)
+      self.glwidget.kmc.event_forward(1)
       self.glwidget.updateGL()
 
-  def stepLast(self):
+  def eventLast(self):
     if self.glwidget.kmc:
-      self.glwidget.kmc.step_go(self.glwidget.kmc.nevent)
+      self.glwidget.kmc.event_go(self.glwidget.kmc.nevent)
       self.glwidget.updateGL()
 
-  def stepGo(self):
+  def eventGo(self):
     if self.glwidget.kmc:
       dlg = MCSGoDialog(self, self.glwidget.kmc)
       dlg.exec_()    
 
-  def stepPlay(self):
+  def eventPlay(self):
     if self.glwidget.dispMode == 0:
       if self.playb.isChecked():
         self.timer = QtCore.QTimer()
@@ -569,11 +580,11 @@ class MainWindow(QtGui.QMainWindow):
 
   def timerForward(self):
     if self.glwidget.kmc:
-      if self.glwidget.kmc.step >= self.glwidget.kmc.nevent:
+      if self.glwidget.kmc.event_pt >= self.glwidget.kmc.nevent:
         self.timer.stop()
         self.playb.toggle()
         return
-      self.glwidget.kmc.step_forward(1)
+      self.glwidget.kmc.event_forward(1)
       self.glwidget.updateGL()
 
 class ToolButton(QtGui.QToolButton):

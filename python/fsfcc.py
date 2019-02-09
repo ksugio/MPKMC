@@ -24,11 +24,10 @@ if __name__ == "__main__":
     kmc.set_cluster(clu, 13)
     kmc.calc_rot_index(5.0, 1.0e-6)
     kmc.add_solute_random(30, 0, 1)
-    kmc.total_energy(FSFCCEnergy)
-    print kmc.tote, kmc.ntable
+    kmc.grid_energy(FSFCCEnergy)
+    print '(totmcs, temp, ntry, njump, table_update, ntable, tote, time)'
     for temp in T:
-        njump, update = kmc.jump(Ntry, temp, FSFCCEnergy)
-        kmc.add_result(temp, Ntry, njump)
-        print kmc.totmcs, temp, njump, kmc.tote, kmc.ntable
+        ret = kmc.jump(Ntry, temp, FSFCCEnergy)
+        print ret
     kmc.write_table('fsfcc.etb')
     kmc.write('fsfcc.mpkmc', 8)

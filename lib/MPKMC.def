@@ -18,22 +18,22 @@ EXPORTS
 	MP_KMCSortTable
 	MP_KMCResetTable
 	MP_KMCSearchTable
-	MP_KMCAddResult
 	; solute
 	MP_KMCAddSolute
 	MP_KMCAddSoluteRandom
 	MP_KMCCheckSolute
 	MP_KMCFindSoluteGroup
 	; jump
-	MP_KMCTotalEnergy
+	MP_KMCGridEnergy
 	MP_KMCJump
-	MP_KMCStepForward
-	MP_KMCStepBackward
-	MP_KMCStepGo
-	MP_KMCStep2MCS
-	MP_KMCMCS2Step
-	MP_KMCMCSHistory
-	MP_KMCEnergyHistory
+	; event
+	MP_KMCEventForward
+	MP_KMCEventBackward
+	MP_KMCEventGo
+	MP_KMCEventPt2MCS
+	MP_KMCMCS2EventPt
+	MP_KMCEventMCS
+	MP_KMCEventEnergy
 	; rw
 	MP_KMCWriteTable
 	MP_KMCReadTable

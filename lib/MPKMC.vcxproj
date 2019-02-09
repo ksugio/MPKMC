@@ -165,6 +165,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="event.c" />
     <ClCompile Include="fsfcc.c" />
     <ClCompile Include="jump.c" />
     <ClCompile Include="rw.c" />

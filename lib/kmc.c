@@ -1,7 +1,7 @@
 #include "MPKMC.h"
 
 int MP_KMCAlloc(MP_KMCData *data, int nuc, int nx, int ny, int nz, int ncluster,
-	int nsolute_step, int ntable_step, int nevent_step, int nresult_step)
+	int nsolute_step, int ntable_step, int nevent_step, int nhistory_step)
 {
 	int i;
 	double init_pv[][3] = {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
@@ -18,10 +18,10 @@ int MP_KMCAlloc(MP_KMCData *data, int nuc, int nx, int ny, int nz, int ncluster,
 	data->rotid = (int *)malloc(MP_KMC_NROT_MAX*ncluster*sizeof(int));
 	data->solute = (MP_KMCSoluteItem *)malloc(nsolute_step*sizeof(MP_KMCSoluteItem));
 	data->event = (MP_KMCEventItem *)malloc(nevent_step*sizeof(MP_KMCEventItem));
-	data->result = (MP_KMCResultItem *)malloc(nresult_step*sizeof(MP_KMCResultItem));
+	data->history = (MP_KMCHistoryItem *)malloc(nhistory_step*sizeof(MP_KMCHistoryItem));
 	if (data->grid == NULL || data->table == NULL || data->clusterid == NULL
 		|| data->rotid == NULL || data->solute == NULL || data->event == NULL
-		|| data->result == NULL) return FALSE;
+		|| data->history == NULL) return FALSE;
 	for (i = 0; i < nuc; i++) {
 		data->uc[i][0] = 0.0, data->uc[i][1] = 0.0, data->uc[i][2] = 0.0;
 		data->uc_types[i] = -1;
@@ -48,9 +48,9 @@ int MP_KMCAlloc(MP_KMCData *data, int nuc, int nx, int ny, int nz, int ncluster,
 	data->event_record = TRUE;
 	data->nevent = 0;
 	data->nevent_max = data->nevent_step = nevent_step;
-	data->step = 0;
-	data->nresult = 0;
-	data->nresult_max = data->nresult_step = nresult_step;
+	data->event_pt = 0;
+	data->nhistory = 0;
+	data->nhistory_max = data->nhistory_step = nhistory_step;
 	data->rand_seed = 12061969;
 	data->totmcs = 0;
 	data->mcs = 0;
@@ -67,7 +67,7 @@ void MP_KMCFree(MP_KMCData *data)
 	free(data->rotid);
 	free(data->solute);
 	free(data->event);
-	free(data->result);
+	free(data->history);
 }
 
 void MP_KMCSetUnitCell(MP_KMCData *data, double uc[][3], short types[], double pv[][3])
@@ -476,29 +476,4 @@ int MP_KMCSearchTable(MP_KMCData *data, char ss[], MP_KMCTableItem list[], int l
 		}
 	}
 	return KMCSearchTable(data, ncond, cond, list, list_max);
-}
-
-int MP_KMCAddResult(MP_KMCData *data, double temp, int ntry, int njump)
-{
-	int nresult_max;
-	int rid;
-
-	if (data->nresult >= data->nresult_max) {
-		nresult_max = data->nresult_max + data->nresult_step;
-		data->result = (MP_KMCResultItem *)realloc(data->result, nresult_max * sizeof(MP_KMCResultItem));
-		if (data->result == NULL) {
-			fprintf(stderr, "Error : allocation failure (KMCAddResult)\n");
-			return  MP_KMC_MEM_ERR;
-		}
-		data->nresult_max = nresult_max;
-	}
-	rid = data->nresult;
-	data->result[rid].totmcs = data->totmcs;
-	data->result[rid].temp = temp;
-	data->result[rid].ntry = ntry;
-	data->result[rid].njump = njump;
-	data->result[rid].ntable = data->ntable;
-	data->result[rid].tote = data->tote;
-	data->nresult++;
-	return rid;
 }
