@@ -89,23 +89,24 @@ static void Index2Grid(MPGL_KMCDraw *draw, MP_KMCData *data, int id, int *p, int
 	}
 }
 
-static void realPos(double pv[][3], double x0, double y0, double z0,
-	double *x1, double *y1, double *z1)
+static void RealPos(MP_KMCData *data, double pos[], double rpos[])
 {
-	*x1 = pv[0][0] * x0 + pv[1][0] * y0 + pv[2][0] * z0;
-	*y1 = pv[0][1] * x0 + pv[1][1] * y0 + pv[2][1] * z0;
-	*z1 = pv[0][2] * x0 + pv[1][2] * y0 + pv[2][2] * z0;
+	rpos[0] = data->pv[0][0] * pos[0] + data->pv[1][0] * pos[1] + data->pv[2][0] * pos[2];
+	rpos[1] = data->pv[0][1] * pos[0] + data->pv[1][1] * pos[1] + data->pv[2][1] * pos[2];
+	rpos[2] = data->pv[0][2] * pos[0] + data->pv[1][2] * pos[1] + data->pv[2][2] * pos[2];
 }
 
-static void DrawTransform(MP_KMCData *data)
+static double ScaleFactor(MP_KMCData *data)
 {
-	double m[16];
+	int i;
+	double r2;
+	double r2min = 1.0e32;
 
-	m[0] = data->pv[0][0], m[1] = data->pv[1][0], m[2] = data->pv[2][0], m[3] = 0.0;
-	m[4] = data->pv[0][1], m[5] = data->pv[1][1], m[6] = data->pv[2][1], m[7] = 0.0;
-	m[8] = data->pv[0][2], m[9] = data->pv[1][2], m[10] = data->pv[2][2], m[11] = 0.0;
-	m[12] = 0.0, m[13] = 0.0, m[14] = 0.0, m[15] = 1.0;
-	glMultMatrixd(&(m[0]));
+	for (i = 0; i < 3; i++) {
+		r2 = data->pv[i][0] * data->pv[i][0] + data->pv[i][1] * data->pv[i][1] + data->pv[i][2] * data->pv[i][2];
+		if (r2 < r2min) r2min = r2;
+	}
+	return sqrt(r2min);
 }
 
 static void DrawSphere(MPGL_KMCDraw *draw, MP_KMCData *data, MPGL_Colormap *colormap)
@@ -113,22 +114,28 @@ static void DrawSphere(MPGL_KMCDraw *draw, MP_KMCData *data, MPGL_Colormap *colo
 	int i, j;
 	short type;
 	int p, x, y, z;
-	double px, py, pz;
+	double pos[3], rpos[3];
+	double sf, dia;
 	float color[3];
 
+	sf = ScaleFactor(data);
 	for (i = 0; i < data->ntot; i++) {
 		type = data->grid[i].type;
 		for (j = 0; j < draw->ntypes; j++) {
-			if (draw->types[j] == type) break;
+			if (draw->types[j] == type) {
+				dia = draw->dia[j] * sf;
+				break;
+			}
 		}
 		if (draw->disp[j]) {
 			glPushMatrix();
 			Index2Grid(draw, data, i, &p, &x, &y, &z);
-			px = x + data->uc[p][0];
-			py = y + data->uc[p][1];
-			pz = z + data->uc[p][2];
-			glTranslated(px, py, pz);
-			glScaled(draw->dia[j], draw->dia[j], draw->dia[j]);
+			pos[0] = x + data->uc[p][0];
+			pos[1] = y + data->uc[p][1];
+			pos[2] = z + data->uc[p][2];
+			RealPos(data, pos, rpos);
+			glTranslated(rpos[0], rpos[1], rpos[2]);
+			glScaled(dia, dia, dia);
 			if (draw->kind == MPGL_KMCKindType) {
 				MPGL_ColormapStepColor(colormap, j, color);
 			}
@@ -142,7 +149,18 @@ static void DrawSphere(MPGL_KMCDraw *draw, MP_KMCData *data, MPGL_Colormap *colo
 	}
 }
 
-static void DrawFrame(MPGL_KMCDraw *draw)
+static void DrawTransform(MP_KMCData *data)
+{
+	double m[16];
+
+	m[0] = data->pv[0][0], m[1] = data->pv[0][1], m[2] = data->pv[0][2], m[3] = 0.0;
+	m[4] = data->pv[1][0], m[5] = data->pv[1][1], m[6] = data->pv[1][2], m[7] = 0.0;
+	m[8] = data->pv[2][0], m[9] = data->pv[2][1], m[10] = data->pv[2][2], m[11] = 0.0;
+	m[12] = 0.0, m[13] = 0.0, m[14] = 0.0, m[15] = 1.0;
+	glMultMatrixd(&(m[0]));
+}
+
+static void DrawFrame(MPGL_KMCDraw *draw, MP_KMCData *data)
 {
 	int i, j;
 	double p0[3], p1[3];
@@ -158,8 +176,8 @@ static void DrawFrame(MPGL_KMCDraw *draw)
 	glBegin(GL_LINES);
 	for (i = 0; i < 12; i++) {
 		for (j = 0; j < 3; j++) {
-			p0[j] = frame[i][j];
-			p1[j] = frame[i][j + 3];
+			p0[j] = frame[i][j] * data->size[j];
+			p1[j] = frame[i][j + 3] * data->size[j];
 		}
 		glVertex3d(p0[0], p0[1], p0[2]);
 		glVertex3d(p1[0], p1[1], p1[2]);
@@ -246,12 +264,9 @@ void MPGL_KMCDrawAtoms(MPGL_KMCDraw *draw, MP_KMCData *data, MPGL_Colormap *colo
 			MPGL_KMCDrawColormapRange(draw, data, colormap);
 		}
 	}
-	DrawTransform(data);
 	DrawSphere(draw, data, colormap);
-	glPushMatrix();
-	glScalef((float)data->size[0], (float)data->size[1], (float)data->size[2]);
-	DrawFrame(draw);
-	glPopMatrix();
+	DrawTransform(data);
+	DrawFrame(draw, data);
 	DrawAxis(draw->axis_dia, (float)data->size[0], (float)data->size[1], (float)data->size[2]);
 }
 
@@ -260,6 +275,8 @@ void MPGL_KMCDrawCluster(MPGL_KMCDraw *draw, MP_KMCData *data, MPGL_Colormap *co
 	int i, j;
 	short type;
 	float color[3];
+	double rpos[3];
+	double sf, dia;
 
 	SphereList(draw->res);
 	CylinderList(draw->res);
@@ -273,34 +290,40 @@ void MPGL_KMCDrawCluster(MPGL_KMCDraw *draw, MP_KMCData *data, MPGL_Colormap *co
 	for (i = 0; i < draw->ntypes; i++) {
 		sprintf(colormap->label[i], "%d", draw->types[i]);
 	}
-	DrawTransform(data);
+	sf = ScaleFactor(data);
 	for (i = 0; i < data->ncluster; i++) {
 		type = types[i];
 		for (j = 0; j < draw->ntypes; j++) {
-			if (draw->types[j] == type) break;
+			if (draw->types[j] == type) {
+				dia = draw->dia[j] * sf;
+				break;
+			}
 		}
 		glPushMatrix();
-		glTranslated(data->cluster[i][0], data->cluster[i][1], data->cluster[i][2]);
-		glScaled(draw->dia[j], draw->dia[j], draw->dia[j]);
+		RealPos(data, data->cluster[i], rpos);
+		glTranslated(rpos[0], rpos[1], rpos[2]);
+		glScaled(dia, dia, dia);
 		MPGL_ColormapStepColor(colormap, j, color);
 		glColor3fv(color);
 		glCallList(MPGL_KMC_SPHERE);
 		glPopMatrix();
 	}
+	DrawTransform(data);
 	DrawAxis(draw->axis_dia, 1.0, 1.0, 1.0);
 }
 
 void MPGL_KMCDrawAtomsRegion(MP_KMCData *data, float region[])
 {
-	double sx, sy, sz;
+	double pos[3] = {data->size[0], data->size[1], data->size[2]};
+	double rpos[3];
 
-	realPos(data->pv, data->size[0], data->size[1], data->size[2], &sx, &sy, &sz);
+	RealPos(data, pos, rpos);
 	region[0] = -0.5f;
 	region[1] = -0.5f;
 	region[2] = -0.5f;
-	region[3] = (float)sx + 0.5f;
-	region[4] = (float)sy + 0.5f;
-	region[5] = (float)sz + 0.5f;
+	region[3] = (float)rpos[0] + 0.5f;
+	region[4] = (float)rpos[1] + 0.5f;
+	region[5] = (float)rpos[2] + 0.5f;
 }
 
 void MPGL_KMCDrawClusterRegion(MP_KMCData *data, float region[])
@@ -312,8 +335,8 @@ void MPGL_KMCDrawClusterRegion(MP_KMCData *data, float region[])
 	double ymax = -1.0e32;
 	double zmin = 1.0e32;
 	double zmax = -1.0e32;
-	double x0, y0, z0;
-	double x1, y1, z1;
+	double pos0[3], rpos0[3];
+	double pos1[3], rpos1[3];
 
 	for (i = 0; i < data->ncluster; i++) {
 		if (data->cluster[i][0] < xmin) xmin = data->cluster[i][0];
@@ -323,14 +346,20 @@ void MPGL_KMCDrawClusterRegion(MP_KMCData *data, float region[])
 		if (data->cluster[i][2] < zmin) zmin = data->cluster[i][2];
 		else if (data->cluster[i][2] > zmax) zmax = data->cluster[i][2];
 	}
-	realPos(data->pv, xmin-0.5, ymin-0.5, zmin-0.5, &x0, &y0, &z0);
-	realPos(data->pv, xmax+0.5, ymax+0.5, zmax+0.5, &x1, &y1, &z1);
-	region[0] = (float)x0;
-	region[1] = (float)y0;
-	region[2] = (float)z0;
-	region[3] = (float)x1;
-	region[4] = (float)y1;
-	region[5] = (float)z1;
+	pos0[0] = xmin - 0.5;
+	pos0[1] = ymin - 0.5;
+	pos0[2] = zmin - 0.5;
+	RealPos(data, pos0, rpos0);
+	pos1[0] = xmax + 0.5;
+	pos1[1] = ymax + 0.5;
+	pos1[2] = zmax + 0.5;
+	RealPos(data, pos1, rpos1);
+	region[0] = (float)rpos0[0];
+	region[1] = (float)rpos0[1];
+	region[2] = (float)rpos0[2];
+	region[3] = (float)rpos1[0];
+	region[4] = (float)rpos1[1];
+	region[5] = (float)rpos1[2];
 }
 
 /**********************************************************
