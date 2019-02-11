@@ -570,6 +570,18 @@ static PyObject *PyKMCEventEnergy(MP_KMCData *self, PyObject *args)
 	return ene_obj;
 }
 
+static PyObject *PyKMCEventMSD(MP_KMCData *self, PyObject *args, PyObject *kwds)
+{
+	short type;
+	int event_pt;
+	static char *kwlist[] = { "type", "event_pt", NULL };
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "hi", kwlist, &type, &event_pt)) {
+		return NULL;
+	}
+	return Py_BuildValue("d", MP_KMCEventMSD(self, type, event_pt));
+}
+
 /*--------------------------------------------------
 * rw functions
 */
@@ -766,6 +778,8 @@ static PyMethodDef PyKMCMethods[] = {
 		"event_mcs() : return MCSs at each event" },
 	{ "event_energy", (PyCFunction)PyKMCEventEnergy, METH_NOARGS,
 		"event_energy() : return energies at each event" },
+	{ "event_msd", (PyCFunction)PyKMCEventMSD, METH_NOARGS,
+		"event_msd(type, event_pt) : return mean square displacement" },
 	// rw
 	{ "write_table", (PyCFunction)PyKMCWriteTable, METH_VARARGS | METH_KEYWORDS,
 		"write_table(filename) : write energy table" },

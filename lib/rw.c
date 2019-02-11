@@ -1,7 +1,7 @@
 #include "MPKMC.h"
 
 int KMCAddHistory(MP_KMCData *data, long totmcs, double temp, int ntry, int njump, int table_update, int ntable, double tote, double time);
-int KMCAddEvent(MP_KMCData *data, int dp, int id0, int id1, double de, int dmcs);
+int KMCAddEvent(MP_KMCData *data, int dp, int dpp, int id0, int id1, double de, int dmcs);
 
 int MP_KMCWriteTable(MP_KMCData *data, char *filename)
 {
@@ -142,7 +142,8 @@ int MP_KMCWrite(MP_KMCData *data, char *filename, int comp)
 	}
 	gzprintf(gfp, "nevent %d\n", data->nevent);
 	for (i = 0; i < data->nevent; i++) {
-		gzprintf(gfp, "%d %d %d %.15e %d\n", data->event[i].dp, data->event[i].id0, data->event[i].id1, data->event[i].de, data->event[i].dmcs);
+		gzprintf(gfp, "%d %d %d %d %.15e %d\n", data->event[i].dp, data->event[i].dpp, data->event[i].id0, data->event[i].id1,
+			data->event[i].de, data->event[i].dmcs);
 	}
 	gzprintf(gfp, "nhistory %d\n", data->nhistory);
 	for (i = 0; i < data->nhistory; i++) {
@@ -197,7 +198,7 @@ static int KMCRead1(MP_KMCData *data, char *filename)
 	short type, jump;
 	int sid;
 	int njump;
-	int dp, id0, id1;
+	int dp, dpp, id0, id1;
 	double de;
 	int dmcs;
 	long totmcs;
@@ -285,8 +286,8 @@ static int KMCRead1(MP_KMCData *data, char *filename)
 	sscanf(buf, "%s %d", dum, &nevent);
 	for (i = 0; i < nevent; i++) {
 		gzgets(gfp, buf, 256);
-		sscanf(buf, "%d %d %d %le %d", &dp, &id0, &id1, &de, &dmcs);
-		if (KMCAddEvent(data, dp, id0, id1, de, dmcs) < 0) return FALSE;
+		sscanf(buf, "%d %d %d %d %le %d", &dp, &dpp, &id0, &id1, &de, &dmcs);
+		if (KMCAddEvent(data, dp, dpp, id0, id1, de, dmcs) < 0) return FALSE;
 	}
 	gzgets(gfp, buf, 256);
 	sscanf(buf, "%s %d", dum, &nhistory);
@@ -411,7 +412,7 @@ static int KMCRead0(MP_KMCData *data, char *filename)
 	for (i = 0; i < nevent; i++) {
 		gzgets(gfp, buf, 256);
 		sscanf(buf, "%d %d %d", &dp, &id0, &id1);
-		if (KMCAddEvent(data, dp, Modid0to1(data, nx, ny, id0), Modid0to1(data, nx, ny, id1), 0.0, 0) < 0) return FALSE;
+		if (KMCAddEvent(data, dp, -1, Modid0to1(data, nx, ny, id0), Modid0to1(data, nx, ny, id1), 0.0, 0) < 0) return FALSE;
 	}
 	gzclose(gfp);
 	return TRUE;

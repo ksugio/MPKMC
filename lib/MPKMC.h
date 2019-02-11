@@ -84,6 +84,7 @@ typedef struct MP_KMCSoluteItem {
 
 typedef struct MP_KMCEventItem {
 	int dp;
+	int dpp;
 	int id0;
 	int id1;
 	double de;
@@ -192,6 +193,7 @@ long MP_KMCEventPt2MCS(MP_KMCData *data, int event_pt);
 int MP_KMCMCS2EventPt(MP_KMCData *data, long mcs);
 void MP_KMCEventMCS(MP_KMCData *data, int num, double mcs[]);
 void MP_KMCEventEnergy(MP_KMCData *data, int num, double ene[]);
+double MP_KMCEventMSD(MP_KMCData *data, short type, int event_pt);
 
 /*--------------------------------------------------
 * rw functions

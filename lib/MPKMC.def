@@ -34,6 +34,7 @@ EXPORTS
 	MP_KMCMCS2EventPt
 	MP_KMCEventMCS
 	MP_KMCEventEnergy
+	MP_KMCEventMSD
 	; rw
 	MP_KMCWriteTable
 	MP_KMCReadTable

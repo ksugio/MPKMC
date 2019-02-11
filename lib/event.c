@@ -157,68 +157,59 @@ void MP_KMCEventEnergy(MP_KMCData *data, int num, double ene[])
 	}
 }
 
-/*double MP_KMCSoluteSD(MP_KMCData *data, int sid, int event_step)
+static double EventSD(MP_KMCData *data, int sid, int event_pt)
 {
-int i;
-int count = 0;
-int id0, id1;
-int p0, x0, y0, z0;
-int p1, x1, y1, z1;
-int p2, x2, y2, z2;
-int ox, oy, oz;
-double dx, dy, dz;
+	int i;
+	int count = 0;
+	int p0, x0, y0, z0;
+	int p1, x1, y1, z1;
+	int p2, x2, y2, z2;
+	int ox, oy, oz;
+	double dx, dy, dz;
 
-ox = 0, oy = 0, oz = 0;
-for (i = 0; i < event_step; i++) {
-if (data->event[i].dp == sid) {
-id0 = data->event[i].id0;
-id1 = data->event[i].id1;
-MP_KMCIndex2Grid(data, id0, &p0, &x0, &y0, &z0);
-MP_KMCIndex2Grid(data, id1, &p1, &x1, &y1, &z1);
-if (count == 0) {
-p2 = p0, x2 = x0, y2 = y0, z2 = z0;
-}
-if (x1 - x0 >= data->size[0] - 1) ox -= data->size[0];
-else if (x1 - x0 <= -data->size[0] + 1) ox += data->size[0];
-if (y1 - y0 >= data->size[1] - 1) oy -= data->size[1];
-else if (y1 - y0 <= -data->size[1] + 1) oy += data->size[1];
-if (z1 - z0 >= data->size[2] - 1) oz -= data->size[2];
-else if (z1 - z0 <= -data->size[2] + 1) oz += data->size[2];
-count++;
-}
-}
-if (count > 0) {
-dx = (x1 + data->uc[p1][0] + ox) - (x2 + data->uc[p2][0]);
-dy = (y1 + data->uc[p1][1] + oy) - (y2 + data->uc[p2][1]);
-dz = (z1 + data->uc[p1][2] + oz) - (z2 + data->uc[p2][2]);
-return dx * dx + dy * dy + dz * dz;
-}
-else return 0.0;
+	ox = 0, oy = 0, oz = 0;
+	for (i = 0; i < event_pt; i++) {
+		if (data->event[i].dp == sid || data->event[i].dpp == sid) {
+			if (data->event[i].dp == sid) {
+				MP_KMCIndex2Grid(data, data->event[i].id0, &p0, &x0, &y0, &z0);
+				MP_KMCIndex2Grid(data, data->event[i].id1, &p1, &x1, &y1, &z1);
+			}
+			else if (data->event[i].dpp == sid) {
+				MP_KMCIndex2Grid(data, data->event[i].id1, &p0, &x0, &y0, &z0);
+				MP_KMCIndex2Grid(data, data->event[i].id0, &p1, &x1, &y1, &z1);
+			}
+			if (count == 0) {
+				p2 = p0, x2 = x0, y2 = y0, z2 = z0;
+			}
+			if (x1 - x0 >= data->size[0] - 1) ox -= data->size[0];
+			else if (x1 - x0 <= -data->size[0] + 1) ox += data->size[0];
+			if (y1 - y0 >= data->size[1] - 1) oy -= data->size[1];
+			else if (y1 - y0 <= -data->size[1] + 1) oy += data->size[1];
+			if (z1 - z0 >= data->size[2] - 1) oz -= data->size[2];
+			else if (z1 - z0 <= -data->size[2] + 1) oz += data->size[2];
+			count++;
+		}
+	}
+	if (count > 0) {
+		dx = (x1 + data->uc[p1][0] + ox) - (x2 + data->uc[p2][0]);
+		dy = (y1 + data->uc[p1][1] + oy) - (y2 + data->uc[p2][1]);
+		dz = (z1 + data->uc[p1][2] + oz) - (z2 + data->uc[p2][2]);
+		return dx * dx + dy * dy + dz * dz;
+	}
+	else return 0.0;
 }
 
-double MP_KMCSoluteMSD(MP_KMCData *data, int event_step)
+double MP_KMCEventMSD(MP_KMCData *data, short type, int event_pt)
 {
-int i;
-double tsd = 0.0;
+	int i;
+	int nsolute = 0;
+	double tsd = 0.0;
 
-for (i = 0; i < data->nsolute; i++) {
-tsd += MP_KMCSoluteSD(data, i, event_step);
+	for (i = 0; i < data->nsolute; i++) {
+		if (data->solute[i].type == type) {
+			tsd += EventSD(data, i, event_pt);
+			nsolute++;
+		}
+	}
+	return tsd / nsolute;
 }
-return tsd / data->nsolute;
-}
-
-double MP_KMCSoluteTypeMSD(MP_KMCData *data, short type, int event_step)
-{
-int i;
-int nsolute = 0;
-double tsd = 0.0;
-
-for (i = 0; i < data->nsolute; i++) {
-if (data->solute[i].type == type) {
-tsd += MP_KMCSoluteSD(data, i, event_step);
-nsolute++;
-}
-}
-return tsd / nsolute;
-}*/
-

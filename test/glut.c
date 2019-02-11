@@ -116,7 +116,7 @@ void GlutWindow(MP_KMCData *data, int width, int height, int argc, char **argv)
 	glutMouseFunc(MouseFunc);
 	glutMotionFunc(MotionFunc);
 	MPGL_KMCDrawInit(&Draw);
-	//Draw.disp[0] = FALSE;
+	Draw.disp[0] = FALSE;
 	MPGL_ColormapInit(&Colormap);
 	MPGL_SceneInit(&Scene);
 	MPGL_SceneLightAdd(&Scene, 1.0, 1.0, 1.0, 0.0);

@@ -127,7 +127,7 @@ static double ClusterEnergy(MP_KMCData *data, double(*func)(MP_KMCData *, short 
 	return cle;
 }
 
-int KMCAddEvent(MP_KMCData *data, int dp, int id0, int id1, double de, int dmcs)
+int KMCAddEvent(MP_KMCData *data, int dp, int dpp, int id0, int id1, double de, int dmcs)
 {
 	int nevent_max;
 	int eid;
@@ -143,6 +143,7 @@ int KMCAddEvent(MP_KMCData *data, int dp, int id0, int id1, double de, int dmcs)
 	}
 	eid = data->nevent;
 	data->event[eid].dp = dp;
+	data->event[eid].dpp = dpp;
 	data->event[eid].id0 = id0;
 	data->event[eid].id1 = id1;
 	data->event[eid].de = de;
@@ -184,9 +185,9 @@ int MP_KMCGridEnergy(MP_KMCData *data, double(*func)(MP_KMCData *, short *))
 	int j;
 	int id = 0;
 	int ncluster = 0;
-	int step = MP_KMC_NCLUSTER_MAX * 2;
-	int ids[MP_KMC_NCLUSTER_MAX * 2];
-	double energy[MP_KMC_NCLUSTER_MAX * 2];
+	int step = MP_KMC_NCLUSTER_MAX;
+	int ids[MP_KMC_NCLUSTER_MAX];
+	double energy[MP_KMC_NCLUSTER_MAX];
 	int table_update = FALSE;
 
 	while (TRUE) {
@@ -207,7 +208,7 @@ int MP_KMCGridEnergy(MP_KMCData *data, double(*func)(MP_KMCData *, short *))
 MP_KMCHistoryItem MP_KMCJump(MP_KMCData *data, int ntry, double temp, double(*func)(MP_KMCData *, short *))
 {
 	int j, c;
-	int dp, cp;
+	int dp, cp, dpp;
 	int id0, id1;
 	int ids0[MP_KMC_NCLUSTER_MAX];
 	int ids1[MP_KMC_NCLUSTER_MAX];
@@ -262,12 +263,14 @@ MP_KMCHistoryItem MP_KMCJump(MP_KMCData *data, int ntry, double temp, double(*fu
 					if (j < data->nsolute) {
 						data->solute[j].id = id0;
 						data->solute[j].njump++;
+						dpp = j;
 					}
+					else dpp = -1;
 					data->solute[dp].id = id1;
 					data->solute[dp].njump++;
 					data->tote += clde;
 					if (data->event_record) {
-						if (KMCAddEvent(data, dp, id0, id1, clde, dmcs) == MP_KMC_MEM_ERR) return err;
+						if (KMCAddEvent(data, dp, dpp, id0, id1, clde, dmcs) == MP_KMC_MEM_ERR) return err;
 						dmcs = 0;
 					}
 					data->mcs = data->totmcs;
