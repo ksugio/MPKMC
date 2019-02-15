@@ -113,6 +113,7 @@ typedef struct MP_KMCData {
 	double pv[3][3];
 	int size[3];
 	int ntot;
+	int save_grid;
 	MP_KMCGridItem *grid;
 	int ncluster;
 	double cluster[MP_KMC_NCLUSTER_MAX][3];
@@ -131,6 +132,7 @@ typedef struct MP_KMCData {
 	int nsolute_step;
 	int nsolute_max;
 	int dpmax;
+	int ngroup;
 	MP_KMCSoluteItem *solute;
 	int event_record;
 	int nevent;
@@ -175,7 +177,10 @@ int MP_KMCSearchTable(MP_KMCData *data, char ss[], MP_KMCTableItem list[], int l
 int MP_KMCAddSolute(MP_KMCData *data, int id, short type, short jump);
 void MP_KMCAddSoluteRandom(MP_KMCData *data, int num, short type, short jump);
 int MP_KMCCheckSolute(MP_KMCData *data);
+int MP_KMCSoluteTypes(MP_KMCData *data, int num, short types[]);
 int MP_KMCFindSoluteGroup(MP_KMCData *data, double rcut);
+int MP_KMCSoluteGroupIndexes(MP_KMCData *data, int group, int num, int ids[]);
+int MP_KMCSoluteGroupTypes(MP_KMCData *data, int group, int num, short types[]);
 
 /*--------------------------------------------------
 * jump functions
@@ -244,6 +249,34 @@ PyTypeObject MP_FSFCCPyType;
 
 int MP_FSFCCInit(MP_FSFCCParm *parm, short type);
 double MP_FSFCCEnergy(MP_FSFCCParm *parm, MP_KMCData *data, short types[]);
+
+/*--------------------------------------------------
+* meam typedef and functions
+*/
+#define MP_MEAM_NPARM_MAX 100
+
+typedef struct MP_MEAMParm {
+	short type;
+	double E0i;
+	double R0i;
+	double Alphai;
+	double Ai;
+	double Betai[4];
+	double Ti[4];
+} MP_MEAMParm;
+
+typedef struct MP_MEAM {
+#ifdef MP_PYTHON_LIB
+	PyObject_HEAD
+	PyObject *pyfunc;
+#endif
+	int nparm;
+	MP_MEAMParm parm[MP_MEAM_NPARM_MAX];
+} MP_MEAM;
+
+void MP_MEAMInit(MP_MEAM *meam);
+int MP_MEAMAddParm(MP_MEAM *meam, MP_MEAMParm parm);
+double MP_MEAMEnergy(MP_MEAM *meam, MP_KMCData *data, short types[]);
 
 #ifdef __cplusplus
 }

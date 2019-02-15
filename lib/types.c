@@ -45,7 +45,7 @@ int MP_KMCString2Types(char str[], short types[])
 	int flag = -1;
 	int count = 0;
 
-	while (*p != '\0') {
+	while (*p != '\0' && *p != '\n') {
 		if (*p == 'q') flag = 0;
 		else if (*p == 'Q') flag = 1;
 		else {

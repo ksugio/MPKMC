@@ -36,6 +36,7 @@ int MP_KMCAlloc(MP_KMCData *data, int nuc, int nx, int ny, int nz, int ncluster,
 	for (i = 0; i < ncluster; i++) {
 		data->cluster[i][0] = 0.0, data->cluster[i][1] = 0.0, data->cluster[i][2] = 0.0;
 	}
+	data->save_grid = FALSE;
 	data->cpmax = 0;
 	data->nrot = 0;
 	data->table_use = TRUE;
@@ -45,6 +46,7 @@ int MP_KMCAlloc(MP_KMCData *data, int nuc, int nx, int ny, int nz, int ncluster,
 	data->nsolute = 0;
 	data->nsolute_max = data->nsolute_step = nsolute_step;
 	data->dpmax = 0;
+	data->ngroup = 0;
 	data->event_record = TRUE;
 	data->nevent = 0;
 	data->nevent_max = data->nevent_step = nevent_step;

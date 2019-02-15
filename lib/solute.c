@@ -81,6 +81,23 @@ int MP_KMCCheckSolute(MP_KMCData *data)
 	return TRUE;
 }
 
+int MP_KMCSoluteTypes(MP_KMCData *data, int num, short types[])
+{
+	int i, j;
+	int count = 0;
+
+	for (i = 0; i < data->nsolute; i++) {
+		for (j = 0; j < count; j++) {
+			if (types[j] == data->solute[i].type) break;
+		}
+		if (j >= count) {
+			types[count++] = data->solute[i].type;
+			if (count >= num) break;
+		}
+	}
+	return count;
+}
+
 static void KMCFindGroup(MP_KMCData *data, int sid, int group, double rcut)
 {
 	int i;
@@ -123,5 +140,34 @@ int MP_KMCFindSoluteGroup(MP_KMCData *data, double rcut)
 			KMCFindGroup(data, i, group++, rcut);
 		}
 	}
-	return group;
+	data->ngroup = group;
+	return data->ngroup;
+}
+
+int MP_KMCSoluteGroupIndexes(MP_KMCData *data, int group, int num, int ids[])
+{
+	int i;
+	int nsolute = 0;
+
+	for (i = 0; i < data->nsolute; i++) {
+		if (data->solute[i].group == group) {
+			ids[nsolute++] = data->solute[i].id;
+			if (nsolute >= num) break;
+		}
+	}
+	return nsolute;
+}
+
+int MP_KMCSoluteGroupTypes(MP_KMCData *data, int group, int num, short types[])
+{
+	int i;
+	int nsolute = 0;
+
+	for (i = 0; i < data->nsolute; i++) {
+		if (data->solute[i].group == group) {
+			types[nsolute++] = data->solute[i].type;
+			if (nsolute >= num) break;
+		}
+	}
+	return nsolute;
 }

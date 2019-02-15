@@ -67,36 +67,27 @@ static void CalcClusterEnergies(MP_KMCData *data, double(*func)(MP_KMCData *, sh
 	int tid[MP_KMC_NCLUSTER_MAX * 2];
 	short types[MP_KMC_NCLUSTER_MAX * 2][MP_KMC_NCLUSTER_MAX];
 
+	if (data->table_use) {
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (j = 0; j < ncluster; j++) {
-		if (data->grid[ids[j]].type > 0) {
-			MP_KMCClusterTypes(data, ids[j], types[j]);
-			if (data->table_use) {
+		for (j = 0; j < ncluster; j++) {
+			if (data->grid[ids[j]].type > 0) {
+				MP_KMCClusterTypes(data, ids[j], types[j]);
 				tid[j] = MP_KMCSearchCluster(data, types[j]);
 				if (tid[j] >= 0) {
 					energy[j] = data->table[tid[j]].energy;
 				}
 				else {
-					if (func != NULL) {
-						energy[j] = (func)(data, types[j]);
-					}
-					else {
-						energy[j] = 0.0;
-					}
+					if (func != NULL) energy[j] = (func)(data, types[j]);
+					else energy[j] = 0.0;
 				}
 			}
-			else {
-				energy[j] = (func)(data, types[j]);
+			else if (data->grid[ids[j]].type == 0) {
+				tid[j] = -99;
+				energy[j] = 0.0;
 			}
 		}
-		else if (data->grid[ids[j]].type == 0) {
-			tid[j] = -99;
-			energy[j] = 0.0;
-		}
-	}
-	if (data->table_use) {
 		for (j = 0; j < ncluster; j++) {
 			if (tid[j] >= 0) {
 				data->table[tid[j]].refcount += 1;
@@ -109,6 +100,21 @@ static void CalcClusterEnergies(MP_KMCData *data, double(*func)(MP_KMCData *, sh
 					}
 				}
 				*table_update = TRUE;
+			}
+		}
+	}
+	else {
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+		for (j = 0; j < ncluster; j++) {
+			if (data->grid[ids[j]].type > 0) {
+				MP_KMCClusterTypes(data, ids[j], types[j]);
+				if (func != NULL) energy[j] = (func)(data, types[j]);
+				else energy[j] = 0.0;
+			}
+			else if (data->grid[ids[j]].type == 0) {
+				energy[j] = 0.0;
 			}
 		}
 	}

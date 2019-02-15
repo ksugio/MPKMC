@@ -1,5 +1,8 @@
 #include "MPKMC.h"
 
+#define WRITE_GRID_STEP 100
+#define WRITE_GRID_CHAR 256
+
 int KMCAddHistory(MP_KMCData *data, long totmcs, double temp, int ntry, int njump, int table_update, int ntable, double tote, double time);
 int KMCAddEvent(MP_KMCData *data, int dp, int dpp, int id0, int id1, double de, int dmcs);
 
@@ -84,6 +87,25 @@ int MP_KMCReadTable(MP_KMCData *data, char *filename)
 	return TRUE;
 }
 
+static void WriteGrid(MP_KMCData *data, gzFile gfp)
+{
+	int id = 0;
+	int ncluster = 0;
+	int step = WRITE_GRID_STEP;
+	short types[WRITE_GRID_STEP];
+	char s[WRITE_GRID_CHAR];
+
+	while (TRUE) {
+		types[ncluster++] = data->grid[id++].type;
+		if (ncluster >= step || id >= data->ntot) {
+			MP_KMCTypes2String(ncluster, types, s);
+			gzprintf(gfp, "%s\n", s);
+			ncluster = 0;
+			if (id >= data->ntot) break;
+		}
+	}
+}
+
 int MP_KMCWrite(MP_KMCData *data, char *filename, int comp)
 {
 	int i, j;
@@ -127,6 +149,10 @@ int MP_KMCWrite(MP_KMCData *data, char *filename, int comp)
 	gzprintf(gfp, "mcs %d\n", data->mcs);
 	gzprintf(gfp, "tote %.15e\n", data->tote);
 	gzprintf(gfp, "kb %.15e\n", data->kb);
+	gzprintf(gfp, "save_grid %d\n", data->save_grid);
+	if (data->save_grid) {
+		WriteGrid(data, gfp);
+	}
 	gzprintf(gfp, "table_use %d\n", data->table_use);
 	gzprintf(gfp, "%s\n", data->htable);
 	gzprintf(gfp, "ntable %d\n", data->ntable);
@@ -137,8 +163,10 @@ int MP_KMCWrite(MP_KMCData *data, char *filename, int comp)
 		gzprintf(gfp, "%.15e %d\n", data->table[i].energy, data->table[i].refcount);
 	}
 	gzprintf(gfp, "nsolute %d\n", data->nsolute);
+	gzprintf(gfp, "ngroup %d\n", data->ngroup);
 	for (i = 0; i < data->nsolute; i++) {
-		gzprintf(gfp, "%d %d %d %d\n", data->solute[i].id, data->solute[i].type, data->solute[i].jump, data->solute[i].njump);
+		gzprintf(gfp, "%d %d %d %d %d\n", data->solute[i].id, data->solute[i].type, data->solute[i].jump,
+			data->solute[i].njump, data->solute[i].group);
 	}
 	gzprintf(gfp, "nevent %d\n", data->nevent);
 	for (i = 0; i < data->nevent; i++) {
@@ -164,6 +192,24 @@ static void ScanRotIndex(char buf[], int ncluster, int ids[])
 	for (i = 0; i < ncluster; i++) {
 		ids[i] = atoi(tok);
 		tok = strtok(NULL, " ");
+	}
+}
+
+static void ReadGrid(MP_KMCData *data, gzFile gfp)
+{
+	int id = 0;
+	char s[WRITE_GRID_CHAR];
+	short types[WRITE_GRID_STEP];
+	int count;
+	int i;
+
+	while (TRUE) {
+		gzgets(gfp, s, 256);
+		count = MP_KMCString2Types(s, types);
+		for (i = 0; i < count; i++) {
+			data->grid[id++].type = types[i];
+		}
+		if (id >= data->ntot) break;
 	}
 }
 
@@ -197,7 +243,7 @@ static int KMCRead1(MP_KMCData *data, char *filename)
 	int id;
 	short type, jump;
 	int sid;
-	int njump;
+	int njump, group;
 	int dp, dpp, id0, id1;
 	double de;
 	int dmcs;
@@ -259,6 +305,11 @@ static int KMCRead1(MP_KMCData *data, char *filename)
 	gzgets(gfp, buf, 256);
 	sscanf(buf, "%s %le", dum, &(data->kb));
 	gzgets(gfp, buf, 256);
+	sscanf(buf, "%s %d", dum, &(data->save_grid));
+	if (data->save_grid) {
+		ReadGrid(data, gfp);
+	}
+	gzgets(gfp, buf, 256);
 	sscanf(buf, "%s %d", dum, &(data->table_use));
 	gzgets(gfp, data->htable, 256);
 	p = strchr(data->htable, '\n');
@@ -272,15 +323,18 @@ static int KMCRead1(MP_KMCData *data, char *filename)
 	}
 	gzgets(gfp, buf, 256);
 	sscanf(buf, "%s %d", dum, &nsolute);
+	gzgets(gfp, buf, 256);
+	sscanf(buf, "%s %d", dum, &(data->ngroup));
 	for (i = 0; i < nsolute; i++) {
 		gzgets(gfp, buf, 256);
-		sscanf(buf, "%d %hd %hd %d", &id, &type, &jump, &njump);
+		sscanf(buf, "%d %hd %hd %d %d", &id, &type, &jump, &njump, &group);
 		sid = MP_KMCAddSolute(data, id, type, jump);
 		if (sid < 0) {
 			fprintf(stderr, "Error : overlapped ID, %d.(MP_KMCRead)\n", id);
 			return FALSE;
 		}
 		data->solute[sid].njump = njump;
+		data->solute[sid].group = group;
 	}
 	gzgets(gfp, buf, 256);
 	sscanf(buf, "%s %d", dum, &nevent);

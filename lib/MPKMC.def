@@ -22,7 +22,10 @@ EXPORTS
 	MP_KMCAddSolute
 	MP_KMCAddSoluteRandom
 	MP_KMCCheckSolute
+	MP_KMCSoluteTypes
 	MP_KMCFindSoluteGroup
+	MP_KMCSoluteGroupIndexes
+	MP_KMCSoluteGroupTypes
 	; jump
 	MP_KMCGridEnergy
 	MP_KMCJump
@@ -52,3 +55,7 @@ EXPORTS
 	; fsfcc
 	MP_FSFCCInit
 	MP_FSFCCEnergy
+	; meam
+	MP_MEAMInit
+	MP_MEAMAddParm
+	MP_MEAMEnergy

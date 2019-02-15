@@ -3,6 +3,9 @@
 #include "MPKMC.h"
 #include <numpy/arrayobject.h>
 
+#define SOLUTE_GROUP_MAX 10000
+#define SOLUTE_TYPES_MAX 128
+
 static void PyKMCDealloc(MP_KMCData* self)
 {
 	MP_KMCFree(self);
@@ -61,6 +64,7 @@ static PyMemberDef PyKMCMembers[] = {
 	{ "table_use", T_INT, offsetof(MP_KMCData, table_use), 0, "flag for using table" },
 	{ "ntable", T_INT, offsetof(MP_KMCData, ntable), 1, "number of table" },
 	{ "nsolute", T_INT, offsetof(MP_KMCData, nsolute), 1, "number of solute atoms" },
+	{ "ngroup", T_INT, offsetof(MP_KMCData, ngroup), 1, "number of solute groups" },
     { "event_record", T_INT, offsetof(MP_KMCData, event_record), 0, "flag for recording event" },
     { "nevent", T_INT, offsetof(MP_KMCData, nevent), 1, "number of events" },
     { "nhistory", T_INT, offsetof(MP_KMCData, nhistory), 1, "number of history" },
@@ -398,6 +402,21 @@ static PyObject *PyKMCCheckSolute(MP_KMCData *self, PyObject *args)
 	return Py_BuildValue("i", MP_KMCCheckSolute(self));
 }
 
+static PyObject *PyKMCSoluteTypes(MP_KMCData *self, PyObject *args)
+{
+	int ntypes;
+	short types[SOLUTE_TYPES_MAX];
+	PyObject *pytypes;
+	int i;
+
+	ntypes = MP_KMCSoluteTypes(self, SOLUTE_TYPES_MAX, types);
+	pytypes = PyTuple_New((Py_ssize_t)ntypes);
+	for (i = 0; i < ntypes; i++) {
+		PyTuple_SetItem(pytypes, (Py_ssize_t)i, PyInt_FromLong(types[i]));
+	}
+	return pytypes;
+}
+
 static PyObject *PyKMCFindSoluteGroup(MP_KMCData *self, PyObject *args, PyObject *kwds)
 {
 	double rcut;
@@ -407,6 +426,46 @@ static PyObject *PyKMCFindSoluteGroup(MP_KMCData *self, PyObject *args, PyObject
 		return NULL;
 	}
 	return Py_BuildValue("i", MP_KMCFindSoluteGroup(self, rcut));
+}
+
+static PyObject *PyKMCSoluteGroupIndexes(MP_KMCData *self, PyObject *args, PyObject *kwds)
+{
+	int group;
+	static char *kwlist[] = { "group", NULL };
+	int nsolute;
+	int ids[SOLUTE_GROUP_MAX];
+	PyObject *pyids;
+	int i;
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "i", kwlist, &group)) {
+		return NULL;
+	}
+	nsolute = MP_KMCSoluteGroupIndexes(self, group, SOLUTE_GROUP_MAX, ids);
+	pyids = PyTuple_New((Py_ssize_t)nsolute);
+	for (i = 0; i < nsolute; i++) {
+		PyTuple_SetItem(pyids, (Py_ssize_t)i, PyInt_FromLong(ids[i]));
+	}
+	return pyids;
+}
+
+static PyObject *PyKMCSoluteGroupTypes(MP_KMCData *self, PyObject *args, PyObject *kwds)
+{
+	int group;
+	static char *kwlist[] = { "group", NULL };
+	int nsolute;
+	short types[SOLUTE_GROUP_MAX];
+	PyObject *pytypes;
+	int i;
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "i", kwlist, &group)) {
+		return NULL;
+	}
+	nsolute = MP_KMCSoluteGroupTypes(self, group, SOLUTE_GROUP_MAX, types);
+	pytypes = PyTuple_New((Py_ssize_t)nsolute);
+	for (i = 0; i < nsolute; i++) {
+		PyTuple_SetItem(pytypes, (Py_ssize_t)i, PyInt_FromLong(types[i]));
+	}
+	return pytypes;
 }
 
 /*--------------------------------------------------
@@ -756,8 +815,14 @@ static PyMethodDef PyKMCMethods[] = {
 		"add_solute_random(num, type, jump) : add solute atoms randomly" },
 	{ "check_solute", (PyCFunction)PyKMCCheckSolute, METH_NOARGS,
 		"check_solute() : check solute table" },
+	{ "solute_types", (PyCFunction)PyKMCSoluteTypes, METH_NOARGS,
+		"solute_types() : return solute types" },
     { "find_solute_group", (PyCFunction)PyKMCFindSoluteGroup, METH_VARARGS | METH_KEYWORDS,
 		"find_solute_group(rcut) : find solute group, rcut is cutoff radius" },
+	{ "solute_group_indexes", (PyCFunction)PyKMCSoluteGroupIndexes, METH_VARARGS | METH_KEYWORDS,
+		"solute_group_indexes(group) : return solute group indexes" },
+	{ "solute_group_types", (PyCFunction)PyKMCSoluteGroupTypes, METH_VARARGS | METH_KEYWORDS,
+		"solute_group_types(group) : return solute group types" },
 	// jump
 	{ "grid_energy", (PyCFunction)PyKMCGridEnergy, METH_VARARGS | METH_KEYWORDS,
 		"grid_energy(func) : calculate energies of grids, return table update flag" },

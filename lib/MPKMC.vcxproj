@@ -168,6 +168,7 @@
     <ClCompile Include="event.c" />
     <ClCompile Include="fsfcc.c" />
     <ClCompile Include="jump.c" />
+    <ClCompile Include="meam.c" />
     <ClCompile Include="rw.c" />
     <ClCompile Include="kmc.c" />
     <ClCompile Include="python.c" />
