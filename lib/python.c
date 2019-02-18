@@ -116,13 +116,13 @@ static PyObject *PyKMCSetUnitCell(MP_KMCData *self, PyObject *args, PyObject *kw
 static PyObject *PyKMCSetCluster(MP_KMCData *self, PyObject *args, PyObject *kwds)
 {
 	PyObject *cluster;
-	int cpmax;
-	static char *kwlist[] = { "cluster", "cpmax", NULL };
+	int jpmax;
+	static char *kwlist[] = { "cluster", "jpmax", NULL };
 	PyObject *tp;
 	double dcluster[MP_KMC_NCLUSTER_MAX][3];
 	int i, j;
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "Oi", kwlist, &cluster, &cpmax)) {
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "Oi", kwlist, &cluster, &jpmax)) {
 		return NULL;
 	}
 	if (PyTuple_Size(cluster) != self->ncluster) {
@@ -134,7 +134,7 @@ static PyObject *PyKMCSetCluster(MP_KMCData *self, PyObject *args, PyObject *kwd
 			dcluster[i][j] = (double)PyFloat_AsDouble(PyTuple_GetItem(tp, (Py_ssize_t)j));
 		}
 	}
-	return Py_BuildValue("i", MP_KMCSetCluster(self, dcluster, cpmax));
+	return Py_BuildValue("i", MP_KMCSetCluster(self, dcluster, jpmax));
 }
 
 static PyObject *PyKMCRealPos(MP_KMCData *self, PyObject *args, PyObject *kwds)
@@ -779,7 +779,7 @@ static PyMethodDef PyKMCMethods[] = {
 	{ "set_unitcell", (PyCFunction)PyKMCSetUnitCell, METH_VARARGS | METH_KEYWORDS,
 		"set_unitcell(uc, types, pv) : set atom positons, types and primitive vector of unit cell" },
 	{ "set_cluster", (PyCFunction)PyKMCSetCluster, METH_VARARGS | METH_KEYWORDS,
-		"set_cluster(cluster, cpmax) : set atom positions of cluster and maximum jump pointer, return true if it succeeds" },
+		"set_cluster(cluster, jpmax) : set atom positions of cluster and maximum jump pointer, return true if it succeeds" },
 	{ "real_pos", (PyCFunction)PyKMCRealPos, METH_VARARGS | METH_KEYWORDS,
 		"real_pos(cp) : return real position from unit cell position" },
 	{ "index2grid", (PyCFunction)PyKMCIndex2Grid, METH_VARARGS | METH_KEYWORDS,

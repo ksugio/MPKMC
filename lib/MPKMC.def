@@ -57,5 +57,5 @@ EXPORTS
 	MP_FSFCCEnergy
 	; meam
 	MP_MEAMInit
-	MP_MEAMAddParm
+	MP_MEAMSetParm
 	MP_MEAMEnergy

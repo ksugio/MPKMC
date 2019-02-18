@@ -17,17 +17,39 @@ static double calcFSFCC(MP_KMCData *data, short types[])
 	return 0.0;
 }
 
+static double calcMEAM(MP_KMCData *data, short types[])
+{
+	MP_MEAM meam;
+
+	MP_MEAMInit(&meam);
+	return MP_MEAMEnergy(&meam, data, types);
+}
+
 int main(int argc, char *argv[])
 {
 	MP_KMCData data;
-	MP_MEAM meam;
-	short types[] = { 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13 };
+	double uc[][3] = { { 0.0, 0.0, 0.0 }, { 0.5, 0.5, 0.0 }, { 0.5, 0.0, 0.5 }, { 0.0, 0.5, 0.5 } };
+	short uc_types[] = { 13, 13, 13, 13 };
+	double pv[][3] = { { 4.04466, 0.0, 0.0 }, { 0.0, 4.04466, 0.0 }, { 0.0, 0.0, 4.04466 } };
+	double cluster[][3] = { { 0, 0, 0 }, { 0.5, 0.5, 0 }, { 0, 0.5, -0.5 }, { -0.5, 0, -0.5 }, { -0.5, 0.5, 0 },
+				{ 0, 0.5, 0.5 },{ 0.5, 0, 0.5 },{ 0.5, -0.5, 0 },{ 0, -0.5, 0.5 },
+				{ -0.5, 0, 0.5 },{ -0.5, -0.5, 0 },{ 0, -0.5, -0.5 },{ 0.5, 0, -0.5 }};
+//	MP_MEAM meam;
+//	short types[] = { 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13 };
 
-	MP_KMCAlloc(&data, 4, 10, 10, 10, 13, 1000, 1000, 100000, 100);
-	MP_MEAMInit(&meam);
-	MP_MEAMEnergy(&meam, &data, types);
-	fprintf(stderr, "nparm %d\n", meam.nparm);
-	fprintf(stderr, "nparm %d\n", meam.nparm);
+	MP_KMCAlloc(&data, 4, 5, 5, 5, 13, 1000, 1000, 100000, 100);
+	MP_KMCSetUnitCell(&data, uc, uc_types, pv);
+	MP_KMCSetCluster(&data, cluster, 13);
+	MP_KMCCalcRotIndex(&data, 5.0, 1.0e-6);
+	MP_KMCAddSoluteRandom(&data, 1, 0, TRUE);
+	MP_KMCGridEnergy(&data, calcMEAM);
+	fprintf(stderr, "%e\n", data.tote);
+
+
+//	MP_MEAMInit(&meam);
+//	ene = MP_MEAMEnergy(&meam, &data, types);
+//	fprintf(stderr, "ene %f\n", ene);
+//	fprintf(stderr, "nparm %d\n", meam.nparm);
 //	for (i = 0; i < nparm; i++) {
 //		p = parms[i];
 //		fprintf(stderr, "%d %f %f %f %f (%f %f %f %f) (%f %f %f %f)\n", p.type, p.E0i, p.R0i, p.Alphai, p.Ai,

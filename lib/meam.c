@@ -33,15 +33,24 @@ void MP_MEAMInit(MP_MEAM *meam)
 
 	meam->nparm = 0;
 	for (i = 0; i < ntable; i++) {
-		if (MP_MEAMAddParm(meam, MEAMParmTable[i]) < 0) break;
+		if (MP_MEAMSetParm(meam, MEAMParmTable[i]) < 0) break;
 	}
+	meam->S[0] = 0.0, meam->S[1] = 0.0, meam->S[2] = 0.0;
 }
 
-int MP_MEAMAddParm(MP_MEAM *meam, MP_MEAMParm parm)
+int MP_MEAMSetParm(MP_MEAM *meam, MP_MEAMParm parm)
 {
+	int i;
+
 	if (meam->nparm >= MP_MEAM_NPARM_MAX) {
-		fprintf(stderr, "Error : can't add MEAM parameter (MP_MEAMAddParm)\n");
+		fprintf(stderr, "Error : can't add MEAM parameter (MP_MEAMSetParm)\n");
 		return -1;
+	}
+	for (i = 0; i < meam->nparm; i++) {
+		if (meam->parm[i].type == parm.type) {
+			meam->parm[i] = parm;
+			return i;
+		}
 	}
 	meam->parm[meam->nparm] = parm;
 	return meam->nparm++;
@@ -50,7 +59,7 @@ int MP_MEAMAddParm(MP_MEAM *meam, MP_MEAMParm parm)
 static MP_MEAMParm MEAMGetParm(MP_MEAM *meam, short type)
 {
 	int i;
-	MP_MEAMParm err = { 0, 0.0, 0.0, 0.0, 0.0, { 0.0, 0.0, 0.0, 0.0 }, { 0.0, 0.0, 0.0, 0.0 } };
+	MP_MEAMParm err = { -1, 0.0, 0.0, 0.0, 0.0, { 0.0, 0.0, 0.0, 0.0 }, { 0.0, 0.0, 0.0, 0.0 } };
 
 	for (i = 0; i < meam->nparm; i++) {
 		if (meam->parm[i].type == type) return meam->parm[i];
@@ -58,25 +67,145 @@ static MP_MEAMParm MEAMGetParm(MP_MEAM *meam, short type)
 	return err;
 }
 
-static void MEAMParmSi(int ncluster, short types[], double Si[])
+static int MEAMRijXij(MP_KMCData *data, short types[], short ntypes[], double rij[], double xij[][3])
 {
 	int i;
-	int zd = 0;
+	int zi = 0;
+	double dx, dy, dz, r;
 
-	for (i = 0; i < ncluster; i++) {
-		if (types[i] > 0) zd++;
+	for (i = 1; i < data->ncluster; i++) {
+		if (types[i] > 0) {
+			dx = data->rcluster[i][0] - data->rcluster[0][0];
+			dy = data->rcluster[i][1] - data->rcluster[0][1];
+			dz = data->rcluster[i][2] - data->rcluster[0][2];
+			r = sqrt(dx * dx + dy * dy + dz * dz);
+			rij[zi] = r;
+			xij[zi][0] = dx / r;
+			xij[zi][1] = dy / r;
+			xij[zi][2] = dz / r;
+			ntypes[zi++] = types[i];
+		}
 	}
-	Si[0] = zd * zd, Si[1] = 0.0, Si[2] = 0.0, Si[3] = 0.0;
+	return zi;
+}
+
+static double MEAMRhoi(MP_MEAM *meam, int zi, short ntypes[], double rij[], double xij[][3], double R0i, double Ti[])
+{
+	int i, j;
+	int a, b, c;
+	MP_MEAMParm p;
+	double Betaj[MP_KMC_NCLUSTER_MAX][4];
+	double t0, t1, t2, t3;
+	double rhoi[4];
+
+	for (j = 0; j < zi; j++) {
+		p = MEAMGetParm(meam, ntypes[j]);
+		Betaj[j][0] = p.Betai[0];
+		Betaj[j][1] = p.Betai[1];
+		Betaj[j][2] = p.Betai[2];
+		Betaj[j][3] = p.Betai[3];
+	}
+	// rhoi0
+	t0 = 0.0;
+	for (j = 0; j < zi; j++) {
+		t0 += exp(-Betaj[j][0] * (rij[j] / R0i - 1.0));
+	}
+	rhoi[0] = t0;
+	// rhoi1
+	t0 = 0.0;
+	for (a = 0; a < 3; a++) {
+		t1 = 0.0;
+		for (j = 0; j < zi; j++) {
+			t1 += xij[j][a] * exp(-Betaj[j][1] * (rij[j] / R0i - 1.0));
+		}
+		t0 += t1 * t1;
+	}
+	rhoi[1] = sqrt(t0);
+	// rhoi2
+	t0 = 0.0;
+	for (a = 0; a < 3; a++) {
+		for (b = 0; b < 3; b++) {
+			t1 = 0.0;
+			for (j = 0; j < zi; j++) {
+				t1 += xij[j][a] * xij[j][b] * exp(-Betaj[j][2] * (rij[j] / R0i - 1.0));
+			}
+			t0 += t1 * t1;
+		}
+	}
+	t2 = 0.0;
+	for (j = 0; j < zi; j++) {
+		t2 += exp(-Betaj[j][2] * (rij[j] / R0i - 1.0));
+	}
+	t3 = t0 - t2 * t2 / 3.0;
+	if (t3 < 0.0) rhoi[2] = 0.0;
+	else rhoi[2] = sqrt(t3);
+	// rhoi3
+	t0 = 0.0;
+	for (a = 0; a < 3; a++) {
+		for (b = 0; b < 3; b++) {
+			for (c = 0; c < 3; c++) {
+				t1 = 0.0;
+				for (j = 0; j < zi; j++) {
+					t1 += xij[j][a] * xij[j][b] * xij[j][c] * exp(-Betaj[j][3] * (rij[j] / R0i - 1.0));
+				}
+				t0 += t1 * t1;
+			}
+		}
+	}
+	rhoi[3] = sqrt(t0);
+	// rhoi
+	t0 = 0.0;
+	for (i = 1; i < 4; i++) {
+		t0 += Ti[i] * pow(rhoi[i] / rhoi[0], 2.0);
+	}
+	return rhoi[0] * (1.0 + t0 / 2.0);
+}
+
+static double MEAMRhoi0(double rij, double R0i, double Betai[], double Ti[], double Si[])
+{
+	int l;
+	double rho;
+	double t0 = 0.0;
+
+	for (l = 0; l < 4; l++) {
+		rho = exp(-Betai[l] * (rij / R0i - 1.0));
+		t0 += Ti[l] * Si[l] * pow(rho, 2.0);
+	}
+	return sqrt(t0);
 }
 
 double MP_MEAMEnergy(MP_MEAM *meam, MP_KMCData *data, short types[])
 {
+	int j;
+	int zi;
 	double Si[4];
 	MP_MEAMParm p;
+	short ntypes[MP_KMC_NCLUSTER_MAX];
+	double rij[MP_KMC_NCLUSTER_MAX];
+	double xij[MP_KMC_NCLUSTER_MAX][3];
+	double t1, t2, t3;
+	double aa, rhoi, rhoi0;
 
-	MEAMParmSi(data->ncluster, types, Si);
 	p = MEAMGetParm(meam, types[0]);
-	fprintf(stderr, "%d %f %f\n", p.type, p.E0i, p.R0i);
-
-	return 0.0;
+	zi = MEAMRijXij(data, types, ntypes, rij, xij);
+	Si[0] = zi * zi;
+	Si[1] = meam->S[0], Si[2] = meam->S[1], Si[3] = meam->S[2];
+	// term 1
+	t1 = 0.0;
+	for (j = 0; j < zi; j++) {
+		aa = p.Alphai*(rij[j] / p.R0i - 1.0);
+		t1 += -p.E0i*(1.0 + aa)*exp(-aa);
+	}
+	t1 = t1 / zi;
+	// term 2
+	rhoi = MEAMRhoi(meam, zi, ntypes, rij, xij, p.R0i, p.Ti) / zi;
+	t2 = p.Ai * p.E0i * rhoi * log(rhoi);
+	// term 3
+	t3 = 0.0;
+	for (j = 0; j < zi; j++) {
+		rhoi0 = MEAMRhoi0(rij[j], p.R0i, p.Betai, p.Ti, Si) / zi;
+		t3 += p.Ai * p.E0i * rhoi0 * log(rhoi0);
+	}
+	t3 = t3 / zi;
+	return t1+t2-t3;
 }

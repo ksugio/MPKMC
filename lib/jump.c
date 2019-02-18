@@ -214,7 +214,7 @@ int MP_KMCGridEnergy(MP_KMCData *data, double(*func)(MP_KMCData *, short *))
 MP_KMCHistoryItem MP_KMCJump(MP_KMCData *data, int ntry, double temp, double(*func)(MP_KMCData *, short *))
 {
 	int j, c;
-	int dp, cp, dpp;
+	int dp, jp, dpp;
 	int id0, id1;
 	int ids0[MP_KMC_NCLUSTER_MAX];
 	int ids1[MP_KMC_NCLUSTER_MAX];
@@ -246,12 +246,12 @@ MP_KMCHistoryItem MP_KMCJump(MP_KMCData *data, int ntry, double temp, double(*fu
 	dmcs = data->totmcs - data->mcs;
 	while (ntried < ntry) {
 		dp = (int)(MP_Rand(&(data->rand_seed)) * data->dpmax);
-		cp = (int)(MP_Rand(&(data->rand_seed)) * (data->cpmax - 1)) + 1;
-		if (dp < data->dpmax && cp < data->cpmax) {
+		jp = (int)(MP_Rand(&(data->rand_seed)) * (data->jpmax - 1)) + 1;
+		if (dp < data->dpmax && jp < data->jpmax) {
 			data->totmcs++, dmcs++;
 			id0 = data->solute[dp].id;
 			MP_KMCClusterIndexes(data, id0, ids0);
-			id1 = ids0[cp];
+			id1 = ids0[jp];
 			if (data->grid[id0].type != data->grid[id1].type) {
 				MP_KMCClusterIndexes(data, id1, ids1);
 				nncluster = KMCUniteIndexes(data->ncluster, ids0, ids1, ids2);

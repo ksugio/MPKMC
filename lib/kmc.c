@@ -37,7 +37,7 @@ int MP_KMCAlloc(MP_KMCData *data, int nuc, int nx, int ny, int nz, int ncluster,
 		data->cluster[i][0] = 0.0, data->cluster[i][1] = 0.0, data->cluster[i][2] = 0.0;
 	}
 	data->save_grid = FALSE;
-	data->cpmax = 0;
+	data->jpmax = 0;
 	data->nrot = 0;
 	data->table_use = TRUE;
 	data->ntable = 0;
@@ -129,13 +129,18 @@ static int SearchClusterIndex(MP_KMCData *data, int p, double cluster[], int *np
 	return FALSE;
 }
 
-int MP_KMCSetCluster(MP_KMCData *data, double cluster[][3], int cpmax)
+int MP_KMCSetCluster(MP_KMCData *data, double cluster[][3], int jpmax)
 {
 	int i, j;
 	int np, dx, dy, dz;
 	int pt;
 	double rp[3];
 
+	if (jpmax > data->ncluster || jpmax < 0) {
+		fprintf(stderr, "Error : Invalid maximum jump pointer, jpmax (MP_KMCSetCluster).\n");
+		return FALSE;
+	}
+	else data->jpmax = jpmax;
 	for (i = 0; i < data->ncluster; i++) {
 		data->cluster[i][0] = cluster[i][0];
 		data->cluster[i][1] = cluster[i][1];
@@ -145,7 +150,6 @@ int MP_KMCSetCluster(MP_KMCData *data, double cluster[][3], int cpmax)
 		data->rcluster[i][1] = rp[1];
 		data->rcluster[i][2] = rp[2];
 	}
-	data->cpmax = cpmax;
 	for (i = 0; i < data->nuc; i++) {
 		for (j = 0; j < data->ncluster; j++) {
 			if (SearchClusterIndex(data, i, cluster[j], &np, &dx, &dy, &dz)) {
@@ -156,7 +160,7 @@ int MP_KMCSetCluster(MP_KMCData *data, double cluster[][3], int cpmax)
 				data->clusterid[pt] = dz;
 			}
 			else {
-				fprintf(stderr, "Error : Cluster position not match to Unitcell position.\n");
+				fprintf(stderr, "Error : Cluster position not match to Unitcell position (MP_KMCSetCluster).\n");
 				return FALSE;
 			}
 		}

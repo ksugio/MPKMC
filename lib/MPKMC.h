@@ -119,7 +119,7 @@ typedef struct MP_KMCData {
 	double cluster[MP_KMC_NCLUSTER_MAX][3];
 	double rcluster[MP_KMC_NCLUSTER_MAX][3];
 	int *clusterid;
-	int cpmax;
+	int jpmax;
 	int nrot;
 	int *rotid;
 	int table_use;
@@ -155,7 +155,7 @@ int MP_KMCAlloc(MP_KMCData *data, int nuc, int nx, int ny, int nz, int ncluster,
 	int nsolute_step, int ntable_step, int nevent_step, int nhistory_step);
 void MP_KMCFree(MP_KMCData *data);
 void MP_KMCSetUnitCell(MP_KMCData *data, double uc[][3], short types[], double pv[][3]);
-int MP_KMCSetCluster(MP_KMCData *data, double cluster[][3], int cpmax);
+int MP_KMCSetCluster(MP_KMCData *data, double cluster[][3], int jpmax);
 void MP_KMCRealPos(MP_KMCData *data, double pos[], double rpos[]);
 void MP_KMCIndex2Grid(MP_KMCData *data, int id, int *p, int *x, int *y, int *z);
 int MP_KMCGrid2Index(MP_KMCData *data, int p, int x, int y, int z);
@@ -272,10 +272,11 @@ typedef struct MP_MEAM {
 #endif
 	int nparm;
 	MP_MEAMParm parm[MP_MEAM_NPARM_MAX];
+	double S[3];
 } MP_MEAM;
 
 void MP_MEAMInit(MP_MEAM *meam);
-int MP_MEAMAddParm(MP_MEAM *meam, MP_MEAMParm parm);
+int MP_MEAMSetParm(MP_MEAM *meam, MP_MEAMParm parm);
 double MP_MEAMEnergy(MP_MEAM *meam, MP_KMCData *data, short types[]);
 
 #ifdef __cplusplus
