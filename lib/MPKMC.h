@@ -229,12 +229,9 @@ float MP_RandGauss(long *rand_seed);
 /*--------------------------------------------------
 * fsfcc typedef and functions
 */
+#define MP_FSFCC_NPARM_MAX 30
 
 typedef struct MP_FSFCCParm {
-#ifdef MP_PYTHON_LIB
-	PyObject_HEAD
-	PyObject *pyfunc;
-#endif
 	short type;
 	double lc;
 	double a[6];
@@ -243,12 +240,22 @@ typedef struct MP_FSFCCParm {
 	double r[6];
 } MP_FSFCCParm;
 
+typedef struct MP_FSFCC {
+#ifdef MP_PYTHON_LIB
+	PyObject_HEAD
+	PyObject *pyfunc;
+#endif
+	int nparm;
+	MP_FSFCCParm parm[MP_FSFCC_NPARM_MAX];
+} MP_FSFCC;
+
 #ifdef MP_PYTHON_LIB
 PyTypeObject MP_FSFCCPyType;
 #endif
 
-int MP_FSFCCInit(MP_FSFCCParm *parm, short type);
-double MP_FSFCCEnergy(MP_FSFCCParm *parm, MP_KMCData *data, short types[]);
+void MP_FSFCCInit(MP_FSFCC *fsfcc);
+int MP_FSFCCSetParm(MP_FSFCC *fsfcc, MP_FSFCCParm parm);
+double MP_FSFCCEnergy(MP_FSFCC *fsfcc, MP_KMCData *data, short types[]);
 
 /*--------------------------------------------------
 * meam typedef and functions
@@ -272,8 +279,13 @@ typedef struct MP_MEAM {
 #endif
 	int nparm;
 	MP_MEAMParm parm[MP_MEAM_NPARM_MAX];
-	double S[3];
+	int Zd;
+	double S1, S2, S3;
 } MP_MEAM;
+
+#ifdef MP_PYTHON_LIB
+PyTypeObject MP_MEAMPyType;
+#endif
 
 void MP_MEAMInit(MP_MEAM *meam);
 int MP_MEAMSetParm(MP_MEAM *meam, MP_MEAMParm parm);

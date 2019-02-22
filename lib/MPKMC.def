@@ -54,6 +54,7 @@ EXPORTS
 	MP_RandGauss
 	; fsfcc
 	MP_FSFCCInit
+	MP_FSFCCSetParm
 	MP_FSFCCEnergy
 	; meam
 	MP_MEAMInit

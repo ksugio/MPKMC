@@ -1,113 +1,100 @@
 #include "MPKMC.h"
 
-struct FSFCCParm {
-	short type;
-	double lc;
-	double a[6];
-	double R[2];
-	double A[2];
-	double r[6];
-};
-
-static struct FSFCCParm Copper = 
+static struct MP_FSFCCParm FSFCCParmTable[] =
 {
-	29,
-	3.615,
+	// Copper
+	{ 29, 3.615,
 	{ 29.059214, -140.05681, 130.07331, -17.48135, 31.82546, 71.58749 },
 	{ 1.2247449, 1.0 },
 	{ 9.806694, 16.774638 },
-	{ 1.2247449, 1.1547054, 1.1180065, 1.0, 0.8660254, 0.7071068 }
-};
-
-static struct FSFCCParm Silver =
-{
-	47,
-	4.086,
+	{ 1.2247449, 1.1547054, 1.1180065, 1.0, 0.8660254, 0.7071068 } },
+	// Silver
+	{ 47, 4.086,
 	{ 20.368404, -102.36075, 94.31277, -6.220051, 31.08088, 175.56047 },
 	{ 1.2247449, 1.0 },
 	{ 1.458761, 42.946555 },
-	{ 1.2247449, 1.1547054, 1.1180065, 1.0, 0.8660254, 0.7071068 }
-};
-
-static struct FSFCCParm Gold =
-{
-	79,
-	4.078,
+	{ 1.2247449, 1.1547054, 1.1180065, 1.0, 0.8660254, 0.7071068 } },
+	// Gold
+	{ 79, 4.078,
 	{ 29.059066, -153.14779, 148.17881, -22.20508, 72.71465, 199.26269 },
 	{ 1.1180065, 0.8660254 },
 	{ 21.930125, 284.99631 },
-	{ 1.2247449, 1.1547054, 1.1180065, 1.0, 0.8660254, 0.7071068 }
-};
-
-static struct FSFCCParm Nickel =
-{
-	28,
-	3.524,
+	{ 1.2247449, 1.1547054, 1.1180065, 1.0, 0.8660254, 0.7071068 } },
+	// Nickel
+	{ 28, 3.524,
 	{ 29.057085, -76.04625, 48.08920, -25.96604, 79.15121,  0.0 },
 	{ 1.2247449, 1.1180065 },
 	{ 60.537985, -80.102414 },
-	{ 1.2247449, 1.1547054, 1.1180065, 1.0, 0.8660254, 0.7071068 }
+	{ 1.2247449, 1.1547054, 1.1180065, 1.0, 0.8660254, 0.7071068 } }
 };
 
-static void FSFCCCopyParm(MP_FSFCCParm *parm, struct FSFCCParm p)
+void MP_FSFCCInit(MP_FSFCC *fsfcc)
+{
+	int i;
+	int ntable = sizeof(FSFCCParmTable) / sizeof(FSFCCParmTable[0]);
+
+	fsfcc->nparm = 0;
+	for (i = 0; i < ntable; i++) {
+		if (MP_FSFCCSetParm(fsfcc, FSFCCParmTable[i]) < 0) break;
+	}
+}
+
+int MP_FSFCCSetParm(MP_FSFCC *fsfcc, MP_FSFCCParm parm)
 {
 	int i;
 
-	parm->type = p.type;
-	parm->lc = p.lc;
-	for (i = 0; i < 2; i++) {
-		parm->R[i] = p.R[i];
-		parm->A[i] = p.A[i];
+	if (fsfcc->nparm >= MP_FSFCC_NPARM_MAX) {
+		fprintf(stderr, "Error : can't add FSFCC parameter (MP_FSFCCSetParm)\n");
+		return -1;
 	}
-	for (i = 0; i < 6; i++) {
-		parm->a[i] = p.a[i];
-		parm->r[i] = p.r[i];
+	for (i = 0; i < fsfcc->nparm; i++) {
+		if (fsfcc->parm[i].type == parm.type) {
+			fsfcc->parm[i] = parm;
+			return i;
+		}
 	}
+	fsfcc->parm[fsfcc->nparm] = parm;
+	return fsfcc->nparm++;
 }
 
-int MP_FSFCCInit(MP_FSFCCParm *parm, short type)
+static MP_FSFCCParm GetFSFCCParm(MP_FSFCC *fsfcc, short type)
 {
-	if (type == 29) {
-		FSFCCCopyParm(parm, Copper);
-		return TRUE;
+	int i;
+	MP_FSFCCParm err = { -1, 0.0, { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 }, { 0.0, 0.0 }, {0.0, 0.0}, { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 } };
+
+	for (i = 0; i < fsfcc->nparm; i++) {
+		if (fsfcc->parm[i].type == type) return fsfcc->parm[i];
 	}
-	else if (type == 47) {
-		FSFCCCopyParm(parm, Silver);
-		return TRUE;
-	}
-	else if (type == 79) {
-		FSFCCCopyParm(parm, Gold);
-		return TRUE;
-	}
-	else if (type == 28) {
-		FSFCCCopyParm(parm, Nickel);
-		return TRUE;
-	}
-	return FALSE;
+	return err;
 }
 
-double MP_FSFCCEnergy(MP_FSFCCParm *parm, MP_KMCData *data, short types[])
+double MP_FSFCCEnergy(MP_FSFCC *fsfcc, MP_KMCData *data, short types[])
 {
 	int i, j;
+	MP_FSFCCParm p;
 	double r, Ui;
 	double rho, sV;
 	double phi, V;
 
-	if (types[0] != parm->type) return 0.0;
+	p = GetFSFCCParm(fsfcc, types[0]);
+	if (p.type == -1) {
+		fprintf(stderr, "Error : can't find FSFCC parameter for type %d (MP_FSFCCEnergy)\n", types[0]);
+		return 0.0;
+	}
 	for (i = 1, rho = 0.0, sV = 0.0; i < data->ncluster; i++) {
-		if (types[i] == parm->type) {
+		if (types[i] == p.type) {
 			r = sqrt(data->rcluster[i][0]*data->rcluster[i][0]
 				+ data->rcluster[i][1]*data->rcluster[i][1]
-				+ data->rcluster[i][2]*data->rcluster[i][2]) / parm->lc;
+				+ data->rcluster[i][2]*data->rcluster[i][2]) / p.lc;
 			for (j = 0, phi = 0.0; j < 2; j++) {
-				if (parm->R[j] >= r) {
-					phi += parm->A[j] * pow(parm->R[j] - r, 3.0);
+				if (p.R[j] >= r) {
+					phi += p.A[j] * pow(p.R[j] - r, 3.0);
 				}
 			}
 			rho += phi;
 			for (j = 0, V = 0.0; j < 6; j++) {
-				if (parm->r[j] >= r) {
-					V += parm->a[j] * pow(parm->r[j] - r, 3.0);
+				if (p.r[j] >= r) {
+					V += p.a[j] * pow(p.r[j] - r, 3.0);
 				}
 			}
 			sV += V;
@@ -122,37 +109,26 @@ double MP_FSFCCEnergy(MP_FSFCCParm *parm, MP_KMCData *data, short types[])
 **********************************************************/
 #ifdef MP_PYTHON_LIB
 
-static void PyDealloc(MP_FSFCCParm* self)
+static void PyDealloc(MP_FSFCC *self)
 {
 	self->ob_type->tp_free((PyObject*)self);
 }
 
 static PyObject *PyNew(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
-	short stype;
-	static char *kwlist[] = { "type", NULL };
-	MP_FSFCCParm *self;
+	MP_FSFCC *self;
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "h", kwlist, &stype)) {
-		return NULL;
-	}
-	self = (MP_FSFCCParm *)type->tp_alloc(type, 0);
-	if (self != NULL) {
-		if (!MP_FSFCCInit(self, stype)) {
-			Py_DECREF(self);
-			return NULL;
-		}
-	}
+	self = (MP_FSFCC *)type->tp_alloc(type, 0);
+	if (self != NULL) MP_FSFCCInit(self);
 	return (PyObject *)self;
 }
 
 static PyMemberDef PyMembers[] = {
-	{ "type", T_SHORT, offsetof(MP_FSFCCParm, type), 1, "atom type" },
-	{ "lc", T_DOUBLE, offsetof(MP_FSFCCParm, lc), 1, "lattice constant" },
+	{ "nparm", T_INT, offsetof(MP_FSFCC, nparm), 1, "number of paremeters" },
 	{ NULL }  /* Sentinel */
 };
 
-static PyObject *PyEnergy(MP_FSFCCParm *self, PyObject *args, PyObject *kwds)
+static PyObject *PyEnergy(MP_FSFCC *self, PyObject *args, PyObject *kwds)
 {
 	MP_KMCData *data;
 	PyObject *types;

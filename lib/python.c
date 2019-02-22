@@ -1102,6 +1102,7 @@ PyMODINIT_FUNC initMPKMC(void)
 	if (PyType_Ready(&PyKMCNewType) < 0) return;
 	if (PyType_Ready(&PyKMCReadType) < 0) return;
 	if (PyType_Ready(&MP_FSFCCPyType) < 0) return;
+	if (PyType_Ready(&MP_MEAMPyType) < 0) return;
 	m = Py_InitModule3("MPKMC", MPKMCPyMethods, "MPKMC extention");
 	if (m == NULL) return;
 	import_array();
@@ -1111,6 +1112,8 @@ PyMODINIT_FUNC initMPKMC(void)
 	PyModule_AddObject(m, "read", (PyObject *)&PyKMCReadType);
 	Py_INCREF(&MP_FSFCCPyType);
 	PyModule_AddObject(m, "fsfcc", (PyObject *)&MP_FSFCCPyType);
+	Py_INCREF(&MP_MEAMPyType);
+	PyModule_AddObject(m, "meam", (PyObject *)&MP_MEAMPyType);
 }
 
 #endif /* MP_PYTHON_LIB */

@@ -1,5 +1,12 @@
 #include "MPKMC.h"
 
+/*
+	Reference
+	M. I. Baskes
+	Modified embedded-atom potentials for cubic materials and impurities
+	Physical Review B vol.46 pp.2727-2742 (1992)
+*/
+
 static MP_MEAMParm MEAMParmTable[] = {
 	{29, 3.540, 2.56, 5.22, 1.07, {3.63, 2.2, 6.0, 2.2}, {1, 3.14, 2.49, 2.95}},
 	{47, 2.850, 2.88, 5.89, 1.06, {4.46, 2.2, 6.0, 2.2}, {1, 5.54, 2.45, 1.29}},
@@ -35,7 +42,8 @@ void MP_MEAMInit(MP_MEAM *meam)
 	for (i = 0; i < ntable; i++) {
 		if (MP_MEAMSetParm(meam, MEAMParmTable[i]) < 0) break;
 	}
-	meam->S[0] = 0.0, meam->S[1] = 0.0, meam->S[2] = 0.0;
+	meam->Zd = 12;
+	meam->S1 = 0.0, meam->S2 = 0.0, meam->S3 = 0.0;
 }
 
 int MP_MEAMSetParm(MP_MEAM *meam, MP_MEAMParm parm)
@@ -106,11 +114,17 @@ static double Rho_i(MP_MEAM *meam, int zi, short ntypes[], double rij[], double 
 	for (j = 0; j < zi; j++) {
 		if (ntypes[j] > 0) {
 			p = GetMEAMParm(meam, ntypes[j]);
-			Betaj[j][0] = p.Betai[0];
-			Betaj[j][1] = p.Betai[1];
-			Betaj[j][2] = p.Betai[2];
-			Betaj[j][3] = p.Betai[3];
-			R0j[j] = p.R0i;
+			if (p.type == -1) {
+				fprintf(stderr, "Error : can't find MEAM parameter for type %d (Rho_i)\n", ntypes[j]);
+				return zi;
+			}
+			else {
+				Betaj[j][0] = p.Betai[0];
+				Betaj[j][1] = p.Betai[1];
+				Betaj[j][2] = p.Betai[2];
+				Betaj[j][3] = p.Betai[3];
+				R0j[j] = p.R0i;
+			}
 		}
 	}
 	// rhoi0
@@ -214,24 +228,124 @@ double MP_MEAMEnergy(MP_MEAM *meam, MP_KMCData *data, short types[])
 	double rho_i, rho_0i;
 
 	p = GetMEAMParm(meam, types[0]);
+	if (p.type == -1) {
+		fprintf(stderr, "Error : can't find MEAM parameter for type %d (MP_MEAMEnergy)\n", types[0]);
+		return 0.0;
+	}
 	zi = RijXij(data, types, ntypes, rij, xij);
-	Si[0] = zi * zi;
-	Si[1] = meam->S[0], Si[2] = meam->S[1], Si[3] = meam->S[2];
-	// term 1
+	// 1st term
 	t1 = 0.0;
 	for (j = 0; j < zi; j++) {
 		t1 += Eui(rij[j], p.E0i, p.R0i, p.Alphai);
 	}
 	t1 = t1 / zi;
-	// term 2
+	// 2nd term
 	rho_i = Rho_i(meam, zi, ntypes, rij, xij, p.Ti);
 	t2 = Fi(rho_i / zi, p.Ai, p.E0i);
-	// term 3
+	// 3rd term
+	Si[0] = meam->Zd * meam->Zd;
+	Si[1] = meam->S1, Si[2] = meam->S2, Si[3] = meam->S3;
 	t3 = 0.0;
 	for (j = 0; j < zi; j++) {
-		rho_0i = Rho_0i(rij[j], p.R0i, p.Betai, p.Ti, Si) / zi;
-		t3 += Fi(rho_0i, p.Ai, p.E0i);
+		rho_0i = Rho_0i(rij[j], p.R0i, p.Betai, p.Ti, Si);
+		t3 += Fi(rho_0i / zi, p.Ai, p.E0i);
 	}
 	t3 = t3 / zi;
+	//fprintf(stderr, "%.10e %.10e %.10e %.10e\n", t1, t2, t3, rho_i);
 	return t1+t2-t3;
 }
+
+/**********************************************************
+* for Python
+**********************************************************/
+#ifdef MP_PYTHON_LIB
+
+static void PyDealloc(MP_MEAM *self)
+{
+	self->ob_type->tp_free((PyObject*)self);
+}
+
+static PyObject *PyNew(PyTypeObject *type, PyObject *args, PyObject *kwds)
+{
+	MP_MEAM *self;
+
+	self = (MP_MEAM *)type->tp_alloc(type, 0);
+	if (self != NULL) MP_MEAMInit(self);
+	return (PyObject *)self;
+}
+
+static PyMemberDef PyMembers[] = {
+	{ "nparm", T_INT, offsetof(MP_MEAM, nparm), 1, "number of paremeters" },
+	{ NULL }  /* Sentinel */
+};
+
+static PyObject *PyEnergy(MP_MEAM *self, PyObject *args, PyObject *kwds)
+{
+	MP_KMCData *data;
+	PyObject *types;
+	static char *kwlist[] = { "kmc", "types", NULL };
+	int i;
+	short stypes[MP_KMC_NCLUSTER_MAX];
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "OO", kwlist, &data, &types)) {
+		return NULL;
+	}
+	for (i = 0; i < data->ncluster; i++) {
+		stypes[i] = (short)PyInt_AsLong(PyTuple_GetItem(types, (Py_ssize_t)i));
+	}
+	return Py_BuildValue("d", MP_MEAMEnergy(self, data, stypes));
+}
+
+static PyMethodDef PyMethods[] = {
+	{ "energy", (PyCFunction)PyEnergy, METH_VARARGS | METH_KEYWORDS,
+	"energy(kmc, types) : calculate cluster energy" },
+	{ NULL }  /* Sentinel */
+};
+
+static PyGetSetDef PyGetSet[] = {
+	{ NULL }  /* Sentinel */
+};
+
+PyTypeObject MP_MEAMPyType = {
+	PyObject_HEAD_INIT(NULL)
+	0,							/*ob_size*/
+	"MPKMC.meam",				/*tp_name*/
+	sizeof(MP_MEAMParm),		/*tp_basicsize*/
+	0,							/*tp_itemsize*/
+	(destructor)PyDealloc,		/*tp_dealloc*/
+	0,							/*tp_print*/
+	0,							/*tp_getattr*/
+	0,							/*tp_setattr*/
+	0,							/*tp_compare*/
+	0,							/*tp_repr*/
+	0,							/*tp_as_number*/
+	0,							/*tp_as_sequence*/
+	0,							/*tp_as_mapping*/
+	0,							/*tp_hash */
+	0,							/*tp_call*/
+	0,							/*tp_str*/
+	0,							/*tp_getattro*/
+	0,							/*tp_setattro*/
+	0,							/*tp_as_buffer*/
+	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,	/*tp_flags*/
+	"meam()",					/* tp_doc */
+	0,							/* tp_traverse */
+	0,							/* tp_clear */
+	0,							/* tp_richcompare */
+	0,							/* tp_weaklistoffset */
+	0,							/* tp_iter */
+	0,							/* tp_iternext */
+	PyMethods,					/* tp_methods */
+	PyMembers,					/* tp_members */
+	PyGetSet,					/* tp_getset */
+	0,							/* tp_base */
+	0,							/* tp_dict */
+	0,							/* tp_descr_get */
+	0,							/* tp_descr_set */
+	0,							/* tp_dictoffset */
+	0,							/* tp_init */
+	0,							/* tp_alloc */
+	PyNew,						/* tp_new */
+};
+
+#endif /* MP_PYTHON_LIB */

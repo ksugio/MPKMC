@@ -5,16 +5,35 @@ void GlutWindow(MP_KMCData *data, int width, int height, int argc, char **argv);
 
 static double calcFSFCC(MP_KMCData *data, short types[])
 {
-	MP_FSFCCParm parm;
+	MP_FSFCC fsfcc;
 
-	if (MP_FSFCCInit(&parm, types[0])) {
-		return MP_FSFCCEnergy(&parm, data, types);
+	MP_FSFCCInit(&fsfcc);
+	return MP_FSFCCEnergy(&fsfcc, data, types);
+}
+
+static void testFSFCC(MP_KMCData *data)
+{
+	MP_KMCHistoryItem ret;
+	double T;
+	double uc[][3] = { { 0.0, 0.0, 0.0 }, { 0.5, 0.5, 0.0 }, { 0.5, 0.0, 0.5 }, { 0.0, 0.5, 0.5 } };
+	short uc_types[] = { 29, 29, 29, 29 };
+	double pv[][3] = { { 3.615, 0.0, 0.0 }, { 0.0, 3.615, 0.0 }, { 0.0, 0.0, 3.615 } };
+	double cluster[][3] = { { 0, 0, 0 }, { 0.5, 0.5, 0 }, { 0, 0.5, -0.5 }, { -0.5, 0, -0.5 }, { -0.5, 0.5, 0 },
+	{ 0, 0.5, 0.5 },{ 0.5, 0, 0.5 },{ 0.5, -0.5, 0 },{ 0, -0.5, 0.5 },
+	{ -0.5, 0, 0.5 },{ -0.5, -0.5, 0 },{ 0, -0.5, -0.5 },{ 0.5, 0, -0.5 },
+	{ 1.0, 0, 0 },{ -1.0, 0, 0 },{ 0, 1.0, 0 },{ 0, -1.0, 0 },{ 0, 0, 1.0 },{ 0, 0, -1.0}};
+
+	MP_KMCAlloc(data, 4, 10, 10, 10, 19, 1000, 1000, 100000, 100);
+	data->rand_seed = 12345;
+	MP_KMCSetUnitCell(data, uc, uc_types, pv);
+	MP_KMCSetCluster(data, cluster, 13);
+	MP_KMCCalcRotIndex(data, 5.0, 1.0e-6);
+	MP_KMCAddSoluteRandom(data, 30, 0, TRUE);
+	MP_KMCGridEnergy(data, calcFSFCC);
+	for (T = 1100; T > 1000; T -= 10) {
+		ret = MP_KMCJump(data, 1000, T, calcFSFCC);
+		printf("%f %d %d %.15e %f\n", T, ret.njump, ret.ntable, ret.tote, ret.time);
 	}
-	else {
-		fprintf(stderr, "Error : Can't find type, %d\n", types[0]);
-		return 0.0;
-	}
-	return 0.0;
 }
 
 static double calcMEAM(MP_KMCData *data, short types[])
@@ -25,40 +44,38 @@ static double calcMEAM(MP_KMCData *data, short types[])
 	return MP_MEAMEnergy(&meam, data, types);
 }
 
+static void testMEAM(MP_KMCData *data)
+{
+	MP_KMCHistoryItem ret;
+	double T;
+	double uc[][3] = { { 0.0, 0.0, 0.0 },{ 0.5, 0.5, 0.0 },{ 0.5, 0.0, 0.5 },{ 0.0, 0.5, 0.5 } };
+	short uc_types[] = { 13, 13, 13, 13 };
+	double pv[][3] = { { 4.04466, 0.0, 0.0 },{ 0.0, 4.04466, 0.0 },{ 0.0, 0.0, 4.04466 } };
+	double cluster[][3] = { { 0, 0, 0 },{ 0.5, 0.5, 0 },{ 0, 0.5, -0.5 },{ -0.5, 0, -0.5 },{ -0.5, 0.5, 0 },
+	{ 0, 0.5, 0.5 },{ 0.5, 0, 0.5 },{ 0.5, -0.5, 0 },{ 0, -0.5, 0.5 },
+	{ -0.5, 0, 0.5 },{ -0.5, -0.5, 0 },{ 0, -0.5, -0.5 },{ 0.5, 0, -0.5 } };
+
+	MP_KMCAlloc(data, 4, 10, 10, 10, 13, 1000, 1000, 100000, 100);
+	MP_KMCSetUnitCell(data, uc, uc_types, pv);
+	MP_KMCSetCluster(data, cluster, 13);
+	MP_KMCCalcRotIndex(data, 5.0, 1.0e-6);
+	MP_KMCAddSoluteRandom(data, 20, 0, TRUE);
+	MP_KMCGridEnergy(data, calcMEAM);
+	for (T = 800; T > 600; T -= 10) {
+		ret = MP_KMCJump(data, 10000, T, calcMEAM);
+		printf("%f %d %d %.15e %f\n", T, ret.njump, ret.ntable, ret.tote, ret.time);
+	}
+}
+
 int main(int argc, char *argv[])
 {
 	MP_KMCData data;
-	double uc[][3] = { { 0.0, 0.0, 0.0 }, { 0.5, 0.5, 0.0 }, { 0.5, 0.0, 0.5 }, { 0.0, 0.5, 0.5 } };
-	short uc_types[] = { 13, 13, 13, 13 };
-	double pv[][3] = { { 4.04466, 0.0, 0.0 }, { 0.0, 4.04466, 0.0 }, { 0.0, 0.0, 4.04466 } };
-	double cluster[][3] = { { 0, 0, 0 }, { 0.5, 0.5, 0 }, { 0, 0.5, -0.5 }, { -0.5, 0, -0.5 }, { -0.5, 0.5, 0 },
-				{ 0, 0.5, 0.5 },{ 0.5, 0, 0.5 },{ 0.5, -0.5, 0 },{ 0, -0.5, 0.5 },
-				{ -0.5, 0, 0.5 },{ -0.5, -0.5, 0 },{ 0, -0.5, -0.5 },{ 0.5, 0, -0.5 }};
-//	MP_MEAM meam;
-//	short types[] = { 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13 };
 
-	MP_KMCAlloc(&data, 4, 5, 5, 5, 13, 1000, 1000, 100000, 100);
-	MP_KMCSetUnitCell(&data, uc, uc_types, pv);
-	MP_KMCSetCluster(&data, cluster, 13);
-	MP_KMCCalcRotIndex(&data, 5.0, 1.0e-6);
-	MP_KMCAddSoluteRandom(&data, 1, 0, TRUE);
-	MP_KMCGridEnergy(&data, calcMEAM);
-	fprintf(stderr, "%e\n", data.tote);
+	testMEAM(&data);
+	//testFSFCC(&data);
 
 
-//	MP_MEAMInit(&meam);
-//	ene = MP_MEAMEnergy(&meam, &data, types);
-//	fprintf(stderr, "ene %f\n", ene);
-//	fprintf(stderr, "nparm %d\n", meam.nparm);
-//	for (i = 0; i < nparm; i++) {
-//		p = parms[i];
-//		fprintf(stderr, "%d %f %f %f %f (%f %f %f %f) (%f %f %f %f)\n", p.type, p.E0i, p.R0i, p.Alphai, p.Ai,
-//			p.Betai[0], p.Betai[1], p.Betai[2], p.Betai[3], p.Ti[0], p.Ti[1], p.Ti[2], p.Ti[3]);
-//	}
-//	printf("\n");
-//	MP_KMCData data;
-//	MP_KMCHistoryItem ret;
-//	double T;	
+	
 //	double uc[][3] = { { 0.0, 0.0, 0.0 }, { 0.5, 0.5, 0.0 }, { 0.5, 0.0, 0.5 }, { 0.0, 0.5, 0.5 } };
 //	short uc_types[] = { 29, 29, 29, 29 };
 //	double pv[][3] = { { 3.615, 0.0, 0.0 }, { 0.0, 3.615, 0.0 }, { 0.0, 0.0, 3.615 } };
@@ -98,11 +115,8 @@ int main(int argc, char *argv[])
 //		printf("%f %d %d %.15e %f\n", T, ret.njump, ret.ntable, ret.tote, ret.time);
 //		MP_KMCSortTable(&data);
 //	}
-//	GlutWindow(&data, 800, 600, argc, argv);
+	GlutWindow(&data, 800, 600, argc, argv);
 //	MP_KMCWrite(&data, "test.mpkmc", 0);
 //	MP_KMCRead(&data, "..\python\fsfcc.mpkmc", 1);
-//	for (i = 0; i < data.ntot; i++) {
-//		if (data.grid[i].type != data2.grid[i].type) fprintf(stderr, "%d\n", i);
-//	}
 	MP_KMCFree(&data);
 }
