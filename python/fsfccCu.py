@@ -6,7 +6,7 @@ def FSFCCEnergy(kmc, types):
     return fsfcc.energy(kmc, types)
 
 if __name__ == "__main__":
-    Ntry = 1000
+    Ntry = 10000
     T = range(1100, 1000, -10)
     uc = ((0, 0, 0), (0.5, 0.5, 0.0), (0.5, 0.0, 0.5), (0.0, 0.5, 0.5))
     uc_types = (29, 29, 29, 29)
@@ -30,6 +30,5 @@ if __name__ == "__main__":
     for temp in T:
         ret = kmc.jump(Ntry, temp, FSFCCEnergy)
         print ret, kmc.find_solute_group(0.71)
-    kmc.write_table('fsfccCu.etb')
     kmc.write('fsfccCu.mpkmc', 8)
 

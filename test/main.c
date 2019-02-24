@@ -69,9 +69,18 @@ static void testMEAM(MP_KMCData *data)
 
 int main(int argc, char *argv[])
 {
-	MP_KMCData data;
+	int i;
+	MP_MEAM meam;
 
-	testMEAM(&data);
+	MP_MEAMInit(&meam);
+	for (i = 0; i < meam.nparm; i++) {
+		fprintf(stderr, "%d %f %f\n", meam.parm[i].type, meam.parm[i].E0i, meam.parm[i].R0i);
+	}
+	fprintf(stderr, "j\n");
+
+	//MP_KMCData data;
+
+	//testMEAM(&data);
 	//testFSFCC(&data);
 
 
@@ -115,8 +124,8 @@ int main(int argc, char *argv[])
 //		printf("%f %d %d %.15e %f\n", T, ret.njump, ret.ntable, ret.tote, ret.time);
 //		MP_KMCSortTable(&data);
 //	}
-	GlutWindow(&data, 800, 600, argc, argv);
+//	GlutWindow(&data, 800, 600, argc, argv);
 //	MP_KMCWrite(&data, "test.mpkmc", 0);
 //	MP_KMCRead(&data, "..\python\fsfcc.mpkmc", 1);
-	MP_KMCFree(&data);
+//	MP_KMCFree(&data);
 }

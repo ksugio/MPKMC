@@ -275,7 +275,11 @@ static PyObject *PyNew(PyTypeObject *type, PyObject *args, PyObject *kwds)
 }
 
 static PyMemberDef PyMembers[] = {
-	{ "nparm", T_INT, offsetof(MP_MEAM, nparm), 1, "number of paremeters" },
+	{ "nparm", T_INT, offsetof(MP_MEAM, nparm), 1, "number of parameters" },
+	{ "Zd", T_INT, offsetof(MP_MEAM, Zd), 0, "parameter of reference structure" },
+	{ "S1", T_DOUBLE, offsetof(MP_MEAM, S1), 0, "parameter of reference structure" },
+	{ "S2", T_DOUBLE, offsetof(MP_MEAM, S2), 0, "parameter of reference structure" },
+	{ "S3", T_DOUBLE, offsetof(MP_MEAM, S3), 0, "parameter of reference structure" },
 	{ NULL }  /* Sentinel */
 };
 
@@ -296,9 +300,30 @@ static PyObject *PyEnergy(MP_MEAM *self, PyObject *args, PyObject *kwds)
 	return Py_BuildValue("d", MP_MEAMEnergy(self, data, stypes));
 }
 
+static PyObject *PyGetParm(MP_MEAM *self, PyObject *args, PyObject *kwds)
+{
+	int id;
+	static char *kwlist[] = { "id", NULL };
+	MP_MEAMParm p;
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "i", kwlist, &id)) {
+		return NULL;
+	}
+	if (id >= 0 && id < self->nparm) {
+		p = self->parm[id];
+		return Py_BuildValue("idddd(dddd)(dddd)", p.type,
+			p.E0i, p.R0i, p.Alphai, p.Ai,
+			p.Betai[0], p.Betai[1], p.Betai[2], p.Betai[3],
+			p.Ti[0], p.Ti[1], p.Ti[2], p.Ti[3]);
+	}
+	else return NULL;
+}
+
 static PyMethodDef PyMethods[] = {
 	{ "energy", (PyCFunction)PyEnergy, METH_VARARGS | METH_KEYWORDS,
 	"energy(kmc, types) : calculate cluster energy" },
+	{ "get_parm", (PyCFunction)PyGetParm, METH_VARARGS | METH_KEYWORDS,
+	"get_parm(id) : return i-th parameter" },
 	{ NULL }  /* Sentinel */
 };
 
@@ -310,7 +335,7 @@ PyTypeObject MP_MEAMPyType = {
 	PyObject_HEAD_INIT(NULL)
 	0,							/*ob_size*/
 	"MPKMC.meam",				/*tp_name*/
-	sizeof(MP_MEAMParm),		/*tp_basicsize*/
+	sizeof(MP_MEAM),			/*tp_basicsize*/
 	0,							/*tp_itemsize*/
 	(destructor)PyDealloc,		/*tp_dealloc*/
 	0,							/*tp_print*/

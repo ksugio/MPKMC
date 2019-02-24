@@ -124,7 +124,7 @@ static PyObject *PyNew(PyTypeObject *type, PyObject *args, PyObject *kwds)
 }
 
 static PyMemberDef PyMembers[] = {
-	{ "nparm", T_INT, offsetof(MP_FSFCC, nparm), 1, "number of paremeters" },
+	{ "nparm", T_INT, offsetof(MP_FSFCC, nparm), 1, "number of parameters" },
 	{ NULL }  /* Sentinel */
 };
 
@@ -145,9 +145,30 @@ static PyObject *PyEnergy(MP_FSFCC *self, PyObject *args, PyObject *kwds)
 	return Py_BuildValue("d", MP_FSFCCEnergy(self, data, stypes));
 }
 
+static PyObject *PyGetParm(MP_FSFCC *self, PyObject *args, PyObject *kwds)
+{
+	int id;
+	static char *kwlist[] = { "id", NULL };
+	MP_FSFCCParm p;
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "i", kwlist, &id)) {
+		return NULL;
+	}
+	if (id >= 0 && id < self->nparm) {
+		p = self->parm[id];
+		return Py_BuildValue("id(dddddd)(dd)(dd)(dddddd)", p.type, p.lc,
+			p.a[0], p.a[1], p.a[2], p.a[3], p.a[4], p.a[5],
+			p.R[0], p.R[1], p.A[0], p.A[1],
+			p.r[0], p.r[1], p.r[2], p.r[3], p.r[4], p.r[5]);
+	}
+	else return NULL;
+}
+
 static PyMethodDef PyMethods[] = {
 	{ "energy", (PyCFunction)PyEnergy, METH_VARARGS | METH_KEYWORDS,
 	"energy(kmc, types) : calculate cluster energy" },
+	{ "get_parm", (PyCFunction)PyGetParm, METH_VARARGS | METH_KEYWORDS,
+	"get_parm(id) : return i-th parameter" },
 	{ NULL }  /* Sentinel */
 };
 
@@ -159,7 +180,7 @@ PyTypeObject MP_FSFCCPyType = {
 	PyObject_HEAD_INIT(NULL)
 	0,							/*ob_size*/
 	"MPKMC.fsfcc",				/*tp_name*/
-	sizeof(MP_FSFCCParm),		/*tp_basicsize*/
+	sizeof(MP_FSFCC),			/*tp_basicsize*/
 	0,							/*tp_itemsize*/
 	(destructor)PyDealloc,		/*tp_dealloc*/
 	0,							/*tp_print*/

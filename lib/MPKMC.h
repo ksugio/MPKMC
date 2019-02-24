@@ -243,7 +243,6 @@ typedef struct MP_FSFCCParm {
 typedef struct MP_FSFCC {
 #ifdef MP_PYTHON_LIB
 	PyObject_HEAD
-	PyObject *pyfunc;
 #endif
 	int nparm;
 	MP_FSFCCParm parm[MP_FSFCC_NPARM_MAX];
@@ -275,7 +274,6 @@ typedef struct MP_MEAMParm {
 typedef struct MP_MEAM {
 #ifdef MP_PYTHON_LIB
 	PyObject_HEAD
-	PyObject *pyfunc;
 #endif
 	int nparm;
 	MP_MEAMParm parm[MP_MEAM_NPARM_MAX];
