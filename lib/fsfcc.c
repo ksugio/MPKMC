@@ -164,11 +164,50 @@ static PyObject *PyGetParm(MP_FSFCC *self, PyObject *args, PyObject *kwds)
 	else return NULL;
 }
 
+static PyObject *PySetParm(MP_FSFCC *self, PyObject *args, PyObject *kwds)
+{
+	PyObject *parm;
+	static char *kwlist[] = { "parm", NULL };
+	MP_FSFCCParm p;
+	PyObject *tp;
+	int i;
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O", kwlist, &parm)) {
+		return NULL;
+	}
+	if (PyTuple_Size(parm) != 6) return NULL;
+	p.type = (short)PyInt_AsLong(PyTuple_GetItem(parm, (Py_ssize_t)0));
+	p.lc = (double)PyFloat_AsDouble(PyTuple_GetItem(parm, (Py_ssize_t)1));
+	tp = PyTuple_GetItem(parm, (Py_ssize_t)2);
+	if (PyTuple_Size(tp) != 6) return NULL;
+	for (i = 0; i < 6; i++) {
+		p.a[i] = (double)PyFloat_AsDouble(PyTuple_GetItem(tp, (Py_ssize_t)i));
+	}
+	tp = PyTuple_GetItem(parm, (Py_ssize_t)3);
+	if (PyTuple_Size(tp) != 2) return NULL;
+	for (i = 0; i < 2; i++) {
+		p.R[i] = (double)PyFloat_AsDouble(PyTuple_GetItem(tp, (Py_ssize_t)i));
+	}
+	tp = PyTuple_GetItem(parm, (Py_ssize_t)4);
+	if (PyTuple_Size(tp) != 2) return NULL;
+	for (i = 0; i < 2; i++) {
+		p.A[i] = (double)PyFloat_AsDouble(PyTuple_GetItem(tp, (Py_ssize_t)i));
+	}
+	tp = PyTuple_GetItem(parm, (Py_ssize_t)5);
+	if (PyTuple_Size(tp) != 6) return NULL;
+	for (i = 0; i < 6; i++) {
+		p.r[i] = (double)PyFloat_AsDouble(PyTuple_GetItem(tp, (Py_ssize_t)i));
+	}
+	return Py_BuildValue("i", MP_FSFCCSetParm(self, p));
+}
+
 static PyMethodDef PyMethods[] = {
 	{ "energy", (PyCFunction)PyEnergy, METH_VARARGS | METH_KEYWORDS,
-	"energy(kmc, types) : calculate cluster energy" },
+		"energy(kmc, types) : calculate cluster energy" },
 	{ "get_parm", (PyCFunction)PyGetParm, METH_VARARGS | METH_KEYWORDS,
-	"get_parm(id) : return i-th parameter" },
+		"get_parm(id) : return i-th parameter" },
+	{ "set_parm", (PyCFunction)PySetParm, METH_VARARGS | METH_KEYWORDS,
+		"set_parm(parm) : set parameter, return index in the parameter table" },
 	{ NULL }  /* Sentinel */
 };
 

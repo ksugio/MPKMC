@@ -319,11 +319,43 @@ static PyObject *PyGetParm(MP_MEAM *self, PyObject *args, PyObject *kwds)
 	else return NULL;
 }
 
+static PyObject *PySetParm(MP_MEAM *self, PyObject *args, PyObject *kwds)
+{
+	PyObject *parm;
+	static char *kwlist[] = { "parm", NULL };
+	MP_MEAMParm p;
+	PyObject *tp;
+	int i;
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O", kwlist, &parm)) {
+		return NULL;
+	}
+	if (PyTuple_Size(parm) != 7) return NULL;
+	p.type = (short)PyInt_AsLong(PyTuple_GetItem(parm, (Py_ssize_t)0));
+	p.E0i = (double)PyFloat_AsDouble(PyTuple_GetItem(parm, (Py_ssize_t)1));
+	p.R0i = (double)PyFloat_AsDouble(PyTuple_GetItem(parm, (Py_ssize_t)2));
+	p.Alphai = (double)PyFloat_AsDouble(PyTuple_GetItem(parm, (Py_ssize_t)3));
+	p.Ai = (double)PyFloat_AsDouble(PyTuple_GetItem(parm, (Py_ssize_t)4));
+	tp = PyTuple_GetItem(parm, (Py_ssize_t)5);
+	if (PyTuple_Size(tp) != 4) return NULL;
+	for (i = 0; i < 4; i++) {
+		p.Betai[i] = (double)PyFloat_AsDouble(PyTuple_GetItem(tp, (Py_ssize_t)i));
+	}
+	tp = PyTuple_GetItem(parm, (Py_ssize_t)6);
+	if (PyTuple_Size(tp) != 4) return NULL;
+	for (i = 0; i < 4; i++) {
+		p.Ti[i] = (double)PyFloat_AsDouble(PyTuple_GetItem(tp, (Py_ssize_t)i));
+	}
+	return Py_BuildValue("i", MP_MEAMSetParm(self, p));
+}
+
 static PyMethodDef PyMethods[] = {
 	{ "energy", (PyCFunction)PyEnergy, METH_VARARGS | METH_KEYWORDS,
-	"energy(kmc, types) : calculate cluster energy" },
+		"energy(kmc, types) : calculate cluster energy" },
 	{ "get_parm", (PyCFunction)PyGetParm, METH_VARARGS | METH_KEYWORDS,
-	"get_parm(id) : return i-th parameter" },
+		"get_parm(id) : return i-th parameter" },
+	{ "set_parm", (PyCFunction)PySetParm, METH_VARARGS | METH_KEYWORDS,
+		"set_parm(parm) : set parameter, return index in the parameter table" },
 	{ NULL }  /* Sentinel */
 };
 
