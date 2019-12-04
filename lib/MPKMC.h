@@ -39,11 +39,6 @@ extern "C" {
 #include <time.h>
 #endif
 
-
-#ifndef ZLIB_H
-#include <zlib.h>
-#endif
-
 #ifdef WIN32
 #pragma warning(disable:4996)
 #include <windows.h>
@@ -51,6 +46,14 @@ extern "C" {
 
 #ifdef _OPENMP
 #include <omp.h>
+#endif
+
+#ifdef MP_PYTHON_LIB
+#if PY_MAJOR_VERSION >= 3
+#define PY3
+#define PyInt_FromLong PyLong_FromLong
+#define PyInt_AsLong PyLong_AsLong
+#endif
 #endif
 
 /*--------------------------------------------------

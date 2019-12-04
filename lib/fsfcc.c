@@ -111,7 +111,9 @@ double MP_FSFCCEnergy(MP_FSFCC *fsfcc, MP_KMCData *data, short types[])
 
 static void PyDealloc(MP_FSFCC *self)
 {
+#ifndef PY3
 	self->ob_type->tp_free((PyObject*)self);
+#endif
 }
 
 static PyObject *PyNew(PyTypeObject *type, PyObject *args, PyObject *kwds)
@@ -217,7 +219,9 @@ static PyGetSetDef PyGetSet[] = {
 
 PyTypeObject MP_FSFCCPyType = {
 	PyObject_HEAD_INIT(NULL)
+#ifndef PY3
 	0,							/*ob_size*/
+#endif
 	"MPKMC.fsfcc",				/*tp_name*/
 	sizeof(MP_FSFCC),			/*tp_basicsize*/
 	0,							/*tp_itemsize*/

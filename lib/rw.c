@@ -1,4 +1,5 @@
 #include "MPKMC.h"
+#include <zlib.h>
 
 #define WRITE_GRID_STEP 100
 #define WRITE_GRID_CHAR 256

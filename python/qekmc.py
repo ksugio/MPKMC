@@ -69,7 +69,7 @@ def calcQE(kmc, types):
     writeIN(types, kmc.cluster, table)
     outfile = '%s.out' % (MPKMC.types2string(types))
     cmd = './pw.x < tmp.in > %s' % (outfile)
-    print cmd
+    print(cmd)
     subprocess.call(cmd, shell=True)
     tote = readOUT(outfile)
     totc = 0
@@ -77,12 +77,12 @@ def calcQE(kmc, types):
         if tp != 0:
             tote = tote-isoEnergy(tp, table)
             totc = totc+1
-    print types, totc, tote/totc
+    print(types, totc, tote/totc)
     return tote/totc
 
 if __name__ == "__main__":
     Ntry = 100000
-    T = range(30, 0, -2)
+    T = range(300, 0, -10)
     etbfile = 'Al-Si.etb'
     resfile = 'Al-Si_1.mpkmc'
     Kb = 86.1735e-6; # ev/K
@@ -93,24 +93,21 @@ if __name__ == "__main__":
     pv = ((4.08, 0, 0), (0, 4.08, 0), (0, 0, 4.08))
     clu = ((0, 0, 0), (0.5, 0.5, 0), (0, 0.5, -0.5), (-0.5, 0, -0.5),\
         (-0.5, 0.5, 0), (0, 0.5, 0.5), (0.5, 0, 0.5), (0.5, -0.5, 0),\
-        (0, -0.5, 0.5), (-0.5, 0, 0.5), (-0.5, -0.5, 0), (0, -0.5, -0.5), (0.5, 0, -0.5)) 
-    jclu = (1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)
+        (0, -0.5, 0.5), (-0.5, 0, 0.5), (-0.5, -0.5, 0), (0, -0.5, -0.5), (0.5, 0, -0.5))
     kmc = MPKMC.new(4, 10, 10, 10, 13, 100, 1000, 10000)
+    kmc.kb = Kbry
     kmc.rand_seed = 12345
     kmc.set_unitcell(uc, uc_types, pv)
-    kmc.set_cluster(clu, jclu)
+    kmc.set_cluster(clu, 13)
     kmc.calc_rot_index(5.0, 1.0e-6)
     if os.path.exists(etbfile):
         kmc.read_table(etbfile)
     kmc.add_solute_random(40, 14, 1)
-    tote, update = kmc.total_energy(calcQE)
-    if update:
-        kmc.write_table(etbfile)
-    print kmc.tote, kmc.ntable
+    kmc.grid_energy(calcQE)
+    print(kmc.tote, kmc.ntable)
+    print('(totmcs, temp, ntry, njump, table_update, ntable, tote, time) ngroup')
     for temp in T:
-        njump, update = kmc.jump(Ntry, Kbry*temp, calcQE)
-        if update:
-            kmc.write_table(etbfile)
-        print temp, njump, kmc.tote, kmc.ntable
+        ret = kmc.jump(Ntry, temp, calcQE)
+        print(ret, kmc.find_solute_group(0.71))
     kmc.write(resfile, 8)
 

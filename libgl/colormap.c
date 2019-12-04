@@ -179,7 +179,9 @@ void MPGL_ColormapDraw(MPGL_Colormap *colormap)
 
 static void PyDealloc(MPGL_Colormap* self)
 {
+#ifndef PY3
 	self->ob_type->tp_free((PyObject*)self);
+#endif
 }
 
 static PyObject *PyNew(PyTypeObject *type, PyObject *args, PyObject *kwds)
@@ -381,7 +383,9 @@ static PyGetSetDef PyGetSet[] = {
 
 PyTypeObject MPGL_ColormapPyType = {
 	PyObject_HEAD_INIT(NULL)
+#ifndef PY3
 	0,							/*ob_size*/
+#endif
 	"MPGLKMC.colormap",			/*tp_name*/
 	sizeof(MPGL_Colormap),		/*tp_basicsize*/
 	0,							/*tp_itemsize*/

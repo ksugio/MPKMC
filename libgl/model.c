@@ -407,7 +407,9 @@ int MPGL_ModelMotion(MPGL_Model *model, MPGL_Scene *scene, int x, int y, int ctr
 
 static void PyDealloc(MPGL_Model* self)
 {
+#ifndef PY3
 	self->ob_type->tp_free((PyObject*)self);
+#endif
 }
 
 static PyObject *PyNew(PyTypeObject *type, PyObject *args, PyObject *kwds)
@@ -730,7 +732,9 @@ static PyGetSetDef PyGetSet[] = {
 
 PyTypeObject MPGL_ModelPyType = {
 	PyObject_HEAD_INIT(NULL)
+#ifndef PY3
 	0,							/*ob_size*/
+#endif
 	"MPGLKMC.model",			/*tp_name*/
 	sizeof(MPGL_Model),			/*tp_basicsize*/
 	0,							/*tp_itemsize*/

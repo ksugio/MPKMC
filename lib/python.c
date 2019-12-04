@@ -9,7 +9,9 @@
 static void PyKMCDealloc(MP_KMCData* self)
 {
 	MP_KMCFree(self);
+#ifndef PY3
 	self->ob_type->tp_free((PyObject*)self);
+#endif
 }
 
 static PyObject *PyKMCNewNew(PyTypeObject *type, PyObject *args, PyObject *kwds)
@@ -940,7 +942,11 @@ static PyObject *PyKMCGetHTable(MP_KMCData *self, void *closure)
 
 static int PyKMCSetHTable(MP_KMCData *self, PyObject *value, void *closure)
 {
+#ifndef PY3
 	char *htable = PyString_AsString(value);
+#else
+	const char *htable = PyUnicode_AsUTF8(value);
+#endif
 
 	if (htable == NULL) return -1;
 	else {
@@ -962,7 +968,9 @@ static PyGetSetDef PyKMCGetSet[] = {
 
 static PyTypeObject PyKMCNewType = {
 	PyObject_HEAD_INIT(NULL)
+#ifndef PY3
 	0,							/*ob_size*/
+#endif
 	"MPKMC.new",				/*tp_name*/
 	sizeof(MP_KMCData),			/*tp_basicsize*/
 	0,							/*tp_itemsize*/
@@ -1004,7 +1012,9 @@ static PyTypeObject PyKMCNewType = {
 
 static PyTypeObject PyKMCReadType = {
 	PyObject_HEAD_INIT(NULL)
+#ifndef PY3
 	0,							/*ob_size*/
+#endif
 	"MPKMC.read",				/*tp_name*/
 	sizeof(MP_KMCData),		/*tp_basicsize*/
 	0,							/*tp_itemsize*/
@@ -1092,19 +1102,39 @@ static PyMethodDef MPKMCPyMethods[] = {
 	{ NULL }  /* Sentinel */
 };
 
-#ifndef PyMODINIT_FUNC	/* declarations for DLL import/export */
-#define PyMODINIT_FUNC void
+#ifdef PY3
+static struct PyModuleDef MPKMCPyModule = {
+	PyModuleDef_HEAD_INIT,
+	"MPKMC",
+	NULL,
+	-1,
+	MPKMCPyMethods,
+};
 #endif
+
+#ifndef PY3
 PyMODINIT_FUNC initMPKMC(void)
+#else
+PyMODINIT_FUNC PyInit_MPKMC(void)
+#endif
 {
 	PyObject *m;
 
+#ifndef PY3
 	if (PyType_Ready(&PyKMCNewType) < 0) return;
 	if (PyType_Ready(&PyKMCReadType) < 0) return;
 	if (PyType_Ready(&MP_FSFCCPyType) < 0) return;
 	if (PyType_Ready(&MP_MEAMPyType) < 0) return;
 	m = Py_InitModule3("MPKMC", MPKMCPyMethods, "MPKMC extention");
 	if (m == NULL) return;
+#else
+	if (PyType_Ready(&PyKMCNewType) < 0) return NULL;
+	if (PyType_Ready(&PyKMCReadType) < 0) return NULL;
+	if (PyType_Ready(&MP_FSFCCPyType) < 0) return NULL;
+	if (PyType_Ready(&MP_MEAMPyType) < 0) return NULL;
+	m = PyModule_Create(&MPKMCPyModule);
+	if (m == NULL) return NULL;
+#endif
 	import_array();
 	Py_INCREF(&PyKMCNewType);
 	PyModule_AddObject(m, "new", (PyObject *)&PyKMCNewType);
@@ -1114,6 +1144,9 @@ PyMODINIT_FUNC initMPKMC(void)
 	PyModule_AddObject(m, "fsfcc", (PyObject *)&MP_FSFCCPyType);
 	Py_INCREF(&MP_MEAMPyType);
 	PyModule_AddObject(m, "meam", (PyObject *)&MP_MEAMPyType);
+#ifdef PY3
+	return m;
+#endif
 }
 
 #endif /* MP_PYTHON_LIB */

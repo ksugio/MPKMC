@@ -22,10 +22,10 @@ if __name__ == "__main__":
     kmc.calc_rot_index(5.0, 1.0e-6)
     kmc.add_solute_random(20, 0, 1)
     kmc.grid_energy(MEAMEnergy)
-    print '(totmcs, temp, ntry, njump, table_update, ntable, tote, time) ngroup'
+    print('(totmcs, temp, ntry, njump, table_update, ntable, tote, time) ngroup')
     for temp in T:
       ret = kmc.jump(Ntry, temp, MEAMEnergy)
-      print ret, kmc.find_solute_group(0.71)
+      print(ret, kmc.find_solute_group(0.71))
     kmc.write('meamAl.mpkmc', 8)
 
 

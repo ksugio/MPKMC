@@ -121,7 +121,9 @@ void MPGL_SceneFrontText(MPGL_Scene *scene, int x, int y, const char s[], int fo
 
 static void PyDealloc(MPGL_Scene *self)
 {
+#ifndef PY3
 	self->ob_type->tp_free((PyObject*)self);
+#endif
 }
 
 static PyObject *PyNew(PyTypeObject *type, PyObject *args, PyObject *kwds)
@@ -352,7 +354,9 @@ static PyGetSetDef PyGetSet[] = {
 
 PyTypeObject MPGL_ScenePyType = {
 	PyObject_HEAD_INIT(NULL)
+#ifndef PY3
 	0,							/*ob_size*/
+#endif
 	"MPGLKMC.scene",			/*tp_name*/
 	sizeof(MPGL_Scene),	/*tp_basicsize*/
 	0,							/*tp_itemsize*/

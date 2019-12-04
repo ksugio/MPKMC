@@ -1,4 +1,4 @@
-#include "MPGLKMC.h"
+#include <MPGLKMC.h>
 #include <GL/freeglut.h>
 
 static MP_KMCData *Data;
@@ -110,7 +110,7 @@ void GlutWindow(MP_KMCData *data, int width, int height, int argc, char **argv)
 	glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
 	glutInitWindowSize(width, height);
-	glutCreateWindow("MPGL_GridWindow");
+	glutCreateWindow("MPGL_KMCWindow");
 	glutDisplayFunc(DisplayFunc);
 	glutReshapeFunc(ReshapeFunc);
 	glutMouseFunc(MouseFunc);

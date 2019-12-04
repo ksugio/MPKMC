@@ -22,6 +22,12 @@ extern "C" {
 #include <GL/gl.h>
 #include <GL/glu.h>
 
+#ifdef MP_PYTHON_LIB
+#if PY_MAJOR_VERSION >= 3
+#define PY3
+#endif
+#endif
+
 /*--------------------------------------------------
   text functions
 */
