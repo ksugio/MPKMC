@@ -56,6 +56,7 @@ static void testMEAM(MP_KMCData *data)
 	{ -0.5, 0, 0.5 },{ -0.5, -0.5, 0 },{ 0, -0.5, -0.5 },{ 0.5, 0, -0.5 } };
 
 	MP_KMCAlloc(data, 4, 10, 10, 10, 13, 1000, 1000, 100000, 100);
+	data->table_use = FALSE;
 	MP_KMCSetUnitCell(data, uc, uc_types, pv);
 	MP_KMCSetCluster(data, cluster, 13);
 	MP_KMCCalcRotIndex(data, 5.0, 1.0e-6);

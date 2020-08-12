@@ -17,6 +17,7 @@ if __name__ == "__main__":
     kmc = MPKMC.new(4, 10, 10, 10, 13)
     kmc.kb = 86.1735e-6; # ev/K
     kmc.rand_seed = 12345
+    kmc.table_use = False
     kmc.set_unitcell(uc, uc_types, pv)
     kmc.set_cluster(clu, 13)
     kmc.calc_rot_index(5.0, 1.0e-6)
