@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -O2 -fPIC -DMP_PYTHON_LIB
-INCLUDES = -I/usr/include/python2.6 -I../lib
+INCLUDES = -I/usr/include/python3.6 -I../lib -I/usr/local/lib/python3.6/dist-packages/numpy/core/include
 LIBS = -lGL -lGLU
 TARGET_D = MPGLKMC.so
 TARGET_S = libMPGLKMC.a
