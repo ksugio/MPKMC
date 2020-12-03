@@ -56,7 +56,11 @@ EXPORTS
 	MP_FSFCCInit
 	MP_FSFCCSetParm
 	MP_FSFCCEnergy
+	MP_FSFCCGridEnergy
+	MP_FSFCCJump
 	; meam
 	MP_MEAMInit
 	MP_MEAMSetParm
 	MP_MEAMEnergy
+	MP_MEAMGridEnergy
+	MP_MEAMJump

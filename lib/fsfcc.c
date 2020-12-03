@@ -104,6 +104,23 @@ double MP_FSFCCEnergy(MP_FSFCC *fsfcc, MP_KMCData *data, short types[])
 	return Ui;
 }
 
+static double FSFCCFunc(MP_KMCData* data, short types[])
+{
+	return MP_FSFCCEnergy(data->potp, data, types);
+}
+
+int MP_FSFCCGridEnergy(MP_FSFCC *fsfcc, MP_KMCData *data)
+{
+	data->potp = fsfcc;
+	return MP_KMCGridEnergy(data, FSFCCFunc);
+}
+
+MP_KMCHistoryItem MP_FSFCCJump(MP_FSFCC *fsfcc, MP_KMCData *data, int ntry, double temp)
+{
+	data->potp = fsfcc;
+	return MP_KMCJump(data, ntry, temp, FSFCCFunc);
+}
+
 /**********************************************************
 * for Python
 **********************************************************/
@@ -203,6 +220,36 @@ static PyObject *PySetParm(MP_FSFCC *self, PyObject *args, PyObject *kwds)
 	return Py_BuildValue("i", MP_FSFCCSetParm(self, p));
 }
 
+static PyObject* PyGridEnergy(MP_FSFCC* self, PyObject* args, PyObject* kwds)
+{
+	MP_KMCData* data;
+	static char* kwlist[] = { "kmc", NULL };
+	int update;
+
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O", kwlist, &data)) {
+		return NULL;
+	}
+	update = MP_FSFCCGridEnergy(self, data);
+	return Py_BuildValue("i", update);
+}
+
+static PyObject* PyJump(MP_FSFCC* self, PyObject* args, PyObject* kwds)
+{
+	MP_KMCData* data;
+	int ntry;
+	double temp;
+	static char* kwlist[] = { "kmc", "ntry", "temp", NULL };
+	MP_KMCHistoryItem ret;
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "Oid", kwlist, &data, &ntry, &temp)) {
+		return NULL;
+	}
+	ret = MP_FSFCCJump(self, data, ntry, temp);
+	return Py_BuildValue("ldiiiidd", ret.totmcs, ret.temp, ret.ntry, ret.njump,
+		ret.table_update, ret.ntable, ret.tote, ret.time);
+}
+
 static PyMethodDef PyMethods[] = {
 	{ "energy", (PyCFunction)PyEnergy, METH_VARARGS | METH_KEYWORDS,
 		"energy(kmc, types) : calculate cluster energy" },
@@ -210,6 +257,10 @@ static PyMethodDef PyMethods[] = {
 		"get_parm(id) : return i-th parameter" },
 	{ "set_parm", (PyCFunction)PySetParm, METH_VARARGS | METH_KEYWORDS,
 		"set_parm(parm) : set parameter, return index in the parameter table" },
+	{ "grid_energy", (PyCFunction)PyGridEnergy, METH_VARARGS | METH_KEYWORDS,
+		"grid_energy(kmc) : calculate energies of grids, return table update flag" },
+	{ "jump", (PyCFunction)PyJump, METH_VARARGS | METH_KEYWORDS,
+		"jump(kmc, ntry, temp) : jump solute atoms by KMC method" },
 	{ NULL }  /* Sentinel */
 };
 

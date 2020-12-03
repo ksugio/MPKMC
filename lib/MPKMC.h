@@ -152,6 +152,7 @@ typedef struct MP_KMCData {
 	long mcs;
 	double tote;
 	double kb;
+	void *potp;
 } MP_KMCData;
 
 int MP_KMCAlloc(MP_KMCData *data, int nuc, int nx, int ny, int nz, int ncluster,
@@ -258,6 +259,8 @@ PyTypeObject MP_FSFCCPyType;
 void MP_FSFCCInit(MP_FSFCC *fsfcc);
 int MP_FSFCCSetParm(MP_FSFCC *fsfcc, MP_FSFCCParm parm);
 double MP_FSFCCEnergy(MP_FSFCC *fsfcc, MP_KMCData *data, short types[]);
+int MP_FSFCCGridEnergy(MP_FSFCC *fsfcc, MP_KMCData *data);
+MP_KMCHistoryItem MP_FSFCCJump(MP_FSFCC *fsfcc, MP_KMCData *data, int ntry, double temp);
 
 /*--------------------------------------------------
 * meam typedef and functions
@@ -291,6 +294,8 @@ PyTypeObject MP_MEAMPyType;
 void MP_MEAMInit(MP_MEAM *meam);
 int MP_MEAMSetParm(MP_MEAM *meam, MP_MEAMParm parm);
 double MP_MEAMEnergy(MP_MEAM *meam, MP_KMCData *data, short types[]);
+int MP_MEAMGridEnergy(MP_MEAM *meam, MP_KMCData *data);
+MP_KMCHistoryItem MP_MEAMJump(MP_MEAM *meam, MP_KMCData *data, int ntry, double temp);
 
 #ifdef __cplusplus
 }
