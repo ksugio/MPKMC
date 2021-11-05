@@ -39,7 +39,7 @@ extern "C" {
 #include <time.h>
 #endif
 
-#ifdef WIN32
+#ifdef _WINDOWS
 #pragma warning(disable:4996)
 #include <windows.h>
 #endif
