@@ -1,3 +1,8 @@
 # MPKMC
 
-MPKMC is the libraries for kinetic Monte Carlo method. Many kinds of energy calculation methods such as EAM, TB, ab initio is utilized as an external function. Because the database including cluster structures and energies is equipped, computational cost is reduced. The "lib" directory includes basic library for kinetic Monte Carlo method. The "libgl" directory includes library for visualization with OpenGL. The "python" directory includes example python script. Dynamic link library which can be utilized by python is created with compiling source code in "lib" and "libgl" directory. Viewing the result is executed with "viewer.py" in python directory. 
+MPKMC is the libraries for kinetic Monte Carlo method.
+Many kinds of energy calculation methods such as EAM, TB, ab initio is utilized as an external function.
+Because the database including cluster structures and energies is equipped, computational cost is reduced.
+The "lib" directory includes basic library for kinetic Monte Carlo method. The "libgl" directory includes library for visualization with OpenGL.
+The "python" directory includes example python script. Dynamic link library which can be utilized by python is created with compiling source code in "lib" and "libgl" directory.
+Viewing the result is executed with "viewer.py" in python directory. 
