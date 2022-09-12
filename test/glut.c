@@ -1,5 +1,5 @@
-#include <MPGLKMC.h>
-#include <GL/freeglut.h>
+//#include <MPGLKMC.h>
+/*#include <GL/freeglut.h>
 
 static MP_KMCData *Data;
 static MPGL_KMCDraw Draw;
@@ -20,14 +20,14 @@ static void DisplayFunc(void)
 	if (dispMode == 0) MPGL_KMCDrawAtoms(&Draw, Data, &Colormap);
 	else if (dispMode == 1) MPGL_KMCDrawCluster(&Draw, Data, &Colormap, Data->table[tbID].types);
 	glPopMatrix();
-	/* colormap draw */
+	// colormap draw
 	glPushMatrix();
 	glRotatef(90.0, 0.0, 0.0, 1.0);
 	glRotatef(90.0, 1.0, 0.0, 0.0);
 	glTranslated((2.0 - Scene.width) / Scene.height, -Colormap.size[1] / 2, Scene.znear - 1.0e-6);
 	MPGL_ColormapDraw(&Colormap);
 	glPopMatrix();
-	/* step */
+	// step
 	glPushAttrib(GL_LIGHTING_BIT);
 	glDisable(GL_LIGHTING);
 	glColor3fv(Colormap.font_color);
@@ -147,4 +147,4 @@ void GlutWindow(MP_KMCData *data, int width, int height, int argc, char **argv)
 	// main loop
 	glutMainLoop();
 }
-
+*/

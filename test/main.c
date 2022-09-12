@@ -1,7 +1,7 @@
 #include <MPKMC.h>
-#include <MPGLKMC.h>
+//#include <MPGLKMC.h>
 
-void GlutWindow(MP_KMCData *data, int width, int height, int argc, char **argv);
+//void GlutWindow(MP_KMCData *data, int width, int height, int argc, char **argv);
 
 static double calcFSFCC(MP_KMCData *data, short types[])
 {
@@ -75,6 +75,7 @@ static void testMEAM(MP_KMCData *data)
 		ret = MP_MEAMJump(&meam, data, 10000, T);
 		printf("%f %d %d %.15e %f\n", T, ret.njump, ret.ntable, ret.tote, ret.time);
 	}
+	printf("%e %e\n", data->tott, data->tott * 1.0e-13);
 }
 
 int main(int argc, char *argv[])
@@ -90,8 +91,8 @@ int main(int argc, char *argv[])
 
 	MP_KMCData data;
 
-	//testMEAM(&data);
-	testFSFCC(&data);
+	testMEAM(&data);
+	//testFSFCC(&data);
 
 
 	
@@ -134,7 +135,7 @@ int main(int argc, char *argv[])
 //		printf("%f %d %d %.15e %f\n", T, ret.njump, ret.ntable, ret.tote, ret.time);
 //		MP_KMCSortTable(&data);
 //	}
-	GlutWindow(&data, 800, 600, argc, argv);
+//	GlutWindow(&data, 800, 600, argc, argv);
 //	MP_KMCWrite(&data, "test.mpkmc", 0);
 //	MP_KMCRead(&data, "..\python\fsfcc.mpkmc", 1);
 	MP_KMCFree(&data);

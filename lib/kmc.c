@@ -58,6 +58,9 @@ int MP_KMCAlloc(MP_KMCData *data, int nuc, int nx, int ny, int nz, int ncluster,
 	data->mcs = 0;
 	data->tote = 0.0;
 	data->kb = 86.1735e-6; // ev/K
+	data->freq = 1.0e13; // frequency for time calculation
+	data->mige = 0.66; // migration energy for time calculation
+	data->tott = 0.0;
 	return TRUE;
 }
 

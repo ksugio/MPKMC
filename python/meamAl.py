@@ -18,6 +18,8 @@ if __name__ == "__main__":
     kmc = MPKMC.new(4, 10, 10, 10, 13)
     meam = MPKMC.meam()
     kmc.kb = 86.1735e-6; # ev/K
+    kmc.freq = 1.0e13
+    kmc.mige = 0.66 # vacancy migration energy in Aluminum
     kmc.rand_seed = 123456
     kmc.table_use = False
     kmc.event_record = False
@@ -31,7 +33,7 @@ if __name__ == "__main__":
     for temp in T:
       #ret = kmc.jump(Ntry, temp, MEAMEnergy)
       ret = meam.jump(kmc, Ntry, temp)
-      print(ret, kmc.find_solute_group(0.71))
+      print(ret, kmc.find_solute_group(0.71), kmc.tott)
     kmc.write('meamAl.mpkmc', 8)
 
 

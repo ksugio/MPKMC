@@ -153,6 +153,9 @@ typedef struct MP_KMCData {
 	double tote;
 	double kb;
 	void *potp;
+	double freq;
+	double mige;
+	double tott;
 } MP_KMCData;
 
 int MP_KMCAlloc(MP_KMCData *data, int nuc, int nx, int ny, int nz, int ncluster,

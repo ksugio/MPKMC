@@ -275,6 +275,7 @@ MP_KMCHistoryItem MP_KMCJump(MP_KMCData *data, int ntry, double temp, double(*fu
 					data->solute[dp].id = id1;
 					data->solute[dp].njump++;
 					data->tote += clde;
+					data->tott += 1.0 / data->freq / exp(-(data->mige + 0.5 * clde) / kt);
 					if (data->event_record) {
 						if (KMCAddEvent(data, dp, dpp, id0, id1, clde, dmcs) == MP_KMC_MEM_ERR) return err;
 						dmcs = 0;

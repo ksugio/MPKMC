@@ -76,6 +76,9 @@ static PyMemberDef PyKMCMembers[] = {
 	{ "mcs", T_INT, offsetof(MP_KMCData, mcs), 1, "current Monte Carlo step" },
 	{ "tote", T_DOUBLE, offsetof(MP_KMCData, tote), 1, "total energy" },
     { "kb", T_DOUBLE, offsetof(MP_KMCData, kb), 0, "Boltzmann constant" },
+	{ "freq", T_DOUBLE, offsetof(MP_KMCData, freq), 0, "Frequency for time calculation" },
+	{ "mige", T_DOUBLE, offsetof(MP_KMCData, mige), 0, "Migration energy for time calculation" },
+	{ "tott", T_DOUBLE, offsetof(MP_KMCData, tott), 1, "Total time" },
 	{ NULL }  /* Sentinel */
 };
 
@@ -615,7 +618,7 @@ static PyObject *PyKMCEventMCS(MP_KMCData *self, PyObject *args)
 	dims[0] = self->nevent + 1;
 	mcs_obj = PyArray_SimpleNew(1, dims, NPY_FLOAT64);
 	if (mcs_obj == NULL) return NULL;
-	MP_KMCEventMCS(self, dims[0], (double *)PyArray_DATA(mcs_obj));
+	MP_KMCEventMCS(self, (int)dims[0], (double *)PyArray_DATA(mcs_obj));
 	return mcs_obj;
 }
 
@@ -627,7 +630,7 @@ static PyObject *PyKMCEventEnergy(MP_KMCData *self, PyObject *args)
 	dims[0] = self->nevent + 1;
 	ene_obj = PyArray_SimpleNew(1, dims, NPY_FLOAT64);
 	if (ene_obj == NULL) return NULL;
-	MP_KMCEventEnergy(self, dims[0], (double *)PyArray_DATA(ene_obj));
+	MP_KMCEventEnergy(self, (int)dims[0], (double *)PyArray_DATA(ene_obj));
 	return ene_obj;
 }
 
@@ -1066,7 +1069,7 @@ static PyObject *PyKMCTypes2String(MP_KMCData *self, PyObject *args, PyObject *k
 	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O", kwlist, &types)) {
 		return NULL;
 	}
-	ncluster = PyTuple_Size(types);
+	ncluster = (int)PyTuple_Size(types);
 	for (i = 0; i < ncluster; i++) {
 		stypes[i] = (short)PyInt_AsLong(PyTuple_GetItem(types, (Py_ssize_t)i));
 	}
