@@ -4,7 +4,7 @@
 #define WRITE_GRID_STEP 100
 #define WRITE_GRID_CHAR 256
 
-int KMCAddHistory(MP_KMCData *data, long totmcs, double temp, int ntry, int njump, int table_update, int ntable, double tote, double time);
+int KMCAddHistory(MP_KMCData* data, long totmcs, double temp, int ntry, int njump, int table_update, int ntable, double tote, double tott, double time);
 int KMCAddEvent(MP_KMCData *data, int dp, int dpp, int id0, int id1, double de, int dmcs);
 
 int MP_KMCWriteTable(MP_KMCData *data, char *filename)
@@ -176,9 +176,9 @@ int MP_KMCWrite(MP_KMCData *data, char *filename, int comp)
 	}
 	gzprintf(gfp, "nhistory %d\n", data->nhistory);
 	for (i = 0; i < data->nhistory; i++) {
-		gzprintf(gfp, "%d %.15e %d %d %d %d %.15e %.15e\n",  data->history[i].totmcs, data->history[i].temp,
+		gzprintf(gfp, "%d %.15e %d %d %d %d %.15e %.15e %.15e\n",  data->history[i].totmcs, data->history[i].temp,
 			data->history[i].ntry, data->history[i].njump, data->history[i].table_update, data->history[i].ntable,
-			data->history[i].tote, data->history[i].time);
+			data->history[i].tote, data->history[i].tott, data->history[i].time);
 	}
 	gzclose(gfp);
 	return TRUE;
@@ -214,7 +214,7 @@ static void ReadGrid(MP_KMCData *data, gzFile gfp)
 	}
 }
 
-static int KMCRead1(MP_KMCData *data, char *filename)
+static int KMCRead12(MP_KMCData *data, char *filename, int version)
 {
 	int i;
 	gzFile gfp;
@@ -250,6 +250,7 @@ static int KMCRead1(MP_KMCData *data, char *filename)
 	int dmcs;
 	long totmcs;
 	double temp, tote, time;
+	double tott = 0.0;
 	int ntry, table_update;
 
 	if ((gfp = gzopen(filename, "rb")) == NULL) {
@@ -348,8 +349,13 @@ static int KMCRead1(MP_KMCData *data, char *filename)
 	sscanf(buf, "%s %d", dum, &nhistory);
 	for (i = 0; i < nhistory; i++) {
 		gzgets(gfp, buf, 256);
-		sscanf(buf, "%ld %le %d %d %d %d %le %le", &totmcs, &temp, &ntry, &njump, &table_update, &ntable, &tote, &time);
-		if (KMCAddHistory(data, totmcs, temp, ntry, njump, table_update, ntable, tote, time) < 0) return FALSE;
+		if (version == 1) {
+			sscanf(buf, "%ld %le %d %d %d %d %le %le", &totmcs, &temp, &ntry, &njump, &table_update, &ntable, &tote, &time);
+		}
+		else {
+			sscanf(buf, "%ld %le %d %d %d %d %le %le %le", &totmcs, &temp, &ntry, &njump, &table_update, &ntable, &tote, &tott, &time);
+		}
+		if (KMCAddHistory(data, totmcs, temp, ntry, njump, table_update, ntable, tote, tott, time) < 0) return FALSE;
 	}
 	gzclose(gfp);
 	return TRUE;
@@ -479,7 +485,8 @@ int MP_KMCRead(MP_KMCData *data, char *filename, int version)
 	case 0:
 		return KMCRead0(data, filename);
 	case 1:
-		return KMCRead1(data, filename);
+	case 2:
+		return KMCRead12(data, filename, version);
 	default:
 		fprintf(stderr, "Error : Invalid version, %d(MP_KMCRead)\n", version);
 		return FALSE;

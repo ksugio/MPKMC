@@ -394,8 +394,8 @@ static PyObject* PyJump(MP_MEAM* self, PyObject* args, PyObject* kwds)
 		return NULL;
 	}
 	ret = MP_MEAMJump(self, data, ntry, temp);
-	return Py_BuildValue("ldiiiidd", ret.totmcs, ret.temp, ret.ntry, ret.njump,
-		ret.table_update, ret.ntable, ret.tote, ret.time);
+	return Py_BuildValue("ldiiiiddd", ret.totmcs, ret.temp, ret.ntry, ret.njump,
+		ret.table_update, ret.ntable, ret.tote, ret.tott, ret.time);
 }
 
 static PyMethodDef PyMethods[] = {

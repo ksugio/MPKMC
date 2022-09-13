@@ -81,12 +81,14 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>C:\Users\ksugio\AppData\Local\Programs\Python\Python38-32\include;$(FREEGLUT)\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\ksugio\AppData\Local\Programs\Python\Python38-32\libs;$(FREEGLUT)\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Users\jiror\AppData\Local\Programs\Python\Python38-32\include;$(FREEGLUT)\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\jiror\AppData\Local\Programs\Python\Python38-32\libs;$(FREEGLUT)\lib;$(LibraryPath)</LibraryPath>
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
+    <IncludePath>C:\Users\jiror\AppData\Local\Programs\Python\Python39\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\jiror\AppData\Local\Programs\Python\Python39\libs;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

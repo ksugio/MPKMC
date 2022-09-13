@@ -281,14 +281,30 @@ class HistoryPlotCanvas(FigureCanvas):
     elif index == 4:
       self.axes.step(history[0], history[7], 'k-')
       self.axes.set_xlabel('MCS')
-      self.axes.set_ylabel('CPU Time')
+      self.axes.set_ylabel('Total Time')
     elif index == 5:
+      self.axes.step(history[0], history[8], 'k-')
+      self.axes.set_xlabel('MCS')
+      self.axes.set_ylabel('CPU Time')
+    elif index == 6:
       self.axes.plot(history[1], history[3], 'ko-')
       self.axes.set_xlabel('Temperature')
       self.axes.set_ylabel('Number of Jump')
-    elif index == 6:
+    elif index == 7:
       self.axes.plot(history[1], history[6], 'ko-')
       self.axes.set_xlabel('Temperature')
+      self.axes.set_ylabel('Total Energy')
+    elif index == 8:
+      self.axes.plot(history[7], history[1], 'ko-')
+      self.axes.set_xlabel('Total Time')
+      self.axes.set_ylabel('Temperature')
+    elif index == 9:
+      self.axes.plot(history[7], history[3], 'ko-')
+      self.axes.set_xlabel('Total Time')
+      self.axes.set_ylabel('Number of Jump')
+    elif index == 10:
+      self.axes.plot(history[7], history[6], 'ko-')
+      self.axes.set_xlabel('Total Time')
       self.axes.set_ylabel('Total Energy')
     self.draw()
 
@@ -306,9 +322,13 @@ class HistoryPlotDialog(QtWidgets.QDialog):
     self.combo.addItem('MCS - Number of Jump')
     self.combo.addItem('MCS - Number of Table')
     self.combo.addItem('MCS - Total Energy')
+    self.combo.addItem('MCS - Total Time')
     self.combo.addItem('MCS - CPU Time')
     self.combo.addItem('Temperature - Number of Jump')
     self.combo.addItem('Temperature - Total Energy')
+    self.combo.addItem('Total Time - Temperature')
+    self.combo.addItem('Total Time - Number of Jump')
+    self.combo.addItem('Total Time - Total Energy')
     self.combo.currentIndexChanged[int].connect(self.graphChanged)
     vbox.addWidget(self.combo)
     self.canvas = HistoryPlotCanvas()

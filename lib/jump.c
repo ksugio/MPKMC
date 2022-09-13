@@ -159,7 +159,7 @@ int KMCAddEvent(MP_KMCData *data, int dp, int dpp, int id0, int id1, double de, 
 	return eid;
 }
 
-int KMCAddHistory(MP_KMCData *data, long totmcs, double temp, int ntry, int njump, int table_update, int ntable, double tote, double time)
+int KMCAddHistory(MP_KMCData *data, long totmcs, double temp, int ntry, int njump, int table_update, int ntable, double tote, double tott, double time)
 {
 	int nhistory_max;
 	int hid;
@@ -181,6 +181,7 @@ int KMCAddHistory(MP_KMCData *data, long totmcs, double temp, int ntry, int njum
 	data->history[hid].table_update = table_update;
 	data->history[hid].ntable = ntable;
 	data->history[hid].tote = tote;
+	data->history[hid].tott = tott;
 	data->history[hid].time = time;
 	data->nhistory++;
 	return hid;
@@ -275,7 +276,8 @@ MP_KMCHistoryItem MP_KMCJump(MP_KMCData *data, int ntry, double temp, double(*fu
 					data->solute[dp].id = id1;
 					data->solute[dp].njump++;
 					data->tote += clde;
-					data->tott += 1.0 / data->freq / exp(-(data->mige + 0.5 * clde) / kt);
+					if (clde >= 0.0) data->tott += 1.0 / data->freq / exp(-(data->mige + 0.5 * clde) / kt);
+					else data->tott += 1.0 / data->freq;
 					if (data->event_record) {
 						if (KMCAddEvent(data, dp, dpp, id0, id1, clde, dmcs) == MP_KMC_MEM_ERR) return err;
 						dmcs = 0;
@@ -290,7 +292,7 @@ MP_KMCHistoryItem MP_KMCJump(MP_KMCData *data, int ntry, double temp, double(*fu
 			ntried++;
 		}
 	}
-	hid = KMCAddHistory(data, data->totmcs, temp, ntry, njump, table_update, data->ntable, data->tote, 
+	hid = KMCAddHistory(data, data->totmcs, temp, ntry, njump, table_update, data->ntable, data->tote, data->tott,
 		(double)(clock() - start) / CLOCKS_PER_SEC);
 	if (hid == MP_KMC_MEM_ERR) return err;
 	else return data->history[hid];

@@ -73,7 +73,7 @@ static void testMEAM(MP_KMCData *data)
 	for (T = 800; T > 600; T -= 10) {
 		//ret = MP_KMCJump(data, 10000, T, calcMEAM);
 		ret = MP_MEAMJump(&meam, data, 10000, T);
-		printf("%f %d %d %.15e %f\n", T, ret.njump, ret.ntable, ret.tote, ret.time);
+		printf("%f %d %d %.15e %e %f\n", T, ret.njump, ret.ntable, ret.tote, ret.tott, ret.time);
 	}
 	printf("%e %e\n", data->tott, data->tott * 1.0e-13);
 }

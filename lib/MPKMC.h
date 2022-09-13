@@ -102,6 +102,7 @@ typedef struct MP_KMCHistoryItem {
 	int table_update;
 	int ntable;
 	double tote;
+	double tott;
 	double time;
 } MP_KMCHistoryItem;
 

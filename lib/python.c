@@ -41,7 +41,7 @@ static PyObject *PyKMCNewNew(PyTypeObject *type, PyObject *args, PyObject *kwds)
 static PyObject *PyKMCReadNew(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
 	char *fname;
-	int version = 1;
+	int version = 2;
 	static char *kwlist[] = { "fname", "version", NULL };
 	MP_KMCData *self;
 
@@ -545,8 +545,8 @@ static PyObject *PyKMCJump(MP_KMCData *self, PyObject *args, PyObject *kwds)
 		self->pyfunc = func;
 		ret = MP_KMCJump(self, ntry, temp, calcEnergy);
 	}
-	return Py_BuildValue("ldiiiidd", ret.totmcs, ret.temp, ret.ntry, ret.njump, 
-		ret.table_update, ret.ntable, ret.tote, ret.time);
+	return Py_BuildValue("ldiiiiddd", ret.totmcs, ret.temp, ret.ntry, ret.njump, 
+		ret.table_update, ret.ntable, ret.tote, ret.tott, ret.time);
 }
 
 /*--------------------------------------------------
@@ -772,9 +772,9 @@ static PyObject *PyKMCHistoryItem(MP_KMCData *self, PyObject *args, PyObject *kw
 		return NULL;
 	}
 	if (id >= 0 && id < self->nhistory) {
-		return Py_BuildValue("ldiiiidd", self->history[id].totmcs, self->history[id].temp, self->history[id].ntry,
+		return Py_BuildValue("ldiiiiddd", self->history[id].totmcs, self->history[id].temp, self->history[id].ntry,
 			self->history[id].njump, self->history[id].table_update, self->history[id].ntable,
-			self->history[id].tote, self->history[id].time);
+			self->history[id].tote, self->history[id].tott, self->history[id].time);
 	}
 	else return NULL;
 }
@@ -1037,7 +1037,7 @@ static PyTypeObject PyKMCReadType = {
 	0,							/*tp_setattro*/
 	0,							/*tp_as_buffer*/
 	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,	/*tp_flags*/
-	"read(fname, [version=1])",				/* tp_doc */
+	"read(fname, [version=2])",				/* tp_doc */
 	0,							/* tp_traverse */
 	0,							/* tp_clear */
 	0,							/* tp_richcompare */
