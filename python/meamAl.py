@@ -7,7 +7,7 @@ def MEAMEnergy(kmc, types):
   return Meam.energy(kmc, types)
 
 if __name__ == "__main__":
-    Ntry = 100000
+    Ntry = 10000
     T = range(800, 600, -10)
     uc = ((0, 0, 0), (0.5, 0.5, 0.0), (0.5, 0.0, 0.5), (0.0, 0.5, 0.5))
     uc_types = (13, 13, 13, 13)
