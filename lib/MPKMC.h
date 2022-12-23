@@ -256,6 +256,10 @@ typedef struct MP_FSFCC {
 	MP_FSFCCParm parm[MP_FSFCC_NPARM_MAX];
 } MP_FSFCC;
 
+#ifdef MP_PYTHON_LIB
+extern PyTypeObject MP_FSFCCPyType;
+#endif
+
 void MP_FSFCCInit(MP_FSFCC *fsfcc);
 int MP_FSFCCSetParm(MP_FSFCC *fsfcc, MP_FSFCCParm parm);
 double MP_FSFCCEnergy(MP_FSFCC *fsfcc, MP_KMCData *data, short types[]);
@@ -286,6 +290,10 @@ typedef struct MP_MEAM {
 	int Zd;
 	double S1, S2, S3;
 } MP_MEAM;
+
+#ifdef MP_PYTHON_LIB
+extern PyTypeObject MP_MEAMPyType;
+#endif
 
 void MP_MEAMInit(MP_MEAM *meam);
 int MP_MEAMSetParm(MP_MEAM *meam, MP_MEAMParm parm);

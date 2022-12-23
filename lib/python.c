@@ -6,9 +6,6 @@
 #define SOLUTE_GROUP_MAX 10000
 #define SOLUTE_TYPES_MAX 128
 
-extern PyTypeObject MP_FSFCCPyType;
-extern PyTypeObject MP_MEAMPyType;
-
 static void PyKMCDealloc(MP_KMCData* self)
 {
 	MP_KMCFree(self);
