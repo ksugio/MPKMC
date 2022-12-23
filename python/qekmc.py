@@ -7,6 +7,7 @@ import math as m
 DefaultIn =\
 "&control\n\
  calculation = 'scf'\n\
+ pseudo_dir='./pseudo'\n\
  prefix='Al-Si'\n\
 /\n\
 &system\n\
@@ -84,7 +85,7 @@ if __name__ == "__main__":
     Ntry = 100000
     T = range(300, 0, -10)
     etbfile = 'Al-Si.etb'
-    resfile = 'Al-Si_1.mpkmc'
+    resfile = 'Al-Si.mpkmc'
     Kb = 86.1735e-6; # ev/K
     Ry = 13.6058; # ev
     Kbry = Kb/Ry
@@ -96,6 +97,8 @@ if __name__ == "__main__":
         (0, -0.5, 0.5), (-0.5, 0, 0.5), (-0.5, -0.5, 0), (0, -0.5, -0.5), (0.5, 0, -0.5))
     kmc = MPKMC.new(4, 10, 10, 10, 13, 100, 1000, 10000)
     kmc.kb = Kbry
+    kmc.freq = 1.0e13 # frequency of atom
+    kmc.mige = 0.66 # vacancy migration energy in Aluminum
     kmc.rand_seed = 12345
     kmc.set_unitcell(uc, uc_types, pv)
     kmc.set_cluster(clu, 13)

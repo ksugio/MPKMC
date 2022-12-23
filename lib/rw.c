@@ -26,7 +26,7 @@ int MP_KMCWriteTable(MP_KMCData *data, char *filename)
 		for (j = 0; j < data->ncluster; j++) {
 			fprintf(fp, "%d ", data->table[i].types[j]);
 		}
-		fprintf(fp, "%.15e %d\n", data->table[i].energy, data->table[i].refcount);
+		fprintf(fp, "%.15e %ld\n", data->table[i].energy, data->table[i].refcount);
 	}
 	fclose(fp);
 	return TRUE;
