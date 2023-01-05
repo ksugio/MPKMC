@@ -277,6 +277,8 @@ MP_KMCHistoryItem MP_MEAMJump(MP_MEAM *meam, MP_KMCData *data, int ntry, double 
 **********************************************************/
 #ifdef MP_PYTHON_LIB
 
+PyTypeObject MP_MEAMPyType;
+
 static void PyDealloc(MP_MEAM *self)
 {
 #ifndef PY3

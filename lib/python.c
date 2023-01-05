@@ -388,7 +388,7 @@ static PyObject *PyKMCAddSolute(MP_KMCData *self, PyObject *args, PyObject *kwds
 	return Py_BuildValue("i", MP_KMCAddSolute(self, id, type, jump));
 }
 
-static PyObject *PyKMCAddSoluteRandom(MP_KMCData *self, PyObject *args, PyObject *kwds)
+static PyObject* PyKMCAddSoluteRandom(MP_KMCData* self, PyObject* args, PyObject* kwds)
 {
 	int num;
 	short type;
@@ -402,7 +402,7 @@ static PyObject *PyKMCAddSoluteRandom(MP_KMCData *self, PyObject *args, PyObject
 	Py_RETURN_NONE;
 }
 
-static PyObject *PyKMCCheckSolute(MP_KMCData *self, PyObject *args)
+static PyObject* PyKMCCheckSolute(MP_KMCData* self, PyObject* args)
 {
 	return Py_BuildValue("i", MP_KMCCheckSolute(self));
 }

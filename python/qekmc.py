@@ -2,58 +2,32 @@ import MPKMC
 import subprocess
 import os
 import numpy as np
-import math as m
+import math
+import pandas as pd
 
-DefaultIn =\
-"&control\n\
- calculation = 'scf'\n\
- pseudo_dir='./pseudo'\n\
- prefix='Al-Si'\n\
-/\n\
-&system\n\
- ibrav = 1\n\
- celldm(1) = 15.42017132\n\
- nat = 13\n\
- ntyp = 2\n\
- ecutwfc = 30.0\n\
- ecutrho = 150.0\n\
- occupations = 'smearing'\n\
- smearing = 'm-p'\n\
- degauss = 0.001\n\
- assume_isolated = 'mp'\n\
-/\n\
-&electrons\n\
- mixing_beta = 0.7\n\
- conv_thr = 1.0d-8\n\
-/\n\
-ATOMIC_SPECIES\n\
- Al 26.98 Al.blyp-hgh.UPF\n\
- Si 28.086 Si.blyp-hgh.UPF\n\
-K_POINTS {automatic}\n\
- 4 4 4 0 0 0\n\
-ATOMIC_POSITIONS {alat}\n"
+Symbols = {1: 'H', 2: 'He', 3: 'Li', 4: 'Be', 5: 'B', 6: 'C',
+           7: 'N', 8: 'O', 9: 'F', 10: 'Ne', 11: 'Na', 12: 'Mg',
+           13: 'Al', 14: 'Si', 15: 'P', 16: 'S', 17: 'Cl', 18: 'Ar',
+           19: 'K', 20: 'Ca', 21: 'Sc', 22: 'Ti', 23: 'V', 24: 'Cr',
+           25: 'Mn', 26: 'Fe', 27: 'Co', 28: 'Ni', 29: 'Cu', 30: 'Zn',
+           31: 'Ga', 32: 'Ge', 33: 'As', 34: 'Se', 35: 'Br', 36: 'Kr',
+           37: 'Rb', 38: 'Sr', 39: 'Y', 40: 'Zr', 41: 'Nb', 42: 'Mo',
+           43: 'Tc', 44: 'Ru', 45: 'Rh', 46: 'Pd', 47: 'Ag', 48: 'Cd'}
 
-def z2symbol(z, table):
-    for it in table:
-        if it[0] == z:
-            return it[1]
-
-def isoEnergy(z, table):
-    for it in table:
-        if it[0] == z:
-            return it[2]
-
-def writeIN(types, cluster, table):
-    f = open('tmp.in', 'w')
-    f.write(DefaultIn)
-    for i in range(len(types)):
-        if types[i] != 0:
-            x = cluster[i][0]/2.0 + 0.5
-            y = cluster[i][1]/2.0 + 0.5
-            z = cluster[i][2]/2.0 + 0.5
-            line = ' %s %3.2f %3.2f %3.2f\n' % (z2symbol(types[i], table), x, y, z)
-            f.write(line)
-    f.close()
+def writeIN(types, cluster):
+    with open('qedefault.in', mode='r') as fin:
+        default = fin.read()
+    line = 'nat = %d' % (13 - types.count(0))
+    mod = default.replace('nat = 32', line)
+    with open('tmp.in', mode='w') as fout:
+        fout.write(mod)
+        for i in range(len(types)):
+            if types[i] != 0:
+                x = cluster[i][0]/2.0 + 0.5
+                y = cluster[i][1]/2.0 + 0.5
+                z = cluster[i][2]/2.0 + 0.5
+                line = ' %s %3.2f %3.2f %3.2f\n' % (Symbols[types[i]], x, y, z)
+                fout.write(line)
 
 def readOUT(outfile):
     f = open(outfile, 'r')
@@ -65,38 +39,66 @@ def readOUT(outfile):
     f.close()
     return 0.0
 
+# def calcQE(kmc, types):
+#     table = [[13, 'Al', -4.77069668], [40, 'Zr', -99.335965320625],[3, 'Li',-14.469288874375],[12,'Mg', -126.44307896625],[0,'vac',0],[14, 'Si', -11.0243531],[29, 'Cu',  -49.818497277]]
+#     writeIN(types, kmc.cluster, table)
+#     str2 =MPKMC.types2string(types)
+#     print(str2)
+#     if os.path.exists(str2+'.out'):
+#     	tote = readOUT(str2+'.out')
+#     else:
+#     	outfile = '%s.out' % (MPKMC.types2string(types))
+#     	cmd = './pw.x < tmp.in > %s' % (outfile)
+#     	print(cmd)
+#     	subprocess.call(cmd, shell=True)
+#     	tote = readOUT(outfile)
+#     totc=0
+#     for tp in types:
+#         if tp != 0:
+#             tote =tote -isoEnergy(tp, table)
+#             totc = totc+1
+#     #tote=tote*13.6058
+#     print (types, totc, tote/totc)
+#     return tote/totc
+
 def calcQE(kmc, types):
-    table = [[13, 'Al', -3.86102800], [14, 'Si', -7.45092356]]
-    writeIN(types, kmc.cluster, table)
+    energies = { 3: -14.469288874375,
+                 12: -126.44307896625,
+                 13: -4.77069668,
+                 14: -11.0243531,
+                 29: -49.818497277,
+                 40: -99.335965320625, }
+    writeIN(types, kmc.cluster)
     outfile = '%s.out' % (MPKMC.types2string(types))
-    cmd = './pw.x < tmp.in > %s' % (outfile)
-    print(cmd)
-    subprocess.call(cmd, shell=True)
+    if not os.path.exists(outfile):
+        cmd = './pw.x < tmp.in > %s' % (outfile)
+        print(cmd)
+        subprocess.call(cmd, shell=True)
     tote = readOUT(outfile)
-    totc = 0
+    tote = tote - 19 * energies[13]
+    totc = 19
     for tp in types:
         if tp != 0:
-            tote = tote-isoEnergy(tp, table)
-            totc = totc+1
+            tote = tote - energies[tp]
+            totc = totc + 1
     print(types, totc, tote/totc)
     return tote/totc
 
 if __name__ == "__main__":
-    Ntry = 100000
-    T = range(300, 0, -10)
-    etbfile = 'Al-Si.etb'
-    resfile = 'Al-Si.mpkmc'
+    Ntry = 10000
+    T = range(800, 700, -1)
+    etbfile = 'Al-Si_13.etb'
+    resfile = 'Al-Si_13.mpkmc'
     Kb = 86.1735e-6; # ev/K
     Ry = 13.6058; # ev
-    Kbry = Kb/Ry
     uc = ((0, 0, 0), (0.5, 0.5, 0.0), (0.5, 0.0, 0.5), (0.0, 0.5, 0.5))
     uc_types = (13, 13, 13, 13)
-    pv = ((4.08, 0, 0), (0, 4.08, 0), (0, 0, 4.08))
+    pv = ((4.04360, 0, 0), (0, 4.04360, 0), (0, 0, 4.04360))
     clu = ((0, 0, 0), (0.5, 0.5, 0), (0, 0.5, -0.5), (-0.5, 0, -0.5),\
         (-0.5, 0.5, 0), (0, 0.5, 0.5), (0.5, 0, 0.5), (0.5, -0.5, 0),\
         (0, -0.5, 0.5), (-0.5, 0, 0.5), (-0.5, -0.5, 0), (0, -0.5, -0.5), (0.5, 0, -0.5))
     kmc = MPKMC.new(4, 10, 10, 10, 13, 100, 1000, 10000)
-    kmc.kb = Kbry
+    kmc.kb = Kb/Ry
     kmc.freq = 1.0e13 # frequency of atom
     kmc.mige = 0.66 # vacancy migration energy in Aluminum
     kmc.rand_seed = 12345
@@ -105,12 +107,14 @@ if __name__ == "__main__":
     kmc.calc_rot_index(5.0, 1.0e-6)
     if os.path.exists(etbfile):
         kmc.read_table(etbfile)
-    kmc.add_solute_random(40, 14, 1)
+    kmc.add_solute_random(10, 14, 1)
+    #kmc.add_solute_random(6, 0, 1)
     kmc.grid_energy(calcQE)
+    kmc.write_table(etbfile)
     print(kmc.tote, kmc.ntable)
-    print('(totmcs, temp, ntry, njump, table_update, ntable, tote, time) ngroup')
+    print('(totmcs, temp, ntry, njump, table_update, ntable, tote, tott, time) ngroup')
     for temp in T:
         ret = kmc.jump(Ntry, temp, calcQE)
-        print(ret, kmc.find_solute_group(0.71))
+        kmc.write_table(etbfile)
+        print(ret, kmc.find_solute_group(1.42))
     kmc.write(resfile, 8)
-

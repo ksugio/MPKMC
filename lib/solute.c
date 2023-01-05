@@ -1,6 +1,6 @@
 #include "MPKMC.h"
 
-int MP_KMCAddSolute(MP_KMCData *data, int id, short type, short jump)
+int MP_KMCAddSolute(MP_KMCData* data, int id, short type, short jump)
 {
 	int i;
 	int nsolute_max;

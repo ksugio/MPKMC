@@ -1,0 +1,50 @@
+&control
+ calculation = 'scf'
+ pseudo_dir='./pseudo'
+ outdir='./tmp'
+/
+&system
+ ibrav = 1
+ celldm(1) = 15.2826
+ nat = 32
+ ntyp = 2
+ ecutwfc = 50.0
+ ecutrho = 400
+ occupations = 'smearing'
+ smearing = 'm-p'
+ degauss = 0.01
+ assume_isolated = 'mp'
+/
+&electrons
+ mixing_beta = 0.7
+ conv_thr = 1.0d-8
+/
+&IONS
+/
+&CELL
+/
+ATOMIC_SPECIES
+ Al 26.98 Al.pbe-n-rrkjus_psl.1.0.0.UPF
+ Si 28.085 Si.pbe-n-rrkjus_psl.1.0.0.UPF
+K_POINTS {automatic}
+3 3 3 0 0 0
+ATOMIC_POSITIONS {alat}
+ Al 0.50 0.00 0.50\n\
+ Al 0.75 0.00 0.75\n\
+ Al 0.00 0.50 0.50\n\
+ Al 0.00 0.75 0.75\n\
+ Al 0.00 0.00 0.50\n\
+ Al 0.25 0.00 0.75\n\
+ Al 0.00 0.25 0.75\n\
+ Al 0.50 0.50 0.00\n\
+ Al 0.75 0.75 0.00\n\
+ Al 0.50 0.00 0.00\n\
+ Al 0.75 0.25 0.00\n\
+ Al 0.75 0.00 0.25\n\
+ Al 0.00 0.50 0.00\n\
+ Al 0.25 0.75 0.00\n\
+ Al 0.00 0.75 0.25\n\
+ Al 0.00 0.00 0.00\n\
+ Al 0.25 0.25 0.00\n\
+ Al 0.25 0.00 0.25\n\
+ Al 0.00 0.25 0.25\n"

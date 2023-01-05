@@ -126,6 +126,8 @@ MP_KMCHistoryItem MP_FSFCCJump(MP_FSFCC *fsfcc, MP_KMCData *data, int ntry, doub
 **********************************************************/
 #ifdef MP_PYTHON_LIB
 
+PyTypeObject MP_FSFCCPyType;
+
 static void PyDealloc(MP_FSFCC *self)
 {
 #ifndef PY3
