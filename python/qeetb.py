@@ -1,6 +1,7 @@
 import MPKMC
 import qetool
 import os
+import pandas as pd
 
 def GenCell():
     Kb = 86.1735e-6; # ev/K
@@ -51,7 +52,7 @@ def Compare(etbfile, outfile, isolates):
     qetote = qetool.BindingEnergy(data, isolates)
     kmctote = kmc.tote
     del kmc
-    return qetote, kmctote, qetote-kmctote
+    return outfile, qetote, kmctote, qetote-kmctote
 
 #
 # genarate .etb file from QE .out file
@@ -64,12 +65,20 @@ if __name__ == "__main__":
               (14, 14): -0.058415198177092176, (0, 13): -0.01913845484375054,
               (0, 14): -0.03314451484373948, (0, 0): 0.0 }
     genTable(etbfile, outdir, isolates, ebonds)
-    # Compare
+    # Compare 1
     outfiles = [ ('AlSi60/qAAAAAAAAAAAAA.out', (13, 13)),
                  ('AlSi60/qAAAAAASAAAAAA.out', (13, 14)),
                  ('AlSi60/qSASAAAAAAAAAA.out', (14, 14)),
                  ('AlSi60/qAA0AAAAAAAAAA.out', (0, 13)),
                  ('AlSi60/qAS0AAAAAAAAAA.out', (0, 14)) ]
-    print(('QE', 'MC', 'Diff'))
+    print(('File', 'QE', 'MC', 'Diff'))
     for outfile, combi in outfiles:
         print(Compare(etbfile, outfile, isolates))
+    # Compare 2
+    comp = []
+    for outfile, types in qetool.listQEoutTypes('AlSi60'):
+        if not 0 in types:
+            comp.append(Compare(etbfile, outfile, isolates))
+    df = pd.DataFrame(comp, columns=['File', 'QE', 'MC', 'Diff'])
+    df.to_csv('Al-Si-V_cmp.csv', index=False)
+
