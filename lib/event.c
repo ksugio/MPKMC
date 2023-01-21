@@ -18,17 +18,12 @@ static void UpdateGridEnergy(MP_KMCData *data, int id0, int id1)
 	MP_KMCClusterIndexes(data, id1, ids1);
 	nncluster = KMCUniteIndexes(data->ncluster, ids0, ids1, ids2);
 	for (j = 0; j < nncluster; j++) {
-		if (data->grid[ids2[j]].type > 0) {
-			MP_KMCClusterTypes(data, ids2[j], types);
-			tid = MP_KMCSearchCluster(data, types);
-			if (tid >= 0) {
-				data->grid[ids2[j]].energy = data->table[tid].energy;
-			}
-			else {
-				data->grid[ids2[j]].energy = 0.0;
-			}
+		MP_KMCClusterTypes(data, ids2[j], types);
+		tid = MP_KMCSearchCluster(data, types);
+		if (tid >= 0) {
+			data->grid[ids2[j]].energy = data->table[tid].energy;
 		}
-		else if (data->grid[ids2[j]].type == 0) {
+		else {
 			data->grid[ids2[j]].energy = 0.0;
 		}
 	}

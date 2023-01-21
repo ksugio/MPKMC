@@ -333,41 +333,6 @@ int MP_KMCCountType(MP_KMCData *data, short type)
 	return count;
 }
 
-/*double MP_KMCCalcEnergy(MP_KMCData *data, int id, double(*func)(MP_KMCData *, short *), int *update)
-{
-	short types[MP_KMC_NCLUSTER_MAX];
-	int tid;
-
-	*update = FALSE;
-	if (data->grid[id].type > 0) {
-		MP_KMCClusterTypes(data, id, types);
-		if (data->table_use) {
-			tid = MP_KMCSearchCluster(data, types);
-			if (tid >= 0) {
-				data->table[tid].refcount += 1;
-				data->grid[id].energy = data->table[tid].energy;
-			}
-			else {
-				if (func != NULL) {
-					data->grid[id].energy = (func)(data, types);
-					MP_KMCAddCluster(data, types, data->grid[id].energy, 0);
-					*update = TRUE;
-				}
-				else {
-					data->grid[id].energy = 0.0;
-				}
-			}
-		}
-		else {
-			data->grid[id].energy = (func)(data, types);
-		}
-	}
-	else if (data->grid[id].type == 0) {
-		data->grid[id].energy = 0.0;
-	}
-	return data->grid[id].energy;
-}*/
-
 static int SortCompRefcount(const void *c1, const void *c2)
 {
 	MP_KMCTableItem *t1 = (MP_KMCTableItem *)c1;

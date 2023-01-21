@@ -72,20 +72,14 @@ static void CalcClusterEnergies(MP_KMCData *data, double(*func)(MP_KMCData *, sh
 #pragma omp parallel for
 #endif
 		for (j = 0; j < ncluster; j++) {
-			if (data->grid[ids[j]].type > 0) {
-				MP_KMCClusterTypes(data, ids[j], types[j]);
-				tid[j] = MP_KMCSearchCluster(data, types[j]);
-				if (tid[j] >= 0) {
-					energy[j] = data->table[tid[j]].energy;
-				}
-				else {
-					if (func != NULL) energy[j] = (func)(data, types[j]);
-					else energy[j] = 0.0;
-				}
+			MP_KMCClusterTypes(data, ids[j], types[j]);
+			tid[j] = MP_KMCSearchCluster(data, types[j]);
+			if (tid[j] >= 0) {
+				energy[j] = data->table[tid[j]].energy;
 			}
-			else if (data->grid[ids[j]].type == 0) {
-				tid[j] = -99;
-				energy[j] = 0.0;
+			else {
+				if (func != NULL) energy[j] = (func)(data, types[j]);
+				else energy[j] = 0.0;
 			}
 		}
 		for (j = 0; j < ncluster; j++) {
@@ -108,12 +102,11 @@ static void CalcClusterEnergies(MP_KMCData *data, double(*func)(MP_KMCData *, sh
 #pragma omp parallel for
 #endif
 		for (j = 0; j < ncluster; j++) {
-			if (data->grid[ids[j]].type > 0) {
-				MP_KMCClusterTypes(data, ids[j], types[j]);
-				if (func != NULL) energy[j] = (func)(data, types[j]);
-				else energy[j] = 0.0;
+			MP_KMCClusterTypes(data, ids[j], types[j]);
+			if (func != NULL) {
+				energy[j] = (func)(data, types[j]);
 			}
-			else if (data->grid[ids[j]].type == 0) {
+			else {
 				energy[j] = 0.0;
 			}
 		}

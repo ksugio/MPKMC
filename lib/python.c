@@ -802,7 +802,7 @@ static PyMethodDef PyKMCMethods[] = {
 	{ "search_cluster_ids", (PyCFunction)PyKMCSearchClusterIDs, METH_VARARGS | METH_KEYWORDS,
 		"search_cluster_ids(ids) : search cluster in table from atom indexes and return table index" },
 	{ "add_cluster", (PyCFunction)PyKMCAddCluster, METH_VARARGS | METH_KEYWORDS,
-		"add_cluster(types) : add cluster in table and return table index" },
+		"add_cluster(types, energy, refcount) : add cluster in table and return table index" },
 	{ "add_cluster_ids", (PyCFunction)PyKMCAddClusterIDs, METH_VARARGS | METH_KEYWORDS,
 		"add_cluster_ids(ids) : add cluster in table by atom indexes and return table index" },
 	{ "count_type", (PyCFunction)PyKMCCountType, METH_VARARGS | METH_KEYWORDS,
