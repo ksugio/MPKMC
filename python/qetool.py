@@ -191,20 +191,26 @@ def ClusterEnergy(data, isolates, ebonds, fill_ref=FCC222, fill_type=0,
         tote -= ebonds[key]
     return tote / 2.0
 
+def removeType(lattice, type):
+    newlatt = []
+    for n, x, y, z in lattice:
+        if n != type:
+            newlatt.append((n, x, y, z))
+    return newlatt
+
 def writeQEin(types, cluster, headfile, infile, fill_ref=FCC222, fill_type=0):
     lattice = []
     for i in range(len(types)):
-        if types[i] != 0:
-            x = cluster[i][0] / 2.0 + 0.5
-            y = cluster[i][1] / 2.0 + 0.5
-            z = cluster[i][2] / 2.0 + 0.5
-            lattice.append((types[i], x, y, z))
+        x = cluster[i][0] / 2.0 + 0.5
+        y = cluster[i][1] / 2.0 + 0.5
+        z = cluster[i][2] / 2.0 + 0.5
+        lattice.append((types[i], x, y, z))
     if fill_type > 0:
         lattice = fillLattice(lattice, fill_ref, fill_type)
-    natom = len(lattice)
+    lattice = removeType(lattice, 0)
     with open(headfile, mode='r') as fin:
         head = fin.read()
-        head = head.replace('nat = 32', 'nat = %d' % (natom))
+        head = head.replace('nat = 32', 'nat = %d' % (len(lattice)))
     with open(infile, mode='w') as fout:
         fout.write(head)
         for n, x, y, z in lattice:

@@ -1,7 +1,7 @@
 &control
  calculation = 'scf'
- pseudo_dir='/home/usr0/p10110p/pes/'
- outdir='./tmp'
+ pseudo_dir = './pseudo'
+ outdir = './tmp'
 /
 &system
  ibrav = 1

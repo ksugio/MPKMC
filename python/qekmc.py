@@ -9,7 +9,7 @@ def calcQE(kmc, types):
               (14, 14): -0.058415198177092176, (0, 13): -0.01913845484375054,
               (0, 14): -0.03314451484373948, (0, 0): 0.0 }
     qetool.writeQEin(types, kmc.cluster, 'qehead.in', 'tmp.in', fill_type=13)
-    outfile = '%s.out' % (MPKMC.types2string(types))
+    outfile = '%s/%s.out' % ('AlSi60', MPKMC.types2string(types))
     if not os.path.exists(outfile):
         cmd = './pw.x < tmp.in > %s' % (outfile)
         print(cmd)
