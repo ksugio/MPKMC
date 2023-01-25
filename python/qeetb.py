@@ -55,7 +55,7 @@ def Compare(etbfile, outfile, isolates):
     return outfile, qetote, kmctote, qetote-kmctote
 
 #
-# genarate .etb file from QE .out file
+# genarate .etb file from QE .out files with bond energy
 #
 if __name__ == "__main__":
     etbfile = 'Al-Si-V.etb'
@@ -76,7 +76,7 @@ if __name__ == "__main__":
         print(Compare(etbfile, outfile, isolates))
     # Compare 2
     comp = []
-    for outfile, types in qetool.listQEoutTypes('AlSi60'):
+    for outfile, types in qetool.countQEoutTypes('AlSi60'):
         if not 0 in types:
             comp.append(Compare(etbfile, outfile, isolates))
     df = pd.DataFrame(comp, columns=['File', 'QE', 'MC', 'Diff'])

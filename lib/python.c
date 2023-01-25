@@ -20,17 +20,17 @@ static PyObject *PyKMCNewNew(PyTypeObject *type, PyObject *args, PyObject *kwds)
 	int nsolute_step = 1000;
 	int ntable_step = 1000;
 	int nevent_step = 100000;
-	int nresult_step = 100;
-	static char *kwlist[] = { "nuc", "nx", "ny", "nz", "ncluster", "nsolute_step", "ntable_step", "nevent_step", "nresult_step", NULL };
+	int nhistory_step = 100;
+	static char *kwlist[] = { "nuc", "nx", "ny", "nz", "ncluster", "nsolute_step", "ntable_step", "nevent_step", "nhistory_step", NULL };
 	MP_KMCData *self;
 
 	if (!PyArg_ParseTupleAndKeywords(args, kwds, "iiiii|iiii", kwlist, &nuc, &nx, &ny, &nz, &ncluster,
-		&nsolute_step, &ntable_step, &nevent_step, &nresult_step)) {
+		&nsolute_step, &ntable_step, &nevent_step, &nhistory_step)) {
 		return NULL;
 	}
 	self = (MP_KMCData *)type->tp_alloc(type, 0);
 	if (self != NULL) {
-		if (!MP_KMCAlloc(self, nuc, nx, ny, nz, ncluster, nsolute_step, ntable_step, nevent_step, nresult_step)) {
+		if (!MP_KMCAlloc(self, nuc, nx, ny, nz, ncluster, nsolute_step, ntable_step, nevent_step, nhistory_step)) {
 			Py_DECREF(self);
 			return NULL;
 		}
@@ -317,6 +317,27 @@ static PyObject *PyKMCAddClusterIDs(MP_KMCData *self, PyObject *args, PyObject *
 	return Py_BuildValue("i", MP_KMCAddClusterIDs(self, iids, energy, refcount));
 }
 
+static PyObject* PyKMCChangeCluster(MP_KMCData* self, PyObject* args, PyObject* kwds)
+{
+	PyObject* types;
+	double energy;
+	long refcount;
+	static char* kwlist[] = { "types", "energy", "refcount", NULL };
+	int i;
+	short stypes[MP_KMC_NCLUSTER_MAX];
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "Odl", kwlist, &types, &energy, &refcount)) {
+		return NULL;
+	}
+	if (PyTuple_Size(types) != self->ncluster) {
+		return NULL;
+	}
+	for (i = 0; i < self->ncluster; i++) {
+		stypes[i] = (short)PyInt_AsLong(PyTuple_GetItem(types, (Py_ssize_t)i));
+	}
+	return Py_BuildValue("i", MP_KMCChangeCluster(self, stypes, energy, refcount));
+}
+
 static PyObject *PyKMCCountType(MP_KMCData *self, PyObject *args, PyObject *kwds)
 {
 	short type;
@@ -326,6 +347,19 @@ static PyObject *PyKMCCountType(MP_KMCData *self, PyObject *args, PyObject *kwds
 		return NULL;
 	}
 	return Py_BuildValue("i", MP_KMCCountType(self, type));
+}
+
+static PyObject* PyKMCChangeType(MP_KMCData* self, PyObject* args, PyObject* kwds)
+{
+	int id;
+	short type;
+	static char* kwlist[] = { "id", "type", NULL };
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "ih", kwlist, &id, &type)) {
+		return NULL;
+	}
+	MP_KMCChangeType(self, id, type);
+	Py_RETURN_NONE;
 }
 
 static PyObject *PyKMCSortTable(MP_KMCData *self, PyObject *args)
@@ -805,8 +839,12 @@ static PyMethodDef PyKMCMethods[] = {
 		"add_cluster(types, energy, refcount) : add cluster in table and return table index" },
 	{ "add_cluster_ids", (PyCFunction)PyKMCAddClusterIDs, METH_VARARGS | METH_KEYWORDS,
 		"add_cluster_ids(ids) : add cluster in table by atom indexes and return table index" },
+	{ "change_cluster", (PyCFunction)PyKMCChangeCluster, METH_VARARGS | METH_KEYWORDS,
+		"change_cluster(types, energy, refcount) : change cluster in table and return table index" },
 	{ "count_type", (PyCFunction)PyKMCCountType, METH_VARARGS | METH_KEYWORDS,
 		"count_type(type) : count type in grid" },
+	{ "change_type", (PyCFunction)PyKMCChangeType, METH_VARARGS | METH_KEYWORDS,
+		"change_type(id, type) : change type in grid" },
 	{ "sort_table", (PyCFunction)PyKMCSortTable, METH_NOARGS,
 		"sort_table() : sort energy table by reference count" },
 	{ "reset_table", (PyCFunction)PyKMCResetTable, METH_NOARGS,

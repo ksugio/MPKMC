@@ -322,6 +322,18 @@ int MP_KMCAddClusterIDs(MP_KMCData *data, int ids[], double energy, long refcoun
 	return MP_KMCAddCluster(data, types, energy, refcount);
 }
 
+int MP_KMCChangeCluster(MP_KMCData* data, short types[], double energy, long refcount)
+{
+	int tid;
+
+	tid = MP_KMCSearchCluster(data, types);
+	if (tid >= 0) {
+		data->table[tid].energy = energy;
+		data->table[tid].refcount = refcount;
+	}
+	return tid;
+}
+
 int MP_KMCCountType(MP_KMCData *data, short type)
 {
 	int i;
@@ -331,6 +343,18 @@ int MP_KMCCountType(MP_KMCData *data, short type)
 		if (data->grid[i].type == type) count++;
 	}
 	return count;
+}
+
+void MP_KMCChangeType(MP_KMCData* data, int id, short type)
+{
+	int i;
+
+	data->grid[id].type = type;
+	for (i = 0; i < data->nsolute; i++) {
+		if (data->solute[i].id == id) {
+			data->solute[i].type = type;
+		}
+	}
 }
 
 static int SortCompRefcount(const void *c1, const void *c2)

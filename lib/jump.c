@@ -87,7 +87,7 @@ static void CalcClusterEnergies(MP_KMCData *data, double(*func)(MP_KMCData *, sh
 				data->table[tid[j]].refcount += 1;
 			}
 			else if (tid[j] == -1) {
-				ttid = MP_KMCAddCluster(data, types[j], energy[j], 0);
+				ttid = MP_KMCAddCluster(data, types[j], energy[j], 1);
 				for (k = j + 1; k < ncluster; k++) {
 					if (tid[k] == -1 && CompareTypes(data, types[j], types[k])) {
 						tid[k] = ttid;
@@ -190,6 +190,7 @@ int MP_KMCGridEnergy(MP_KMCData *data, double(*func)(MP_KMCData *, short *))
 	double energy[MP_KMC_NCLUSTER_MAX];
 	int table_update = FALSE;
 
+	data->tote = 0.0;
 	while (TRUE) {
 		ids[ncluster++] = id++;
 		if (ncluster >= step || id >= data->ntot) {

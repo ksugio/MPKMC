@@ -1,3 +1,4 @@
+import MPKMC
 import math
 import os
 
@@ -51,7 +52,7 @@ def listQEout(outdir, ext='.out'):
             files.append(path)
     return files
 
-def listQEoutTypes(outdir, ext='.out', fill_ref=FCC222, fill_type=0):
+def countQEoutTypes(outdir, ext='.out', fill_ref=FCC222, fill_type=0):
     outtypes = []
     for outfile in listQEout(outdir, ext):
         data = readQEout(outfile)
@@ -63,6 +64,20 @@ def listQEoutTypes(outdir, ext='.out', fill_ref=FCC222, fill_type=0):
             else:
                 types[n] += 1
         outtypes.append((outfile, types))
+    return outtypes
+
+def countQEoutClusterTypes(outdir, ext='.out'):
+    outtypes = []
+    for outfile in listQEout(outdir, ext):
+        s = os.path.splitext(os.path.basename(outfile))[0]
+        types = MPKMC.string2types(s)
+        dtypes = {}
+        for tp in types:
+            if not tp in dtypes:
+                dtypes[tp] = 1
+            else:
+                dtypes[tp] += 1
+        outtypes.append((outfile, dtypes))
     return outtypes
 
 def addSolute(kmc, data, sjump=1, vjump=1):
@@ -216,3 +231,99 @@ def writeQEin(types, cluster, headfile, infile, fill_ref=FCC222, fill_type=0):
         for n, x, y, z in lattice:
             line = ' %s %3.2f %3.2f %3.2f\n' % (Symbols[n], x, y, z)
             fout.write(line)
+
+def FCCCell(type, alat, nx, ny, nz,
+            nsolute_step = 1000, ntable_step = 1000,
+            nevent_step = 100000, nhistory_step = 100):
+    Kb = 86.1735e-6; # ev/K
+    Ry = 13.6058; # ev
+    uc = ((0, 0, 0), (0.5, 0.5, 0.0), (0.5, 0.0, 0.5), (0.0, 0.5, 0.5))
+    uc_types = (type, type, type, type)
+    pv = ((alat, 0, 0), (0, alat, 0), (0, 0, alat))
+    clu = ((0, 0, 0), (0.5, 0.5, 0), (0, 0.5, -0.5), (-0.5, 0, -0.5), \
+        (-0.5, 0.5, 0), (0, 0.5, 0.5), (0.5, 0, 0.5), (0.5, -0.5, 0), \
+        (0, -0.5, 0.5), (-0.5, 0, 0.5), (-0.5, -0.5, 0), (0, -0.5, -0.5), (0.5, 0, -0.5))
+    kmc = MPKMC.new(len(uc), nx, ny, nz, len(clu), 100, 1000, 100)
+    kmc.kb = Kb/Ry
+    kmc.set_unitcell(uc, uc_types, pv)
+    kmc.set_cluster(clu, len(clu))
+    kmc.calc_rot_index(5.0, 1.0e-6)
+    return kmc
+
+def changeType(kmc, data):
+    types = {}
+    for i in range(kmc.ntot):
+        x0, y0, z0 = kmc.index2pos(i)
+        found = False
+        for n, x, y, z in data['Lattice']:
+            x *= kmc.size[0]
+            y *= kmc.size[1]
+            z *= kmc.size[2]
+            if abs(x-x0) < EPS and abs(y-y0) < EPS and abs(z-z0) < EPS:
+                kmc.change_type(i, n)
+                if not n in types:
+                    types[n] = 1
+                else:
+                    types[n] += 1
+                found = True
+        if not found:
+            kmc.change_type(i, 0)
+            if not 0 in types:
+                types[0] = 1
+            else:
+                types[0] += 1
+    return types
+
+def dummyForFind(kmc, types):
+    return 99
+
+def findClusters(kmc, data):
+    changeType(kmc, data)
+    kmc.reset_table()
+    kmc.grid_energy(dummyForFind)
+    known = []
+    unknown = []
+    for i in range(kmc.ntable):
+        item = kmc.table_item(i)
+        if item[1] == 99:
+            unknown.append(item)
+        else:
+            known.append(item)
+    return known, unknown
+
+def bondClusterEnergy(types, ebonds):
+    tote = 0.0
+    for type in types[1:]:
+        key = bondKey(types[0], type)
+        tote += ebonds[key]
+    return tote / 2.0
+
+def fillUnkownCluster(kmc, outfile, isolates, ebonds):
+    data = readQEout(outfile)
+    bine = BindingEnergy(data, isolates)
+    tote = bine
+    known, unknown = findClusters(kmc, data)
+    count = 0
+    if len(unknown) > 0:
+        for clu in known:
+            tote -= clu[1] * clu[2]
+        unknown.sort(key=lambda x: x[2], reverse=True)
+        while len(unknown) > 1:
+            unklast = unknown.pop()
+            clue = bondClusterEnergy(unklast[0], ebonds)
+            kmc.change_cluster(unklast[0], clue, unklast[2])
+            tote -= clue * unklast[2]
+            count += 1
+        kmc.change_cluster(unknown[0][0], tote / unknown[0][2], unknown[0][2])
+        count += 1
+    kmc.grid_energy(dummyForFind)
+    return outfile, count, bine, kmc.tote, abs(kmc.tote-bine)
+
+def fillUnkownClustersByOrder(kmc, order, isolates, ebonds):
+    results = []
+    for ord in order:
+        ret = fillUnkownCluster(kmc, ord[0], isolates, ebonds)
+        results.append(ret)
+        if ret[1] > 2 or ret[4] > 1.0e-3:
+            print(ret)
+    return results
