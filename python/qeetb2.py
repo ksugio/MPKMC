@@ -18,23 +18,23 @@ if __name__ == "__main__":
     results = []
     # Select Al only
     al = [t for t in ctypes if not 0 in t[1] and not 14 in t[1]]
-    ret = qetool.fillUnkownClustersByOrder(kmc, al, isolates, ebonds)
+    ret = qetool.fillUnkownClusters(kmc, al, isolates, ebonds)
     results.extend(ret)
     # Select Al-Si cluster
     alsi = [t for t in ctypes if not 0 in t[1] and 14 in t[1]]
     alsi.sort(key=lambda n: n[1][14])
-    ret = qetool.fillUnkownClustersByOrder(kmc, alsi, isolates, ebonds)
+    ret = qetool.fillUnkownClusters(kmc, alsi, isolates, ebonds)
     results.extend(ret)
     # Select Al-V cluster
     alv = [t for t in ctypes if not 14 in t[1] and 0 in t[1]]
     alv.sort(key=lambda n: n[1][0])
-    ret = qetool.fillUnkownClustersByOrder(kmc, alv, isolates, ebonds)
+    ret = qetool.fillUnkownClusters(kmc, alv, isolates, ebonds)
     results.extend(ret)
     # Select Al-Si-V cluster
     alsiv = [t for t in ctypes if 13 in t[1] and 14 in t[1] and 0 in t[1]]
     alsiv.sort(key=lambda n: n[1][14])
     alsiv.sort(key=lambda n: n[1][0])
-    ret = qetool.fillUnkownClustersByOrder(kmc, alsiv, isolates, ebonds)
+    ret = qetool.fillUnkownClusters(kmc, alsiv, isolates, ebonds)
     results.extend(ret)
     # Write Results
     kmc.reset_table()

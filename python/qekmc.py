@@ -15,19 +15,12 @@ def calcQE(kmc, types):
         print(cmd)
         subprocess.call(cmd, shell=True)
     data = qetool.readQEout(outfile)
-    kmcqe = qetool.FCCCell(13, 4.04360, 2, 2, 2, 32, 1024, 1, 1)
+    work = qetool.FCCCell(13, 4.04360, 2, 2, 2, 32, 1024, 1, 1)
+    cid = work.grid2index(0, 1, 1, 1)
     tote = qetool.BindingEnergy(data, isolates)
-    qetool.changeType(kmcqe, data)
-    icenter = kmcqe.grid2index(0, 1, 1, 1)
-    for i in range(kmcqe.ntot):
-        if i != icenter:
-            types = kmcqe.cluster_types(i)
-            tid = kmc.search_cluster(types)
-            if tid >=0:
-                tote -= kmc.table_item(tid)[1]
-            else:
-                tote -= qetool.bondClusterEnergy(types, ebonds)
-    return tote
+    qetool.changeType(work, data)
+    clue, _, _ = qetool.ClusterEnergy2(kmc, work, tote, ebonds, cid)
+    return clue
 
 if __name__ == "__main__":
     Ntry = 10000

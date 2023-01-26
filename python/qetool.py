@@ -274,6 +274,48 @@ def changeType(kmc, data):
                 types[0] += 1
     return types
 
+def bondClusterEnergy(types, ebonds):
+    tote = 0.0
+    for type in types[1:]:
+        key = bondKey(types[0], type)
+        tote += ebonds[key]
+    return tote / 2.0
+
+def ClusterEnergy2(kmc, work, tote, ebonds, cid):
+    btypes = {}
+    for i in range(work.ntot):
+        if i != cid:
+            types = work.cluster_types(i)
+            tid = kmc.search_cluster(types)
+            if tid >=0:
+                tote -= kmc.table_item(tid)[1]
+            else:
+                tote -= bondClusterEnergy(types, ebonds)
+                if not types in btypes:
+                    btypes[types] = 1
+                else:
+                    btypes[types] += 1
+    types = work.cluster_types(cid)
+    if kmc.search_cluster(types) >= 0:
+        return tote, None, btypes
+    else:
+        return tote, types, btypes
+
+def fillUnkownClusters2(kmc, work, order, isolates, ebonds, cid):
+    results = []
+    for ord in order:
+        outfile = ord[0]
+        data = readQEout(outfile)
+        tote = BindingEnergy(data, isolates)
+        changeType(work, data)
+        clue, types, btypes = ClusterEnergy2(kmc, work, tote, ebonds, cid)
+        if types:
+            add = kmc.add_cluster(types, clue, 1)
+        else:
+            add = -1
+        results.append((outfile, clue, len(btypes), add, tote))
+    return results
+
 def dummyForFind(kmc, types):
     return 99
 
@@ -285,18 +327,12 @@ def findClusters(kmc, data):
     unknown = []
     for i in range(kmc.ntable):
         item = kmc.table_item(i)
-        if item[1] == 99:
-            unknown.append(item)
-        else:
-            known.append(item)
+        if item[2] > 0:
+            if item[1] == 99:
+                unknown.append(item)
+            else:
+                known.append(item)
     return known, unknown
-
-def bondClusterEnergy(types, ebonds):
-    tote = 0.0
-    for type in types[1:]:
-        key = bondKey(types[0], type)
-        tote += ebonds[key]
-    return tote / 2.0
 
 def fillUnkownCluster(kmc, outfile, isolates, ebonds):
     data = readQEout(outfile)
@@ -319,7 +355,7 @@ def fillUnkownCluster(kmc, outfile, isolates, ebonds):
     kmc.grid_energy(dummyForFind)
     return outfile, count, bine, kmc.tote, abs(kmc.tote-bine)
 
-def fillUnkownClustersByOrder(kmc, order, isolates, ebonds):
+def fillUnkownClusters(kmc, order, isolates, ebonds):
     results = []
     for ord in order:
         ret = fillUnkownCluster(kmc, ord[0], isolates, ebonds)

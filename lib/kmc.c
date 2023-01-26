@@ -334,6 +334,25 @@ int MP_KMCChangeCluster(MP_KMCData* data, short types[], double energy, long ref
 	return tid;
 }
 
+int MP_KMCDeleteCluster(MP_KMCData* data, short types[])
+{
+	int i, j;
+	int tid;
+
+	tid = MP_KMCSearchCluster(data, types);
+	if (tid >= 0) {
+		for (i = tid; i < data->ntable - 1; i++) {
+			for (j = 0; j < data->ncluster; j++) {
+				data->table[i].types[j] = data->table[i + 1].types[j];
+			}
+			data->table[i].energy = data->table[i + 1].energy;
+			data->table[i].refcount = data->table[i + 1].refcount;
+		}
+		(data->ntable)--;
+	}
+	return tid;
+}
+
 int MP_KMCCountType(MP_KMCData *data, short type)
 {
 	int i;

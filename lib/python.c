@@ -338,6 +338,25 @@ static PyObject* PyKMCChangeCluster(MP_KMCData* self, PyObject* args, PyObject* 
 	return Py_BuildValue("i", MP_KMCChangeCluster(self, stypes, energy, refcount));
 }
 
+static PyObject* PyKMCDeleteCluster(MP_KMCData* self, PyObject* args, PyObject* kwds)
+{
+	PyObject* types;
+	static char* kwlist[] = { "types", NULL };
+	int i;
+	short stypes[MP_KMC_NCLUSTER_MAX];
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O", kwlist, &types)) {
+		return NULL;
+	}
+	if (PyTuple_Size(types) != self->ncluster) {
+		return NULL;
+	}
+	for (i = 0; i < self->ncluster; i++) {
+		stypes[i] = (short)PyInt_AsLong(PyTuple_GetItem(types, (Py_ssize_t)i));
+	}
+	return Py_BuildValue("i", MP_KMCDeleteCluster(self, stypes));
+}
+
 static PyObject *PyKMCCountType(MP_KMCData *self, PyObject *args, PyObject *kwds)
 {
 	short type;
@@ -841,6 +860,8 @@ static PyMethodDef PyKMCMethods[] = {
 		"add_cluster_ids(ids) : add cluster in table by atom indexes and return table index" },
 	{ "change_cluster", (PyCFunction)PyKMCChangeCluster, METH_VARARGS | METH_KEYWORDS,
 		"change_cluster(types, energy, refcount) : change cluster in table and return table index" },
+	{ "delete_cluster", (PyCFunction)PyKMCDeleteCluster, METH_VARARGS | METH_KEYWORDS,
+		"delete_cluster(types) : delete cluster in table and return table index" },
 	{ "count_type", (PyCFunction)PyKMCCountType, METH_VARARGS | METH_KEYWORDS,
 		"count_type(type) : count type in grid" },
 	{ "change_type", (PyCFunction)PyKMCChangeType, METH_VARARGS | METH_KEYWORDS,

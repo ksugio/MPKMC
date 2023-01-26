@@ -15,6 +15,7 @@ EXPORTS
 	MP_KMCAddCluster
 	MP_KMCAddClusterIDs
 	MP_KMCChangeCluster
+	MP_KMCDeleteCluster
 	MP_KMCCountType
 	MP_KMCChangeType
 	MP_KMCSortTable
