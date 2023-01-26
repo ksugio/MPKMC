@@ -306,14 +306,17 @@ def fillUnkownClusters2(kmc, work, order, isolates, ebonds, cid):
     for ord in order:
         outfile = ord[0]
         data = readQEout(outfile)
-        tote = BindingEnergy(data, isolates)
-        changeType(work, data)
-        clue, types, btypes = ClusterEnergy2(kmc, work, tote, ebonds, cid)
-        if types:
-            add = kmc.add_cluster(types, clue, 1)
+        if 'TotalEnergy' in data:
+            tote = BindingEnergy(data, isolates)
+            changeType(work, data)
+            clue, types, btypes = ClusterEnergy2(kmc, work, tote, ebonds, cid)
+            if types:
+                add = kmc.add_cluster(types, clue, 1)
+            else:
+                add = -1
+            results.append((outfile, clue, len(btypes), add, tote))
         else:
-            add = -1
-        results.append((outfile, clue, len(btypes), add, tote))
+            print('Read Error:',outfile)
     return results
 
 def dummyForFind(kmc, types):
