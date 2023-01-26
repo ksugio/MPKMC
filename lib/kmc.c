@@ -40,6 +40,7 @@ int MP_KMCAlloc(MP_KMCData *data, int nuc, int nx, int ny, int nz, int ncluster,
 	data->jpmax = 0;
 	data->nrot = 0;
 	data->table_use = TRUE;
+	data->table_add = TRUE;
 	data->ntable = 0;
 	data->ntable_max = data->ntable_step = ntable_step;
 	data->htable[0] = '\0';

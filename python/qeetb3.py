@@ -51,6 +51,7 @@ if __name__ == "__main__":
     results.extend(ret)
     # Compare
     results2 = []
+    kmc.table_add = False
     for outfile, clue, bcount, add, tote in results:
         data = qetool.readQEout(outfile)
         qetool.changeType(kmc, data)

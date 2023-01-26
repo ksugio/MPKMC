@@ -64,6 +64,7 @@ static PyMemberDef PyKMCMembers[] = {
 	{ "ncluster", T_INT, offsetof(MP_KMCData, ncluster), 1, "number of atoms in cluster" },
 	{ "nrot", T_INT, offsetof(MP_KMCData, nrot), 1, "number of rotation index" },
 	{ "table_use", T_INT, offsetof(MP_KMCData, table_use), 0, "flag for using table" },
+	{ "table_add", T_INT, offsetof(MP_KMCData, table_add), 0, "flag for adding cluster to table" },
 	{ "ntable", T_INT, offsetof(MP_KMCData, ntable), 1, "number of table" },
 	{ "nsolute", T_INT, offsetof(MP_KMCData, nsolute), 1, "number of solute atoms" },
 	{ "ngroup", T_INT, offsetof(MP_KMCData, ngroup), 1, "number of solute groups" },

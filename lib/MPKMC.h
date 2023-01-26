@@ -127,6 +127,7 @@ typedef struct MP_KMCData {
 	int nrot;
 	int *rotid;
 	int table_use;
+	int table_add;
 	int ntable;
 	int ntable_step;
 	int ntable_max;

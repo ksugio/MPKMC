@@ -86,7 +86,7 @@ static void CalcClusterEnergies(MP_KMCData *data, double(*func)(MP_KMCData *, sh
 			if (tid[j] >= 0) {
 				data->table[tid[j]].refcount += 1;
 			}
-			else if (tid[j] == -1) {
+			else if (tid[j] == -1 && data->table_add) {
 				ttid = MP_KMCAddCluster(data, types[j], energy[j], 1);
 				for (k = j + 1; k < ncluster; k++) {
 					if (tid[k] == -1 && CompareTypes(data, types[j], types[k])) {
