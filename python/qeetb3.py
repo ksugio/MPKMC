@@ -53,13 +53,14 @@ if __name__ == "__main__":
     results2 = []
     kmc.table_add = False
     for outfile, clue, bcount, add, tote in results:
-        data = qetool.readQEout(outfile)
-        qetool.changeType(kmc, data)
-        kmc.grid_energy(dummyQE)
-        diff = abs(kmc.tote-tote)
-        results2.append((outfile, clue, bcount, add, tote, kmc.tote, diff))
-        if diff > 0.1:
-            print(outfile, bcount, diff)
+        if add >= 0:
+            data = qetool.readQEout(outfile)
+            qetool.changeType(kmc, data)
+            kmc.grid_energy(dummyQE)
+            diff = abs(kmc.tote-tote)
+            results2.append((outfile, clue, bcount, add, tote, kmc.tote, diff))
+            if diff > 0.1:
+                print(outfile, bcount, diff)
     # Write Results
     kmc.sort_table()
     kmc.write_table(etbfile)

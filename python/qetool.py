@@ -1,6 +1,7 @@
 import MPKMC
 import math
 import os
+import itertools
 
 Symbols = {1: 'H', 2: 'He', 3: 'Li', 4: 'Be', 5: 'B', 6: 'C',
            7: 'N', 8: 'O', 9: 'F', 10: 'Ne', 11: 'Na', 12: 'Mg',
@@ -366,3 +367,29 @@ def fillUnkownClusters(kmc, order, isolates, ebonds):
         if ret[1] > 2 or ret[4] > 1.0e-3:
             print(ret)
     return results
+
+def dummyForBuild(kmc, types):
+    return 99
+
+def buildClusters(kmc, types, cid):
+    t0 = kmc.grid_item(0)[0]
+    types[t0] = kmc.ncluster - sum(types.values())
+    types = list(types.items())
+    types.sort(key=lambda n: n[1])
+    base = types.pop()[0]
+    solute = []
+    for tp, n in types:
+        for i in range(n):
+            solute.append(tp)
+    clus = []
+    for combi in itertools.permutations(range(kmc.ncluster), len(solute)):
+        clu = [base for i in range(kmc.ncluster)]
+        for i in range(len(solute)):
+            clu[combi[i]] = solute[i]
+        clus.append(tuple(clu))
+    clus = list(set(clus))
+    ids = kmc.cluster_indexes(cid)
+    for clu in clus:
+        for i in range(len(ids)):
+            kmc.change_type(ids[i], clu[i])
+        kmc.grid_energy(dummyForBuild)
