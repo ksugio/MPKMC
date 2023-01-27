@@ -24,7 +24,7 @@ def GenCell():
 
 def genTable(etbfile, outdir, isolates, ebonds):
     kmc = GenCell()
-    for outfile in qetool.listQEout(outdir):
+    for outfile in qetool.listFiles(outdir):
         data = qetool.readQEout(outfile)
         clue = qetool.ClusterEnergy(data, isolates, ebonds)
         s = os.path.splitext(os.path.basename(outfile))[0]

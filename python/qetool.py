@@ -45,17 +45,18 @@ def readQEout(outfile):
         data['Lattice'] = lattice
     return data
 
-def listQEout(outdir, ext='.out'):
+def listFiles(dir, ext='.out'):
     files = []
-    for f in os.listdir(outdir):
-        path = os.path.join(outdir, f)
+    for f in os.listdir(dir):
+        path = os.path.join(dir, f)
         if os.path.isfile(path) and path.endswith(ext):
             files.append(path)
+    files.sort()
     return files
 
 def countQEoutTypes(outdir, ext='.out', fill_ref=FCC222, fill_type=0):
     outtypes = []
-    for outfile in listQEout(outdir, ext):
+    for outfile in listFiles(outdir, ext):
         data = readQEout(outfile)
         lattice = fillLattice(data['Lattice'], fill_ref, fill_type)
         types = {}
@@ -69,7 +70,7 @@ def countQEoutTypes(outdir, ext='.out', fill_ref=FCC222, fill_type=0):
 
 def countQEoutClusterTypes(outdir, ext='.out'):
     outtypes = []
-    for outfile in listQEout(outdir, ext):
+    for outfile in listFiles(outdir, ext):
         s = os.path.splitext(os.path.basename(outfile))[0]
         types = MPKMC.string2types(s)
         dtypes = {}

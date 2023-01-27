@@ -31,8 +31,9 @@ if __name__ == "__main__":
     data = qetool.readQEout(outfile)
     tote = qetool.BindingEnergy(data, isolates)
     s = os.path.splitext(os.path.basename(outfile))[0]
-    types = MPKMC.string2types(s)
-    kmc.add_cluster(types, tote / data['NAtom'], 1)
+    clue = tote / data['NAtom']
+    add = kmc.add_cluster(MPKMC.string2types(s), clue, 1)
+    results.append((outfile, clue, 0, add, tote))
     # Select Al-Si cluster
     alsi = [t for t in ctypes if not 0 in t[1] and 14 in t[1]]
     alsi.sort(key=lambda n: n[1][14])
