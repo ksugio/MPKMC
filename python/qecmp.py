@@ -3,10 +3,10 @@ import qetool
 import tensorflow as tf
 import pandas as pd
 
-MLModelFile = 'Al-Si.h5'
-CMPFile = 'Al-Si-cmp.csv'
-Replace = {13: 0, 14: 1}
-#Replace = {0: 0, 13: 1, 14: 2}
+MLModelFile = 'Al-Si-V.h5'
+CMPFile = 'Al-Si-V-cmp.csv'
+#Replace = {13: 0, 14: 1}
+Replace = {0: 0, 13: 1, 14: 2}
 MLModel = tf.keras.models.load_model(MLModelFile)
 
 def calcQEwML(kmc, types):
@@ -46,6 +46,15 @@ if __name__ == "__main__":
     alsi = [t for t in ctypes if not 0 in t[1] and 14 in t[1]]
     alsi.sort(key=lambda n: n[1][14])
     results.extend(Compare(kmc, alsi, isolates))
+    # Select Al-V cluster
+    alv = [t for t in ctypes if not 14 in t[1] and 0 in t[1]]
+    alv.sort(key=lambda n: n[1][0])
+    results.extend(Compare(kmc, alv, isolates))
+    # Select Al-Si-V cluster
+    alsiv = [t for t in ctypes if 13 in t[1] and 14 in t[1] and 0 in t[1]]
+    alsiv.sort(key=lambda n: n[1][14])
+    alsiv.sort(key=lambda n: n[1][0])
+    results.extend(Compare(kmc, alsiv, isolates))
     # Write results
     df = pd.DataFrame(results, columns=['File', 'QE', 'MC', 'Error'])
     df.to_csv(CMPFile)
