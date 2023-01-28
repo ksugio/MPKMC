@@ -354,37 +354,41 @@ int MP_KMCDeleteCluster(MP_KMCData* data, short types[])
 	return tid;
 }
 
-static int AddRotCluster(MP_KMCData* data, short types[], double energy, long refcount)
+static void AddRotCluster(MP_KMCData* data, short types[], double energy, long refcount)
 {
 	int j, k;
-	int count;
-	int sp;
-	short rtypes[MP_KMC_NCLUSTER_MAX];
+	int sp, tid;
 
-	count = 0;
-	rtypes[0] = types[0];
 	for (j = 1; j < data->nrot; j++) {	
 		sp = j * data->ncluster;
-		for (k = 1; k < data->ncluster; k++) {
-			rtypes[k] = types[data->rotid[sp + k]];
+		tid = data->ntable;
+		for (k = 0; k < data->ncluster; k++) {
+			data->table[tid].types[k] = types[data->rotid[sp + k]];
 		}
-		MP_KMCAddCluster(data, rtypes, energy, refcount);
-		count++;
+		data->table[tid].energy = energy;
+		data->table[tid].refcount = refcount;
+		data->ntable++;
 	}
-	return count;
 }
 
-int MP_KMCMultipleCluster(MP_KMCData* data)
+void MP_KMCMultipleCluster(MP_KMCData* data)
 {
 	int i;
-	int count = 0;
 	int ntable = data->ntable;
+	int ntable_max;
 
-
-	for (i = 0; i < ntable; i++) {
-		count += AddRotCluster(data, data->table[i].types, data->table[i].energy, data->table[i].refcount);
+	if (ntable * data->nrot > data->ntable_max) {
+		ntable_max = ((int)(ntable * data->nrot / data->ntable_step) + 1) * data->ntable_step;
+		data->table = (MP_KMCTableItem *)realloc(data->table, ntable_max * sizeof(MP_KMCTableItem));
+		if (data->table == NULL) {
+			fprintf(stderr, "Error : allocation failure (MP_KMCMultipleCluster)\n");
+			return;
+		}
+		data->ntable_max = ntable_max;
 	}
-	return count;
+	for (i = 0; i < ntable; i++) {
+		AddRotCluster(data, data->table[i].types, data->table[i].energy, data->table[i].refcount);
+	}
 }
 
 int MP_KMCCountType(MP_KMCData *data, short type)

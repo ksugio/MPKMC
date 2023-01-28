@@ -91,17 +91,17 @@ int main(int argc, char *argv[])
 
 	MP_KMCData data;
 
-	testMEAM(&data);
+//	testMEAM(&data);
 	//testFSFCC(&data);
 
 
 	
-//	double uc[][3] = { { 0.0, 0.0, 0.0 }, { 0.5, 0.5, 0.0 }, { 0.5, 0.0, 0.5 }, { 0.0, 0.5, 0.5 } };
-//	short uc_types[] = { 29, 29, 29, 29 };
-//	double pv[][3] = { { 3.615, 0.0, 0.0 }, { 0.0, 3.615, 0.0 }, { 0.0, 0.0, 3.615 } };
-//	double cluster[][3] = { { 0, 0, 0 }, { 0.5, 0.5, 0 }, { 0, 0.5, -0.5 }, { -0.5, 0, -0.5 }, { -0.5, 0.5, 0 },
-//				{ 0, 0.5, 0.5 },{ 0.5, 0, 0.5 },{ 0.5, -0.5, 0 },{ 0, -0.5, 0.5 },
-//				{ -0.5, 0, 0.5 },{ -0.5, -0.5, 0 },{ 0, -0.5, -0.5 },{ 0.5, 0, -0.5 },
+	double uc[][3] = { { 0.0, 0.0, 0.0 }, { 0.5, 0.5, 0.0 }, { 0.5, 0.0, 0.5 }, { 0.0, 0.5, 0.5 } };
+	short uc_types[] = { 13, 13, 13, 13 };
+	double pv[][3] = { { 4.04, 0.0, 0.0 }, { 0.0, 4.04, 0.0 }, { 0.0, 0.0, 4.04 } };
+	double cluster[][3] = { { 0, 0, 0 }, { 0.5, 0.5, 0 }, { 0, 0.5, -0.5 }, { -0.5, 0, -0.5 }, { -0.5, 0.5, 0 },
+				{ 0, 0.5, 0.5 },{ 0.5, 0, 0.5 },{ 0.5, -0.5, 0 },{ 0, -0.5, 0.5 },
+				{ -0.5, 0, 0.5 },{ -0.5, -0.5, 0 },{ 0, -0.5, -0.5 },{ 0.5, 0, -0.5 } };
 //				{ 1.0, 0, 0 },{ -1.0, 0, 0 },{ 0, 1.0, 0 },{ 0, -1.0, 0 },{ 0, 0, 1.0 },{ 0, 0, -1.0}};
 //	int ntypes;
 //	int i;
@@ -110,11 +110,16 @@ int main(int argc, char *argv[])
 //	short uc_types[] = { 22, 22 };
 //	double pv[][3] = { {1.0, 0, 0}, {-0.5, 0.866025403, 0.0}, {0, 0, 1.0} };
 //	double msd;
+	short types[] = { 14, 13, 13, 14, 13, 13, 13, 13, 13, 13, 13, 13, 13 };
+	MP_KMCAlloc(&data, 4, 2, 2, 2, 13, 1000, 1000, 100000, 100);
+	MP_KMCSetUnitCell(&data, uc, uc_types, pv);
+	MP_KMCSetCluster(&data, cluster, 13);
+	MP_KMCCalcRotIndex(&data, 5.0, 1.0e-6);
+	MP_KMCReadTable(&data, "../python/Al-Si-V.etb");
+//	MP_KMCAddCluster(&data, types, 0.0, 1);
+	MP_KMCMultipleCluster(&data);
+	printf("Ntable %d(%d)\n", data.ntable, data.ntable_max);
 
-//	MP_KMCAlloc(&data, 4, 10, 10, 10, 19, 1000, 1000, 100000, 100);
-//	MP_KMCSetUnitCell(&data, uc, uc_types, pv);
-//	MP_KMCSetCluster(&data, cluster, 19);
-//	MP_KMCCalcRotIndex(&data, 5.0, 1.0e-6);
 //	MP_KMCAddSoluteRandom(&data, 40, 0, TRUE);
 //	MP_KMCAddSoluteRandom(&data, 40, 10, TRUE);
 //	MP_KMCAddSoluteRandom(&data, 40, 20, TRUE);
@@ -138,5 +143,6 @@ int main(int argc, char *argv[])
 //	GlutWindow(&data, 800, 600, argc, argv);
 //	MP_KMCWrite(&data, "test.mpkmc", 0);
 //	MP_KMCRead(&data, "..\python\fsfcc.mpkmc", 1);
+	MP_KMCWriteTable(&data, "test.etb");
 	MP_KMCFree(&data);
 }

@@ -360,7 +360,8 @@ static PyObject* PyKMCDeleteCluster(MP_KMCData* self, PyObject* args, PyObject* 
 
 static PyObject* PyKMCMultipleCluster(MP_KMCData* self, PyObject* args)
 {
-	return Py_BuildValue("i", MP_KMCMultipleCluster(self));
+	MP_KMCMultipleCluster(self);
+	Py_RETURN_NONE;
 }
 
 static PyObject *PyKMCCountType(MP_KMCData *self, PyObject *args, PyObject *kwds)

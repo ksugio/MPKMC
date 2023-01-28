@@ -6,6 +6,7 @@ import pandas as pd
 MLModelFile = 'Al-Si.h5'
 CMPFile = 'Al-Si-cmp.csv'
 Replace = {13: 0, 14: 1}
+#Replace = {0: 0, 13: 1, 14: 2}
 MLModel = tf.keras.models.load_model(MLModelFile)
 
 def calcQEwML(kmc, types):
