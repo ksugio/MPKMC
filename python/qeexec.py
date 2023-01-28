@@ -19,6 +19,12 @@ def copyOutFiles(srcdir, dstdir, offset=0):
                 print('COPY', outfile, dstfile)
                 shutil.copy(outfile, dstfile)
 
+def removeOutFiles(qedir):
+    for outfile in qetool.listFiles(qedir, ext='.out'):
+        data = qetool.readQEout(outfile)
+        if not 'TotalEnergy' in data:
+            os.remove(outfile)
+
 def execQE(qedir, max_procs, command='./pw.x'):
     iofiles = []
     for infile in qetool.listFiles(qedir, ext='.in'):
@@ -52,6 +58,6 @@ if __name__ == "__main__":
     #dstdir = 'qeAlSi'
     #copyOutFiles(srcdir, dstdir, 5)
     qedir = 'qeAlSi'
-    max_procs = 6
+    max_procs = 4
+    #removeOutFiles(qedir)
     execQE(qedir, max_procs)
-
