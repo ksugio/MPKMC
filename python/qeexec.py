@@ -45,7 +45,7 @@ def execQE(qedir, max_procs, command='./pw.x'):
             for i in range(len(procs))[::-1]:
                 if finish[i]:
                     procs.pop(i)
-            time.sleep(5)
+            time.sleep(10)
 
 if __name__ == "__main__":
     #srcdir = 'AlSi60'

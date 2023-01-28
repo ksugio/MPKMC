@@ -298,12 +298,9 @@ def ClusterEnergy2(kmc, work, tote, ebonds, cid):
                 else:
                     btypes[types] += 1
     types = work.cluster_types(cid)
-    if kmc.search_cluster(types) >= 0:
-        return tote, None, btypes
-    else:
-        return tote, types, btypes
+    return tote, types, btypes
 
-def fillUnkownClusters2(kmc, work, order, isolates, ebonds, cid):
+def fillUnkownClusters2(kmc, work, order, isolates, ebonds, cid, overlap=False):
     results = []
     for ord in order:
         outfile = ord[0]
@@ -312,10 +309,13 @@ def fillUnkownClusters2(kmc, work, order, isolates, ebonds, cid):
             tote = BindingEnergy(data, isolates)
             changeType(work, data)
             clue, types, btypes = ClusterEnergy2(kmc, work, tote, ebonds, cid)
-            if types:
-                add = kmc.add_cluster(types, clue, 1)
+            if kmc.search_cluster(types) >= 0:
+                if overlap:
+                    add = kmc.add_cluster(types, clue, 1)
+                else:
+                    add = -1
             else:
-                add = -1
+                add = kmc.add_cluster(types, clue, 1)
             results.append((outfile, clue, len(btypes), add, tote))
         else:
             print('Read Error:',outfile)
@@ -394,3 +394,23 @@ def buildClusters(kmc, types, cid):
         for i in range(len(ids)):
             kmc.change_type(ids[i], clu[i])
         kmc.grid_energy(dummyForBuild)
+
+def MLData(kmc):
+    x = []
+    y = []
+    for i in range(kmc.ntable):
+        types, ene, _ = kmc.table_item(i)
+        x.append(types)
+        y.append(ene)
+    types = set()
+    for tps in x:
+        types |= set(tps)
+    types = sorted(list(types))
+    replace = dict(zip(types, range(len(types))))
+    rex = []
+    for xi in x:
+        rexi = []
+        for j in range(kmc.ncluster):
+            rexi.append(replace[xi[j]])
+        rex.append(rexi)
+    return rex, y, replace

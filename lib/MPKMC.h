@@ -177,6 +177,7 @@ int MP_KMCAddCluster(MP_KMCData *data, short types[], double energy, long refcou
 int MP_KMCAddClusterIDs(MP_KMCData *data, int ids[], double energy, long refcount);
 int MP_KMCChangeCluster(MP_KMCData* data, short types[], double energy, long refcount);
 int MP_KMCDeleteCluster(MP_KMCData* data, short types[]);
+int MP_KMCMultipleCluster(MP_KMCData* data);
 int MP_KMCCountType(MP_KMCData *data, short type);
 void MP_KMCChangeType(MP_KMCData* data, int id, short type);
 void MP_KMCSortTable(MP_KMCData *data);

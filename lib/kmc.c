@@ -354,6 +354,39 @@ int MP_KMCDeleteCluster(MP_KMCData* data, short types[])
 	return tid;
 }
 
+static int AddRotCluster(MP_KMCData* data, short types[], double energy, long refcount)
+{
+	int j, k;
+	int count;
+	int sp;
+	short rtypes[MP_KMC_NCLUSTER_MAX];
+
+	count = 0;
+	rtypes[0] = types[0];
+	for (j = 1; j < data->nrot; j++) {	
+		sp = j * data->ncluster;
+		for (k = 1; k < data->ncluster; k++) {
+			rtypes[k] = types[data->rotid[sp + k]];
+		}
+		MP_KMCAddCluster(data, rtypes, energy, refcount);
+		count++;
+	}
+	return count;
+}
+
+int MP_KMCMultipleCluster(MP_KMCData* data)
+{
+	int i;
+	int count = 0;
+	int ntable = data->ntable;
+
+
+	for (i = 0; i < ntable; i++) {
+		count += AddRotCluster(data, data->table[i].types, data->table[i].energy, data->table[i].refcount);
+	}
+	return count;
+}
+
 int MP_KMCCountType(MP_KMCData *data, short type)
 {
 	int i;

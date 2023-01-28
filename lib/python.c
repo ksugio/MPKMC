@@ -358,6 +358,11 @@ static PyObject* PyKMCDeleteCluster(MP_KMCData* self, PyObject* args, PyObject* 
 	return Py_BuildValue("i", MP_KMCDeleteCluster(self, stypes));
 }
 
+static PyObject* PyKMCMultipleCluster(MP_KMCData* self, PyObject* args)
+{
+	return Py_BuildValue("i", MP_KMCMultipleCluster(self));
+}
+
 static PyObject *PyKMCCountType(MP_KMCData *self, PyObject *args, PyObject *kwds)
 {
 	short type;
@@ -863,6 +868,8 @@ static PyMethodDef PyKMCMethods[] = {
 		"change_cluster(types, energy, refcount) : change cluster in table and return table index" },
 	{ "delete_cluster", (PyCFunction)PyKMCDeleteCluster, METH_VARARGS | METH_KEYWORDS,
 		"delete_cluster(types) : delete cluster in table and return table index" },
+	{ "multiple_cluster", (PyCFunction)PyKMCMultipleCluster, METH_NOARGS,
+		"multiple_cluster() : multiple cluster in table by rotation" },
 	{ "count_type", (PyCFunction)PyKMCCountType, METH_VARARGS | METH_KEYWORDS,
 		"count_type(type) : count type in grid" },
 	{ "change_type", (PyCFunction)PyKMCChangeType, METH_VARARGS | METH_KEYWORDS,
