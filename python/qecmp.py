@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 
 MLModelFile = 'Al-Si-V.h5'
-CMPFile = 'Al-Si-V-cmp.csv'
 #Replace = {13: 0, 14: 1}
 Replace = {0: 0, 13: 1, 14: 2}
 MLModel = tf.keras.models.load_model(MLModelFile)
@@ -14,7 +13,6 @@ def calcBond(kmc, types):
     ebonds = { (13, 13): -0.04506907817708337, (13, 14): -0.05215988817708158,
               (14, 14): -0.058415198177092176, (0, 13): -0.01913845484375054,
               (0, 14): -0.03314451484373948, (0, 0): 0.0 }
-    print('Bond Energy used!')
     return qetool.bondClusterEnergy(types, ebonds)
 
 def calcML2(kmc, ntypes, types):
@@ -49,6 +47,7 @@ def Compare(kmc, order, isolates):
 if __name__ == "__main__":
     outdir = 'AlSi60'
     etbfile = 'Al-Si-V.etb'
+    cmpfile = 'Al-Si-V-cmp.csv'
     isolates = {0: 0.0, 13: -4.76961123, 14: -11.02436232, }
     kmc = qetool.FCCCell(13, 4.04360, 2, 2, 2, 32, 1024, 1, 1)
     kmc.read_table(etbfile)
@@ -75,4 +74,4 @@ if __name__ == "__main__":
     df['Error_MC_QE'] = np.fabs(df['MC'] - df['QE'])
     df['Error_ML_QE'] = np.fabs(df['ML'] - df['QE'])
     df['Error_ML_MC'] = np.fabs(df['ML'] - df['MC'])
-    df.to_csv(CMPFile)
+    df.to_csv(cmpfile)
