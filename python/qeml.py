@@ -12,14 +12,14 @@ def NNModel(Layers, ncluster):
     return model
 
 if __name__ == "__main__":
-    Layer = [300, 300, ]
+    Layer = [300, 300, 300,]
     Batchsize = 1000
     Epoch = 2000
     etbfile = 'Al-Si-V.etb'
     modelfile = 'Al-Si-V.h5'
     logfile = 'Al-Si-V-train.csv'
     predfile = 'Al-Si-V-pred.csv'
-    kmc = qetool.FCCCell(13, 4.04360, 2, 2, 2, 32, 2500*24, 1, 1)
+    kmc = qetool.FCCCell(13, 4.04360, 2, 2, 2, 32, 1024, 1, 1)
     kmc.read_table(etbfile)
     kmc.multiple_cluster()
     x, y, replace = qetool.MLData(kmc)

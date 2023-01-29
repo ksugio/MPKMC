@@ -1,6 +1,7 @@
 import MPKMC
 import qetool
 import tensorflow as tf
+import numpy as np
 import pandas as pd
 
 MLModelFile = 'Al-Si-V.h5'
@@ -9,12 +10,12 @@ CMPFile = 'Al-Si-V-cmp.csv'
 Replace = {0: 0, 13: 1, 14: 2}
 MLModel = tf.keras.models.load_model(MLModelFile)
 
-def calcML(kmc, types):
-    retypes = []
-    for i in range(kmc.ncluster):
-        retypes.append(Replace[types[i]])
-    clue = MLModel.predict([retypes], verbose=0)[0][0]
-    return clue
+def calcBond(kmc, types):
+    ebonds = { (13, 13): -0.04506907817708337, (13, 14): -0.05215988817708158,
+              (14, 14): -0.058415198177092176, (0, 13): -0.01913845484375054,
+              (0, 14): -0.03314451484373948, (0, 0): 0.0 }
+    print('Bond Energy used!')
+    return qetool.bondClusterEnergy(types, ebonds)
 
 def calcML2(kmc, ntypes, types):
     retypes = []
@@ -33,10 +34,11 @@ def Compare(kmc, order, isolates):
         data = qetool.readQEout(outfile)
         tote = qetool.BindingEnergy(data, isolates)
         ctypes = qetool.changeType(kmc, data)
-        #kmc.grid_energy(calcML)
+        kmc.grid_energy(calcBond)
+        mcene = kmc.tote
         kmc.grid_energy2(calcML2)
-        diff = abs(kmc.tote - tote)
-        res = (outfile, tote, kmc.tote, diff)
+        mlene = kmc.tote
+        res = (outfile, tote, mcene, mlene)
         results.append(res)
         print(res, ctypes)
     return results
@@ -46,9 +48,10 @@ def Compare(kmc, order, isolates):
 #
 if __name__ == "__main__":
     outdir = 'AlSi60'
+    etbfile = 'Al-Si-V.etb'
     isolates = {0: 0.0, 13: -4.76961123, 14: -11.02436232, }
     kmc = qetool.FCCCell(13, 4.04360, 2, 2, 2, 32, 1024, 1, 1)
-    kmc.table_use = False
+    kmc.read_table(etbfile)
     ctypes = qetool.countQEoutClusterTypes(outdir)
     results = []
     # Al cluster
@@ -68,5 +71,8 @@ if __name__ == "__main__":
     alsiv.sort(key=lambda n: n[1][0])
     results.extend(Compare(kmc, alsiv, isolates))
     # Write results
-    df = pd.DataFrame(results, columns=['File', 'QE', 'MC', 'Error'])
+    df = pd.DataFrame(results, columns=['File', 'QE', 'MC', 'ML'])
+    df['Error_MC_QE'] = np.fabs(df['MC'] - df['QE'])
+    df['Error_ML_QE'] = np.fabs(df['ML'] - df['QE'])
+    df['Error_ML_MC'] = np.fabs(df['ML'] - df['MC'])
     df.to_csv(CMPFile)
