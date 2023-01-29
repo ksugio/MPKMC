@@ -245,7 +245,8 @@ def FCCCell(type, alat, nx, ny, nz,
     clu = ((0, 0, 0), (0.5, 0.5, 0), (0, 0.5, -0.5), (-0.5, 0, -0.5), \
         (-0.5, 0.5, 0), (0, 0.5, 0.5), (0.5, 0, 0.5), (0.5, -0.5, 0), \
         (0, -0.5, 0.5), (-0.5, 0, 0.5), (-0.5, -0.5, 0), (0, -0.5, -0.5), (0.5, 0, -0.5))
-    kmc = MPKMC.new(len(uc), nx, ny, nz, len(clu), 100, 1000, 100)
+    kmc = MPKMC.new(len(uc), nx, ny, nz, len(clu),
+                    nsolute_step, ntable_step, nevent_step, nhistory_step)
     kmc.kb = Kb/Ry
     kmc.set_unitcell(uc, uc_types, pv)
     kmc.set_cluster(clu, len(clu))

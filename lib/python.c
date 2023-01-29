@@ -609,6 +609,55 @@ static PyObject *PyKMCJump(MP_KMCData *self, PyObject *args, PyObject *kwds)
 		ret.table_update, ret.ntable, ret.tote, ret.tott, ret.time);
 }
 
+static void calcEnergy2(MP_KMCData* data, int ntypes, short types[], double energy[])
+{
+	int i, j, p;
+	PyObject* tps;
+	PyObject* arg;
+	PyObject* res;
+
+	tps = PyTuple_New((Py_ssize_t)ntypes * data->ncluster);
+	for (i = 0; i < ntypes; i++) {
+		for (j = 0; j < data->ncluster; j++) {
+			p = i * data->ncluster + j;
+			PyTuple_SetItem(tps, (Py_ssize_t)p, PyInt_FromLong(types[p]));
+		}
+	}
+	arg = Py_BuildValue("OiO", (PyObject*)data, ntypes, tps);
+	res = PyObject_CallObject(data->pyfunc, arg);
+	Py_DECREF(tps);
+	Py_DECREF(arg);
+	if (res == NULL) {
+		return;
+	}
+	for (i = 0; i < ntypes; i++) {
+		energy[i] = (double)PyFloat_AsDouble(PyTuple_GetItem(res, (Py_ssize_t)i));
+	}
+	Py_DECREF(res);
+}
+
+static PyObject* PyKMCGridEnergy2(MP_KMCData* self, PyObject* args, PyObject* kwds)
+{
+	PyObject* func;
+	static char* kwlist[] = { "func", NULL };
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O", kwlist, &func)) {
+		return NULL;
+	}
+	if (func == Py_None) {
+		MP_KMCGridEnergy2(self, NULL);
+	}
+	else {
+		if (!PyCallable_Check(func)) {
+			PyErr_SetString(PyExc_TypeError, "func must be callable");
+			return NULL;
+		}
+		self->pyfunc = func;
+		MP_KMCGridEnergy2(self, calcEnergy2);
+	}
+	Py_RETURN_NONE;
+}
+
 /*--------------------------------------------------
 * event functions
 */
@@ -901,6 +950,8 @@ static PyMethodDef PyKMCMethods[] = {
 		"grid_energy(func) : calculate energies of grids, return table update flag" },
 	{ "jump", (PyCFunction)PyKMCJump, METH_VARARGS | METH_KEYWORDS,
 		"jump(ntry, temp, func) : jump solute atoms by KMC method" },
+	{ "grid_energy2", (PyCFunction)PyKMCGridEnergy2, METH_VARARGS | METH_KEYWORDS,
+		"grid_energy2(func) : calculate energies of grids without table" },
 	// event
 	{ "event_forward", (PyCFunction)PyKMCEventForward, METH_VARARGS | METH_KEYWORDS,
 		"event_forward(count) : take event point forward" },

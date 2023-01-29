@@ -290,3 +290,28 @@ MP_KMCHistoryItem MP_KMCJump(MP_KMCData *data, int ntry, double temp, double(*fu
 	if (hid == MP_KMC_MEM_ERR) return err;
 	else return data->history[hid];
 }
+
+void MP_KMCGridEnergy2(MP_KMCData* data, void (*func)(MP_KMCData*, int, short*, double*))
+{
+	int i, j;
+	short* types;
+	double* energy;
+	int ids[MP_KMC_NCLUSTER_MAX];
+
+	types = (short*)malloc(data->ntot * data->ncluster * sizeof(short));
+	energy = (double*)malloc(data->ntot * sizeof(double));
+	for (i = 0; i < data->ntot; i++) {
+		MP_KMCClusterIndexes(data, i, ids);
+		for (j = 0; j < data->ncluster; j++) {
+			types[i * data->ncluster + j] = data->grid[ids[j]].type;
+		}
+	}
+	(func)(data, data->ntot, types, energy);
+	data->tote = 0.0;
+	for (i = 0; i < data->ntot; i++) {
+		data->grid[i].energy = energy[i];
+		data->tote += energy[i];
+	}
+	free(types);
+	free(energy);
+}

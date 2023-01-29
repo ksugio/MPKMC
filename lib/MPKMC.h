@@ -200,6 +200,7 @@ int MP_KMCSoluteGroupTypes(MP_KMCData *data, int group, int num, short types[]);
 */
 int MP_KMCGridEnergy(MP_KMCData *data, double(*func)(MP_KMCData *, short *));
 MP_KMCHistoryItem MP_KMCJump(MP_KMCData *data, int ntry, double temp, double(*func)(MP_KMCData *, short *));
+void MP_KMCGridEnergy2(MP_KMCData* data, void (*func)(MP_KMCData*, int, short*, double*));
 
 /*--------------------------------------------------
 * event functions

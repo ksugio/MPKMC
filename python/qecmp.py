@@ -9,12 +9,23 @@ CMPFile = 'Al-Si-V-cmp.csv'
 Replace = {0: 0, 13: 1, 14: 2}
 MLModel = tf.keras.models.load_model(MLModelFile)
 
-def calcQEwML(kmc, types):
+def calcML(kmc, types):
     retypes = []
     for i in range(kmc.ncluster):
         retypes.append(Replace[types[i]])
     clue = MLModel.predict([retypes], verbose=0)[0][0]
     return clue
+
+def calcML2(kmc, ntypes, types):
+    retypes = []
+    for i in range(ntypes):
+        rtps = []
+        for j in range(kmc.ncluster):
+            tp = types[i * kmc.ncluster + j]
+            rtps.append(Replace[tp])
+        retypes.append(rtps)
+    energy = MLModel.predict(retypes).reshape(ntypes)
+    return tuple(energy)
 
 def Compare(kmc, order, isolates):
     results = []
@@ -22,7 +33,8 @@ def Compare(kmc, order, isolates):
         data = qetool.readQEout(outfile)
         tote = qetool.BindingEnergy(data, isolates)
         ctypes = qetool.changeType(kmc, data)
-        kmc.grid_energy(calcQEwML)
+        #kmc.grid_energy(calcML)
+        kmc.grid_energy2(calcML2)
         diff = abs(kmc.tote - tote)
         res = (outfile, tote, kmc.tote, diff)
         results.append(res)

@@ -33,6 +33,7 @@ EXPORTS
 	; jump
 	MP_KMCGridEnergy
 	MP_KMCJump
+	MP_KMCGridEnergy2
 	; event
 	MP_KMCEventForward
 	MP_KMCEventBackward

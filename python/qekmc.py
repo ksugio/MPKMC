@@ -1,17 +1,22 @@
 import MPKMC
 import qetool
 import subprocess
+import tensorflow as tf
 import os
 
+# calculate energy with starting pw.x
 def calcQE(kmc, types):
+    qedir = 'AlSiV'
+    headfile = 'qehead.in'
     isolates = {0: 0.0, 13: -4.76961123, 14: -11.02436232, }
     ebonds = { (13, 13): -0.04506907817708337, (13, 14): -0.05215988817708158,
               (14, 14): -0.058415198177092176, (0, 13): -0.01913845484375054,
               (0, 14): -0.03314451484373948, (0, 0): 0.0 }
-    qetool.writeQEin(types, kmc.cluster, 'qehead.in', 'tmp.in', fill_type=13)
-    outfile = '%s/%s.out' % ('AlSi60', MPKMC.types2string(types))
+    infile = '%s/%s.in' % (qedir, MPKMC.types2string(types))
+    qetool.writeQEin(types, kmc.cluster, headfile, infile, fill_type=13)
+    outfile = '%s/%s.out' % (qedir, MPKMC.types2string(types))
     if not os.path.exists(outfile):
-        cmd = './pw.x < tmp.in > %s' % (outfile)
+        cmd = './pw.x < %s > %s' % (infile, outfile)
         print(cmd)
         subprocess.call(cmd, shell=True)
     data = qetool.readQEout(outfile)
@@ -22,37 +27,42 @@ def calcQE(kmc, types):
     clue, _, _ = qetool.ClusterEnergy2(kmc, work, tote, ebonds, cid)
     return clue
 
+# calculate energy with bond energy
+def calcBond(kmc, types):
+    ebonds = { (13, 13): -0.04506907817708337, (13, 14): -0.05215988817708158,
+              (14, 14): -0.058415198177092176, (0, 13): -0.01913845484375054,
+              (0, 14): -0.03314451484373948, (0, 0): 0.0 }
+    return qetool.bondClusterEnergy(types, ebonds)
+
+# calculate energy with ML potential
+MLModelFile = 'Al-Si-V.h5'
+Replace = {0: 0, 13: 1, 14: 2}
+MLModel = tf.keras.models.load_model(MLModelFile)
+def calcML(kmc, types):
+    retypes = []
+    for i in range(kmc.ncluster):
+        retypes.append(Replace[types[i]])
+    clue = MLModel.predict([retypes], verbose=0)[0][0]
+    return clue
+
 if __name__ == "__main__":
     Ntry = 10000
     T = range(800, 700, -1)
     etbfile = 'Al-Si-V.etb'
     resfile = 'Al-Si-V.mpkmc'
-    Kb = 86.1735e-6 # ev/K
-    Ry = 13.6058 # ev
-    uc = ((0, 0, 0), (0.5, 0.5, 0.0), (0.5, 0.0, 0.5), (0.0, 0.5, 0.5))
-    uc_types = (13, 13, 13, 13)
-    pv = ((4.04360, 0, 0), (0, 4.04360, 0), (0, 0, 4.04360))
-    clu = ((0, 0, 0), (0.5, 0.5, 0), (0, 0.5, -0.5), (-0.5, 0, -0.5),\
-        (-0.5, 0.5, 0), (0, 0.5, 0.5), (0.5, 0, 0.5), (0.5, -0.5, 0),\
-        (0, -0.5, 0.5), (-0.5, 0, 0.5), (-0.5, -0.5, 0), (0, -0.5, -0.5), (0.5, 0, -0.5))
-    kmc = MPKMC.new(4, 10, 10, 10, 13, 100, 1000, 10000)
-    kmc.kb = Kb/Ry
+    calcfunc = calcML
+    kmc = qetool.FCCCell(13, 4.04360, 10, 10, 10)
     kmc.freq = 1.0e13 # frequency of atom
     kmc.mige = 0.66 # vacancy migration energy in Aluminum
     kmc.rand_seed = 12345
-    kmc.set_unitcell(uc, uc_types, pv)
-    kmc.set_cluster(clu, 13)
-    kmc.calc_rot_index(5.0, 1.0e-6)
     if os.path.exists(etbfile):
         kmc.read_table(etbfile)
     kmc.add_solute_random(10, 14, 1)
     kmc.add_solute_random(6, 0, 1)
-    kmc.grid_energy(calcQE)
-    kmc.write_table(etbfile)
+    kmc.grid_energy(calcfunc)
     print(kmc.tote, kmc.ntable)
     print('(totmcs, temp, ntry, njump, table_update, ntable, tote, tott, time) ngroup')
     for temp in T:
-        ret = kmc.jump(Ntry, temp, calcQE)
-        kmc.write_table(etbfile)
+        ret = kmc.jump(Ntry, temp, calcfunc)
         print(ret, kmc.find_solute_group(1.42))
     kmc.write(resfile, 8)
