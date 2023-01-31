@@ -23,6 +23,7 @@ def removeOutFiles(qedir):
     for outfile in qetool.listFiles(qedir, ext='.out'):
         data = qetool.readQEout(outfile)
         if not 'TotalEnergy' in data:
+            print('REMOVE', outfile)
             os.remove(outfile)
 
 def execQE(qedir, max_procs, command='./pw.x'):
@@ -33,8 +34,8 @@ def execQE(qedir, max_procs, command='./pw.x'):
         if not os.path.exists(outfile):
             iofiles.append((infile, outfile))
     procs = []
-    while len(iofiles) > 0:
-        if len(procs) < max_procs:
+    while len(iofiles) > 0 or len(procs) > 0:
+        if len(procs) < max_procs and len(iofiles) > 0:
             files = iofiles.pop(0)
             #cmd = 'ping 127.0.0.1 -n 5 > nul'
             cmd = '%s < %s > %s' % (command, files[0], files[1])
@@ -59,5 +60,5 @@ if __name__ == "__main__":
     #copyOutFiles(srcdir, dstdir, 5)
     qedir = 'qeAlSi'
     max_procs = 4
-    #removeOutFiles(qedir)
+    removeOutFiles(qedir)
     execQE(qedir, max_procs)
