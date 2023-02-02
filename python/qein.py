@@ -6,12 +6,13 @@ import os
 # genarate .in file
 #
 if __name__ == "__main__":
-    qedir = 'qeAlSi'
+    qedir = 'qeAlV'
     headfile = 'qehead.in'
     kmc = qetool.FCCCell(13, 4.04360, 2, 2, 2, 32, 1024, 1, 1)
     cid = kmc.grid2index(0, 1, 1, 1)
     # Al-Si
-    ltypes = [ {14: i} for i in range(1, 14) ]
+    #ltypes = [ {14: i} for i in range(1, 14) ]
+    ltypes = [ {0: i} for i in range(1, 14) ]
     for types in ltypes:
         qetool.buildClusters(kmc, types, cid)
     # Write .in file

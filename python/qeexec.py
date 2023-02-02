@@ -52,13 +52,13 @@ def execQE(qedir, max_procs, command='./pw.x'):
             for i in range(len(procs))[::-1]:
                 if finish[i]:
                     procs.pop(i)
-            time.sleep(10)
+        time.sleep(5)
 
 if __name__ == "__main__":
     #srcdir = 'AlSi60'
     #dstdir = 'qeAlSi'
     #copyOutFiles(srcdir, dstdir, 5)
-    qedir = 'qeAlSi'
+    qedir = 'qeAlV'
     max_procs = 4
     removeOutFiles(qedir)
     execQE(qedir, max_procs)
