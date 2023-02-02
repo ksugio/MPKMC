@@ -325,49 +325,59 @@ def fillUnkownClusters2(kmc, work, order, isolates, ebonds, cid, overlap=False):
 def dummyForFind(kmc, types):
     return 99
 
-def findClusters(kmc, data):
+def findClusters(kmc, data, cid):
     changeType(kmc, data)
     kmc.reset_table()
     kmc.grid_energy(dummyForFind)
+    ctypes = kmc.cluster_types(cid)
+    ctid = kmc.search_cluster(ctypes)
     known = []
     unknown = []
     for i in range(kmc.ntable):
         item = kmc.table_item(i)
-        if item[2] > 0:
+        if i == ctid:
+            center = item
+        elif item[2] > 0:
             if item[1] == 99:
                 unknown.append(item)
             else:
                 known.append(item)
-    return known, unknown
+    return center, known, unknown
 
-def fillUnkownCluster(kmc, outfile, isolates, ebonds):
+def fillUnkownCluster(kmc, outfile, isolates, ebonds, cid):
     data = readQEout(outfile)
     bine = BindingEnergy(data, isolates)
     tote = bine
-    known, unknown = findClusters(kmc, data)
-    count = 0
-    if len(unknown) > 0:
-        for clu in known:
-            tote -= clu[1] * clu[2]
-        unknown.sort(key=lambda x: x[2], reverse=True)
-        while len(unknown) > 1:
-            unklast = unknown.pop()
-            clue = bondClusterEnergy(unklast[0], ebonds)
-            kmc.change_cluster(unklast[0], clue, unklast[2])
-            tote -= clue * unklast[2]
-            count += 1
-        kmc.change_cluster(unknown[0][0], tote / unknown[0][2], unknown[0][2])
-        count += 1
-    kmc.grid_energy(dummyForFind)
-    return outfile, count, bine, kmc.tote, abs(kmc.tote-bine)
+    center, known, unknown = findClusters(kmc, data, cid)
+    for clu in known:
+        tote -= clu[1] * clu[2]
+    for clu in unknown:
+        clue = bondClusterEnergy(clu[0], ebonds)
+        tote -= clue * clu[2]
+    cluec = tote / center[2]
+    if center[1] == 99:
+        add = kmc.change_cluster(center[0], cluec, center[2])
+    else:
+        add = -1
+    return outfile, cluec, len(unknown), add, bine
 
-def fillUnkownClusters(kmc, order, isolates, ebonds):
+def deleteUnkownClusters(kmc):
+    delclus = []
+    for i in range(kmc.ntable):
+        item = kmc.table_item(i)
+        if item[1] == 99:
+            delclus.append(item)
+    for types, ene, count in delclus[::-1]:
+        kmc.delete_cluster(types)
+
+def fillUnkownClusters(kmc, order, isolates, ebonds, cid):
     results = []
     for ord in order:
-        ret = fillUnkownCluster(kmc, ord[0], isolates, ebonds)
+        ret = fillUnkownCluster(kmc, ord[0], isolates, ebonds, cid)
         results.append(ret)
-        if ret[1] > 2 or ret[4] > 1.0e-3:
-            print(ret)
+        if ret[2] > 1:
+            print('Unknown', ret[2], 'in', ret[0])
+    deleteUnkownClusters(kmc)
     return results
 
 def dummyForBuild(kmc, types):
