@@ -68,18 +68,20 @@ def countQEoutTypes(outdir, ext='.out', fill_ref=FCC222, fill_type=0):
         outtypes.append((outfile, types))
     return outtypes
 
-def countQEoutClusterTypes(outdir, ext='.out'):
+def countQEoutClusterTypes(outdir, types, ext='.out'):
     outtypes = []
     for outfile in listFiles(outdir, ext):
         s = os.path.splitext(os.path.basename(outfile))[0]
-        types = MPKMC.string2types(s)
-        dtypes = {}
-        for tp in types:
-            if not tp in dtypes:
-                dtypes[tp] = 1
+        tps = MPKMC.string2types(s)
+        dtps = { t:0 for t in types }
+        flag = True
+        for tp in tps:
+            if tp in dtps:
+                dtps[tp] += 1
             else:
-                dtypes[tp] += 1
-        outtypes.append((outfile, dtypes))
+                flag = False
+        if flag:
+            outtypes.append((outfile, dtps))
     return outtypes
 
 def addSolute(kmc, data, sjump=1, vjump=1):
@@ -284,44 +286,6 @@ def bondClusterEnergy(types, ebonds):
         tote += ebonds[key]
     return tote / 2.0
 
-def ClusterEnergy2(kmc, work, tote, ebonds, cid):
-    btypes = {}
-    for i in range(work.ntot):
-        if i != cid:
-            types = work.cluster_types(i)
-            tid = kmc.search_cluster(types)
-            if tid >=0:
-                tote -= kmc.table_item(tid)[1]
-            else:
-                tote -= bondClusterEnergy(types, ebonds)
-                if not types in btypes:
-                    btypes[types] = 1
-                else:
-                    btypes[types] += 1
-    types = work.cluster_types(cid)
-    return tote, types, btypes
-
-def fillUnkownClusters2(kmc, work, order, isolates, ebonds, cid, overlap=False):
-    results = []
-    for ord in order:
-        outfile = ord[0]
-        data = readQEout(outfile)
-        if 'TotalEnergy' in data:
-            tote = BindingEnergy(data, isolates)
-            changeType(work, data)
-            clue, types, btypes = ClusterEnergy2(kmc, work, tote, ebonds, cid)
-            if kmc.search_cluster(types) >= 0:
-                if overlap:
-                    add = kmc.add_cluster(types, clue, 1)
-                else:
-                    add = -1
-            else:
-                add = kmc.add_cluster(types, clue, 1)
-            results.append((outfile, clue, len(btypes), add, tote))
-        else:
-            print('Read Error:',outfile)
-    return results
-
 def dummyForFind(kmc, types):
     return 99
 
@@ -369,6 +333,7 @@ def deleteUnkownClusters(kmc):
             delclus.append(item)
     for types, ene, count in delclus[::-1]:
         kmc.delete_cluster(types)
+    return delclus
 
 def fillUnkownClusters(kmc, order, isolates, ebonds, cid):
     results = []
@@ -377,8 +342,45 @@ def fillUnkownClusters(kmc, order, isolates, ebonds, cid):
         results.append(ret)
         if ret[2] > 1:
             print('Unknown', ret[2], 'in', ret[0])
-    deleteUnkownClusters(kmc)
     return results
+
+def ClusterEnergy2(kmc, work, tote, ebonds, cid):
+    btypes = {}
+    for i in range(work.ntot):
+        if i != cid:
+            types = work.cluster_types(i)
+            tid = kmc.search_cluster(types)
+            if tid >=0:
+                tote -= kmc.table_item(tid)[1]
+            else:
+                tote -= bondClusterEnergy(types, ebonds)
+                if not types in btypes:
+                    btypes[types] = 1
+                else:
+                    btypes[types] += 1
+    types = work.cluster_types(cid)
+    return tote, types, btypes
+
+# def fillUnkownClusters2(kmc, work, order, isolates, ebonds, cid, overlap=False):
+#     results = []
+#     for ord in order:
+#         outfile = ord[0]
+#         data = readQEout(outfile)
+#         if 'TotalEnergy' in data:
+#             tote = BindingEnergy(data, isolates)
+#             changeType(work, data)
+#             clue, types, btypes = ClusterEnergy2(kmc, work, tote, ebonds, cid)
+#             if kmc.search_cluster(types) >= 0:
+#                 if overlap:
+#                     add = kmc.add_cluster(types, clue, 1)
+#                 else:
+#                     add = -1
+#             else:
+#                 add = kmc.add_cluster(types, clue, 1)
+#             results.append((outfile, clue, len(btypes), add, tote))
+#         else:
+#             print('Read Error:',outfile)
+#     return results
 
 def dummyForBuild(kmc, types):
     return 99

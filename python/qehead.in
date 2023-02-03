@@ -20,8 +20,6 @@
 /
 &IONS
 /
-&CELL
-/
 ATOMIC_SPECIES
  Al 26.98 Al.pbe-n-rrkjus_psl.1.0.0.UPF
  Si 28.085 Si.pbe-n-rrkjus_psl.1.0.0.UPF

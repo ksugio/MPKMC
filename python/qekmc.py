@@ -4,14 +4,15 @@ import subprocess
 import tensorflow as tf
 import os
 
+Isolates = { 0: 0.0, 13: -4.76961123, 14: -11.02436232, }
+EBonds = { (13, 13): -0.04506907817708337, (13, 14): -0.05215988817708158,
+           (14, 14): -0.058415198177092176, (0, 13): -0.01913845484375054,
+           (0, 14): -0.03314451484373948, (0, 0): 0.0 }
+
 # calculate energy with starting pw.x
 def calcQE(kmc, types):
     qedir = 'AlSiV'
     headfile = 'qehead.in'
-    isolates = {0: 0.0, 13: -4.76961123, 14: -11.02436232, }
-    ebonds = { (13, 13): -0.04506907817708337, (13, 14): -0.05215988817708158,
-              (14, 14): -0.058415198177092176, (0, 13): -0.01913845484375054,
-              (0, 14): -0.03314451484373948, (0, 0): 0.0 }
     infile = '%s/%s.in' % (qedir, MPKMC.types2string(types))
     qetool.writeQEin(types, kmc.cluster, headfile, infile, fill_type=13)
     outfile = '%s/%s.out' % (qedir, MPKMC.types2string(types))
@@ -22,17 +23,14 @@ def calcQE(kmc, types):
     data = qetool.readQEout(outfile)
     work = qetool.FCCCell(13, 4.04360, 2, 2, 2, 32, 1024, 1, 1)
     cid = work.grid2index(0, 1, 1, 1)
-    tote = qetool.BindingEnergy(data, isolates)
+    tote = qetool.BindingEnergy(data, Isolates)
     qetool.changeType(work, data)
-    clue, _, _ = qetool.ClusterEnergy2(kmc, work, tote, ebonds, cid)
+    clue, _, _ = qetool.ClusterEnergy2(kmc, work, tote, EBonds, cid)
     return clue
 
 # calculate energy with bond energy
 def calcBond(kmc, types):
-    ebonds = { (13, 13): -0.04506907817708337, (13, 14): -0.05215988817708158,
-              (14, 14): -0.058415198177092176, (0, 13): -0.01913845484375054,
-              (0, 14): -0.03314451484373948, (0, 0): 0.0 }
-    return qetool.bondClusterEnergy(types, ebonds)
+    return qetool.bondClusterEnergy(types, EBonds)
 
 # calculate energy with ML potential
 MLModelFile = 'Al-Si-V.h5'
