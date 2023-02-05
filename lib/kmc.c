@@ -17,6 +17,7 @@ int MP_KMCAlloc(MP_KMCData *data, int nuc, int nx, int ny, int nz, int ncluster,
 	data->clusterid = (int *)malloc(nuc*ncluster*4*sizeof(int));
 	data->rotid = (int *)malloc(MP_KMC_NROT_MAX*ncluster*sizeof(int));
 	data->solute = (MP_KMCSoluteItem *)malloc(nsolute_step*sizeof(MP_KMCSoluteItem));
+	data->transition = (MP_KMCTransitionItem *)malloc((ncluster-1)*nsolute_step*sizeof(MP_KMCTransitionItem));
 	data->event = (MP_KMCEventItem *)malloc(nevent_step*sizeof(MP_KMCEventItem));
 	data->history = (MP_KMCHistoryItem *)malloc(nhistory_step*sizeof(MP_KMCHistoryItem));
 	if (data->grid == NULL || data->table == NULL || data->clusterid == NULL
@@ -48,6 +49,8 @@ int MP_KMCAlloc(MP_KMCData *data, int nuc, int nx, int ny, int nz, int ncluster,
 	data->nsolute_max = data->nsolute_step = nsolute_step;
 	data->dpmax = 0;
 	data->ngroup = 0;
+	data->ntransition = 0;
+	data->nmigration = 0;
 	data->event_record = TRUE;
 	data->nevent = 0;
 	data->nevent_max = data->nevent_step = nevent_step;
@@ -60,7 +63,6 @@ int MP_KMCAlloc(MP_KMCData *data, int nuc, int nx, int ny, int nz, int ncluster,
 	data->tote = 0.0;
 	data->kb = 86.1735e-6; // ev/K
 	data->freq = 1.0e13; // frequency for time calculation
-	data->mige = 0.66; // migration energy for time calculation
 	data->tott = 0.0;
 	return TRUE;
 }
@@ -531,4 +533,39 @@ int MP_KMCSearchTable(MP_KMCData *data, char ss[], MP_KMCTableItem list[], int l
 		}
 	}
 	return KMCSearchTable(data, ncond, cond, list, list_max);
+}
+
+int MP_KMCSetMigration(MP_KMCData* data, short type0, short type1, double energy)
+{
+	int i;
+
+	if (data->nmigration >= MP_KMC_MIGRATION_MAX) return FALSE;
+	for (i = 0; i < data->nmigration; i++) {
+		if ((data->migration[i].type0 == type0 && data->migration[i].type1 == type1) ||
+			(data->migration[i].type0 == type1 && data->migration[i].type1 == type0)) {
+			data->migration[i].e = energy;
+			break;
+		}
+	}
+	if (i == data->nmigration) {
+		data->migration[i].type0 = type0;
+		data->migration[i].type1 = type1;
+		data->migration[i].e = energy;
+		(data->nmigration)++;
+	}
+	return TRUE;
+}
+
+double MP_KMCGetMigration(MP_KMCData* data, short type0, short type1)
+{
+	int i;
+
+	for (i = 0; i < data->nmigration; i++) {
+		if ((data->migration[i].type0 == type0 && data->migration[i].type1 == type1) ||
+			(data->migration[i].type0 == type1 && data->migration[i].type1 == type0)) {
+			return data->migration[i].e;
+
+		}
+	}
+	return 0.0;
 }

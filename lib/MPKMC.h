@@ -62,6 +62,7 @@ extern "C" {
 #define MP_KMC_NUC_MAX 32
 #define MP_KMC_NCLUSTER_MAX 64
 #define MP_KMC_NROT_MAX 64
+#define MP_KMC_MIGRATION_MAX 64
 #define MP_KMC_MEM_ERR -99
 
 enum {MP_KMCFCC};
@@ -84,6 +85,20 @@ typedef struct MP_KMCSoluteItem {
 	int njump;
 	int group;
 } MP_KMCSoluteItem;
+
+typedef struct MP_KMCTransitionItem {
+	int dp;
+	int id0;
+	int id1;
+	double de;
+	double r;
+} MP_KMCTransitionItem;
+
+typedef struct MP_KMCMigrationItem {
+	short type0;
+	short type1;
+	double e;
+} MP_KMCMigrationItem;
 
 typedef struct MP_KMCEventItem {
 	int dp;
@@ -139,6 +154,10 @@ typedef struct MP_KMCData {
 	int dpmax;
 	int ngroup;
 	MP_KMCSoluteItem *solute;
+	int ntransition;
+	MP_KMCTransitionItem* transition;
+	int nmigration;
+	MP_KMCMigrationItem migration[MP_KMC_MIGRATION_MAX];
 	int event_record;
 	int nevent;
 	int nevent_step;
@@ -156,7 +175,6 @@ typedef struct MP_KMCData {
 	double kb;
 	void *potp;
 	double freq;
-	double mige;
 	double tott;
 } MP_KMCData;
 
@@ -183,6 +201,8 @@ void MP_KMCChangeType(MP_KMCData* data, int id, short type);
 void MP_KMCSortTable(MP_KMCData *data);
 void MP_KMCResetTable(MP_KMCData *data);
 int MP_KMCSearchTable(MP_KMCData *data, char ss[], MP_KMCTableItem list[], int list_max);
+int MP_KMCSetMigration(MP_KMCData* data, short type0, short type1, double energy);
+double MP_KMCGetMigration(MP_KMCData* data, short type0, short type1);
 
 /*--------------------------------------------------
 * solute functions
@@ -201,6 +221,8 @@ int MP_KMCSoluteGroupTypes(MP_KMCData *data, int group, int num, short types[]);
 int MP_KMCGridEnergy(MP_KMCData *data, double(*func)(MP_KMCData *, short *));
 MP_KMCHistoryItem MP_KMCJump(MP_KMCData *data, int ntry, double temp, double(*func)(MP_KMCData *, short *));
 void MP_KMCGridEnergy2(MP_KMCData* data, void (*func)(MP_KMCData*, int, short*, double*));
+int MP_KMCListTransition(MP_KMCData* data, double(*func)(MP_KMCData*, short*));
+MP_KMCHistoryItem MP_KMCJump2(MP_KMCData* data, int ntry, double temp, double(*func)(MP_KMCData*, short*));
 
 /*--------------------------------------------------
 * event functions

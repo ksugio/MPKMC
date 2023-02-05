@@ -239,8 +239,8 @@ def writeQEin(types, cluster, headfile, infile, fill_ref=FCC222, fill_type=0):
 def FCCCell(type, alat, nx, ny, nz,
             nsolute_step = 1000, ntable_step = 1000,
             nevent_step = 100000, nhistory_step = 100):
-    Kb = 86.1735e-6; # ev/K
-    Ry = 13.6058; # ev
+    Kb = 86.1735e-6 # ev/K
+    Ry = 13.6058 # ev
     uc = ((0, 0, 0), (0.5, 0.5, 0.0), (0.5, 0.0, 0.5), (0.0, 0.5, 0.5))
     uc_types = (type, type, type, type)
     pv = ((alat, 0, 0), (0, alat, 0), (0, 0, alat))

@@ -22,6 +22,8 @@ EXPORTS
 	MP_KMCSortTable
 	MP_KMCResetTable
 	MP_KMCSearchTable
+	MP_KMCSetMigration
+	MP_KMCGetMigration
 	; solute
 	MP_KMCAddSolute
 	MP_KMCAddSoluteRandom
@@ -34,6 +36,8 @@ EXPORTS
 	MP_KMCGridEnergy
 	MP_KMCJump
 	MP_KMCGridEnergy2
+	MP_KMCListTransition;
+	MP_KMCJump2
 	; event
 	MP_KMCEventForward
 	MP_KMCEventBackward

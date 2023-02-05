@@ -13,6 +13,7 @@ if __name__ == "__main__":
     # Al-Si
     #ltypes = [ {14: i} for i in range(1, 14) ]
     ltypes = [ {0: i} for i in range(1, 14) ]
+    print(ltypes)
     for types in ltypes:
         qetool.buildClusters(kmc, types, cid)
     # Write .in file

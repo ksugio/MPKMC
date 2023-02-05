@@ -14,7 +14,9 @@ int MP_KMCAddSolute(MP_KMCData* data, int id, short type, short jump)
 	if (data->nsolute >= data->nsolute_max) {
 		nsolute_max = data->nsolute_max + data->nsolute_step;
 		data->solute = (MP_KMCSoluteItem *)realloc(data->solute, nsolute_max * sizeof(MP_KMCSoluteItem));
-		if (data->solute == NULL) {
+		data->transition = (MP_KMCTransitionItem *)realloc(data->transition, 
+			(data->ncluster - 1) * nsolute_max * sizeof(MP_KMCTransitionItem));
+		if (data->solute == NULL || data->transition == NULL) {
 			fprintf(stderr, "Error : allocation failure (MP_KMCAddSolute)\n");
 			return MP_KMC_MEM_ERR;
 		}

@@ -76,6 +76,7 @@ double MP_FSFCCEnergy(MP_FSFCC *fsfcc, MP_KMCData *data, short types[])
 	double rho, sV;
 	double phi, V;
 
+	if (types[0] == 0) return 0.0;
 	p = GetFSFCCParm(fsfcc, types[0]);
 	if (p.type == -1) {
 		fprintf(stderr, "Error : can't find FSFCC parameter for type %d (MP_FSFCCEnergy)\n", types[0]);

@@ -45,22 +45,28 @@ def calcML(kmc, types):
 
 if __name__ == "__main__":
     Ntry = 10000
-    T = range(800, 700, -1)
+    T = range(800, 300, -5)
     etbfile = 'Al-Si-V.etb'
     resfile = 'Al-Si-V.mpkmc'
-    calcfunc = calcML
+    Ry = 13.6058
+    calcfunc = calcBond
     kmc = qetool.FCCCell(13, 4.04360, 10, 10, 10)
     kmc.freq = 1.0e13 # frequency of atom
-    kmc.mige = 0.66 # vacancy migration energy in Aluminum
+    kmc.set_migration(0, 13, 0.66 / Ry)
+    kmc.set_migration(0, 14, 0.66 / Ry)
+    kmc.set_migration(13, 14, 0.66 / Ry)
     kmc.rand_seed = 12345
     if os.path.exists(etbfile):
         kmc.read_table(etbfile)
-    kmc.add_solute_random(10, 14, 1)
-    kmc.add_solute_random(6, 0, 1)
-    kmc.grid_energy(calcfunc)
+    kmc.add_solute_random(10, 14, 0)
+    kmc.add_solute_random(10, 0, 1)
+    #kmc.add_solute(28, 14, 1)
+    #kmc.add_solute(9, 14, 1)
+    #kmc.grid_energy(calcfunc)
+    kmc.list_transition(calcfunc)
     print(kmc.tote, kmc.ntable)
     print('(totmcs, temp, ntry, njump, table_update, ntable, tote, tott, time) ngroup')
     for temp in T:
-        ret = kmc.jump(Ntry, temp, calcfunc)
+        ret = kmc.jump2(Ntry, temp, calcfunc)
         print(ret, kmc.find_solute_group(1.42))
     kmc.write(resfile, 8)

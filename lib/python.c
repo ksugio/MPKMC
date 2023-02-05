@@ -78,7 +78,6 @@ static PyMemberDef PyKMCMembers[] = {
 	{ "tote", T_DOUBLE, offsetof(MP_KMCData, tote), 1, "total energy" },
     { "kb", T_DOUBLE, offsetof(MP_KMCData, kb), 0, "Boltzmann constant" },
 	{ "freq", T_DOUBLE, offsetof(MP_KMCData, freq), 0, "Frequency for time calculation" },
-	{ "mige", T_DOUBLE, offsetof(MP_KMCData, mige), 0, "Migration energy for time calculation" },
 	{ "tott", T_DOUBLE, offsetof(MP_KMCData, tott), 1, "Total time" },
 	{ NULL }  /* Sentinel */
 };
@@ -432,6 +431,29 @@ static PyObject *PyKMCSearchTable(MP_KMCData *self, PyObject *args, PyObject *kw
 	return Py_BuildValue("iO", nlist, tb);
 }
 
+static PyObject* PyKMCSetMigration(MP_KMCData* self, PyObject* args, PyObject* kwds)
+{
+	short type0, type1;
+	double energy;
+	static char* kwlist[] = { "type0", "type1", "energy", NULL};
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "hhd", kwlist, &type0, &type1, &energy)) {
+		return NULL;
+	}
+	return Py_BuildValue("i", MP_KMCSetMigration(self, type0, type1, energy));
+}
+
+static PyObject* PyKMCGetMigration(MP_KMCData* self, PyObject* args, PyObject* kwds)
+{
+	short type0, type1;
+	static char* kwlist[] = { "type0", "type1", NULL };
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "hh", kwlist, &type0, &type1)) {
+		return NULL;
+	}
+	return Py_BuildValue("d", MP_KMCGetMigration(self, type0, type1));
+}
+
 /*--------------------------------------------------
 * solute functions
 */
@@ -656,6 +678,55 @@ static PyObject* PyKMCGridEnergy2(MP_KMCData* self, PyObject* args, PyObject* kw
 		MP_KMCGridEnergy2(self, calcEnergy2);
 	}
 	Py_RETURN_NONE;
+}
+
+static PyObject* PyKMCListTransition(MP_KMCData* self, PyObject* args, PyObject* kwds)
+{
+	PyObject* func;
+	static char* kwlist[] = { "func", NULL };
+	int update;
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O", kwlist, &func)) {
+		return NULL;
+	}
+	if (func == Py_None) {
+		update = MP_KMCGridEnergy(self, NULL);
+	}
+	else {
+		if (!PyCallable_Check(func)) {
+			PyErr_SetString(PyExc_TypeError, "func must be callable");
+			return NULL;
+		}
+		self->pyfunc = func;
+		update = MP_KMCListTransition(self, calcEnergy);
+	}
+	return Py_BuildValue("i", update);
+}
+
+static PyObject* PyKMCJump2(MP_KMCData* self, PyObject* args, PyObject* kwds)
+{
+	int ntry;
+	double temp;
+	PyObject* func;
+	static char* kwlist[] = { "ntry", "temp", "func", NULL };
+	MP_KMCHistoryItem ret;
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "idO", kwlist, &ntry, &temp, &func)) {
+		return NULL;
+	}
+	if (func == Py_None) {
+		ret = MP_KMCJump2(self, ntry, temp, NULL);
+	}
+	else {
+		if (!PyCallable_Check(func)) {
+			PyErr_SetString(PyExc_TypeError, "func must be callable");
+			return NULL;
+		}
+		self->pyfunc = func;
+		ret = MP_KMCJump2(self, ntry, temp, calcEnergy);
+	}
+	return Py_BuildValue("ldiiiiddd", ret.totmcs, ret.temp, ret.ntry, ret.njump,
+		ret.table_update, ret.ntable, ret.tote, ret.tott, ret.time);
 }
 
 /*--------------------------------------------------
@@ -930,6 +1001,10 @@ static PyMethodDef PyKMCMethods[] = {
 		"reset_table() : reset reference count of energy table" },
 	{ "search_table", (PyCFunction)PyKMCSearchTable, METH_VARARGS | METH_KEYWORDS,
 		"search_table(ss) : search cluster with search string, ex. p0t14,t14n3" },
+	{ "set_migration", (PyCFunction)PyKMCSetMigration, METH_VARARGS | METH_KEYWORDS,
+		"set_migration(type0, type1, energy) : set migration energy" },
+	{ "get_migration", (PyCFunction)PyKMCGetMigration, METH_VARARGS | METH_KEYWORDS,
+		"get_migration(type0, type1) : get migration energy" },
 	// solute
 	{ "add_solute", (PyCFunction)PyKMCAddSolute, METH_VARARGS | METH_KEYWORDS,
 		"add_solute(id, type, jump) : add a solute atom by an atom index" },
@@ -949,9 +1024,13 @@ static PyMethodDef PyKMCMethods[] = {
 	{ "grid_energy", (PyCFunction)PyKMCGridEnergy, METH_VARARGS | METH_KEYWORDS,
 		"grid_energy(func) : calculate energies of grids, return table update flag" },
 	{ "jump", (PyCFunction)PyKMCJump, METH_VARARGS | METH_KEYWORDS,
-		"jump(ntry, temp, func) : jump solute atoms by KMC method" },
+		"jump(ntry, temp, func) : jump solute atoms by KMC reject method" },
 	{ "grid_energy2", (PyCFunction)PyKMCGridEnergy2, METH_VARARGS | METH_KEYWORDS,
 		"grid_energy2(func) : calculate energies of grids without table" },
+	{ "list_transition", (PyCFunction)PyKMCListTransition, METH_VARARGS | METH_KEYWORDS,
+		"list_transition(func) : list up transitions, return table update flag" },
+	{ "jump2", (PyCFunction)PyKMCJump2, METH_VARARGS | METH_KEYWORDS,
+		"jump2(ntry, temp, func) : jump solute atoms by KMC rejection free method" },
 	// event
 	{ "event_forward", (PyCFunction)PyKMCEventForward, METH_VARARGS | METH_KEYWORDS,
 		"event_forward(count) : take event point forward" },

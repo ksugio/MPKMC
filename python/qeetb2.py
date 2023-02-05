@@ -33,6 +33,7 @@ def WriteResults(results, resfile):
 #
 # genarate .etb file from QE .out files with cluster energy
 # if the cluster dose not exsists in table, bond energy is utilized
+# and .in files of unknow cluster are generated in QE directory.
 #
 if __name__ == "__main__":
     qedir = 'AlSi60'
