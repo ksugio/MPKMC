@@ -41,7 +41,7 @@ static PyObject *PyKMCNewNew(PyTypeObject *type, PyObject *args, PyObject *kwds)
 static PyObject *PyKMCReadNew(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
 	char *fname;
-	int version = 2;
+	int version = 3;
 	static char *kwlist[] = { "fname", "version", NULL };
 	MP_KMCData *self;
 

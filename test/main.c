@@ -90,7 +90,8 @@ static void testQE(MP_KMCData* data)
 		ret = MP_KMCJump2(data, 10000, T, NULL);
 		printf("%f %d %d %e %e\n", T, ret.njump, ret.ntable, ret.tote, ret.tott);
 	}
-
+	MP_KMCWrite(data, "test.mpkmc", 0);
+	MP_KMCRead(data, "test.mpkmc", 3);
 	//MP_KMCWriteTable(&data, "testQE.etb");
 	MP_KMCFree(data);
 }

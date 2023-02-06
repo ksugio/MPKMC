@@ -180,6 +180,11 @@ int MP_KMCWrite(MP_KMCData *data, char *filename, int comp)
 			data->history[i].ntry, data->history[i].njump, data->history[i].table_update, data->history[i].ntable,
 			data->history[i].tote, data->history[i].tott, data->history[i].time);
 	}
+	gzprintf(gfp, "tott %.15e\n", data->tott);
+	gzprintf(gfp, "nmigration %d\n", data->nmigration);
+	for (i = 0; i < data->nmigration; i++) {
+		gzprintf(gfp, "%d %d %.15e\n", data->migration[i].type0, data->migration[i].type1, data->migration[i].e);
+	}
 	gzclose(gfp);
 	return TRUE;
 }
@@ -214,7 +219,7 @@ static void ReadGrid(MP_KMCData *data, gzFile gfp)
 	}
 }
 
-static int KMCRead12(MP_KMCData *data, char *filename, int version)
+static int KMCRead123(MP_KMCData *data, char *filename, int version)
 {
 	int i;
 	gzFile gfp;
@@ -252,6 +257,8 @@ static int KMCRead12(MP_KMCData *data, char *filename, int version)
 	double temp, tote, time;
 	double tott = 0.0;
 	int ntry, table_update;
+	int nmigration;
+	short type0, type1;
 
 	if ((gfp = gzopen(filename, "rb")) == NULL) {
 		fprintf(stderr, "Error : can't open %s.(MP_KMCRead)\n", filename);
@@ -356,6 +363,17 @@ static int KMCRead12(MP_KMCData *data, char *filename, int version)
 			sscanf(buf, "%ld %le %d %d %d %d %le %le %le", &totmcs, &temp, &ntry, &njump, &table_update, &ntable, &tote, &tott, &time);
 		}
 		if (KMCAddHistory(data, totmcs, temp, ntry, njump, table_update, ntable, tote, tott, time) < 0) return FALSE;
+	}
+	if (version >= 3) {
+		gzgets(gfp, buf, 256);
+		sscanf(buf, "%s %le", dum, &(data->tott));
+		gzgets(gfp, buf, 256);
+		sscanf(buf, "%s %d", dum, &nmigration);
+		for (i = 0; i < nmigration; i++) {
+			gzgets(gfp, buf, 256);
+			sscanf(buf, "%hd %hd %le", &type0, &type1, &energy);
+			MP_KMCSetMigration(data, type0, type1, energy);
+		}
 	}
 	gzclose(gfp);
 	return TRUE;
@@ -486,7 +504,8 @@ int MP_KMCRead(MP_KMCData *data, char *filename, int version)
 		return KMCRead0(data, filename);
 	case 1:
 	case 2:
-		return KMCRead12(data, filename, version);
+	case 3:
+		return KMCRead123(data, filename, version);
 	default:
 		fprintf(stderr, "Error : Invalid version, %d(MP_KMCRead)\n", version);
 		return FALSE;
