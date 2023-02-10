@@ -12,13 +12,13 @@ def calcBond(kmc, types):
 if __name__ == "__main__":
     qedir = 'qeAlSi'
     etbfile = 'Al-Si.etb'
-    files = [('AlSi555_0', 0, 14), ('AlSi555_10', 10, 14), ('AlSi555_20', 20, 14),
-             ('AlSi555_30', 30, 14), ('AlSi555_40', 40, 14), ('AlSi555_50', 50, 14)]
+    files = [('AlSi555_0', 0, 14), ('AlSi555_2', 2, 14), ('AlSi555_4', 4, 14),
+             ('AlSi555_6', 6, 14), ('AlSi555_8', 8, 14), ('AlSi555_10', 10, 14)]
     isolates = {0: 0.0, 13: -4.76961123, 14: -11.02436232, }
     kmctote = []
     names = []
     for name, num, type in files:
-        kmc = qetool.FCCCell(13, 4.04360, 5, 5, 5)
+        kmc = qetool.FCCCell(13, 4.04360, 3, 3, 3)
         kmc.rand_seed = 12345
         if num > 0:
             kmc.add_solute_random(num, type, 1)
@@ -26,7 +26,7 @@ if __name__ == "__main__":
         kmc.grid_energy(calcBond)
         names.append(name)
         kmctote.append(kmc.tote)
-        celldm = 15.2826 / 2 * 5
+        celldm = 15.2826 / 2 * 3
         infile = '%s/%s.in' % (qedir, name)
         if not os.path.exists(infile):
             qetool.writeQEinKMC(kmc, 'qehead.in', infile, celldm)
