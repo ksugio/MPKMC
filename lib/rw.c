@@ -28,6 +28,10 @@ int MP_KMCWriteTable(MP_KMCData *data, char *filename)
 		}
 		fprintf(fp, "%.15e %ld\n", data->table[i].energy, data->table[i].refcount);
 	}
+	fprintf(fp, "nmigration %d\n", data->nmigration);
+	for (i = 0; i < data->nmigration; i++) {
+		fprintf(fp, "%d %d %.15e\n", data->migration[i].type0, data->migration[i].type1, data->migration[i].e);
+	}
 	fclose(fp);
 	return TRUE;
 }
@@ -47,14 +51,15 @@ static void ScanTable(char buf[], int ncluster, short types[], double *energy, l
 	*refcount = atol(tok);
 }
 
-int MP_KMCReadTable(MP_KMCData *data, char *filename)
+int MP_KMCReadTable(MP_KMCData *data, char *filename, int version)
 {
 	FILE *fp;
-	int ncluster, ntable;
+	int ncluster, ntable, nmigration;
 	double cluster[3];
 	short types[MP_KMC_NCLUSTER_MAX];
 	double energy;
 	long refcount;
+	short type0, type1;
 	char *p;
 	char buf[256];
 	int i;
@@ -85,6 +90,14 @@ int MP_KMCReadTable(MP_KMCData *data, char *filename)
 		ScanTable(buf, ncluster, types, &energy, &refcount);
 		MP_KMCAddCluster(data, types, energy, refcount);
 	}
+	if (version >= 1) {
+		fscanf(fp, "%s %d", buf, &nmigration);
+		for (i = 0; i < nmigration; i++) {
+			fscanf(fp, "%hd %hd %le", &type0, &type1, &energy);
+			MP_KMCSetMigration(data, type0, type1, energy);
+		}
+	}
+	fclose(fp);
 	return TRUE;
 }
 

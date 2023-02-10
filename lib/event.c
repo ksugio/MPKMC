@@ -160,6 +160,8 @@ static double EventSD(MP_KMCData *data, int sid, int event_pt)
 	int p1, x1, y1, z1;
 	int p2, x2, y2, z2;
 	int ox, oy, oz;
+	double spos[3], srpos[3];
+	double epos[3], erpos[3];
 	double dx, dy, dz;
 
 	ox = 0, oy = 0, oz = 0;
@@ -186,9 +188,20 @@ static double EventSD(MP_KMCData *data, int sid, int event_pt)
 		}
 	}
 	if (count > 0) {
-		dx = (x1 + data->uc[p1][0] + ox) - (x2 + data->uc[p2][0]);
-		dy = (y1 + data->uc[p1][1] + oy) - (y2 + data->uc[p2][1]);
-		dz = (z1 + data->uc[p1][2] + oz) - (z2 + data->uc[p2][2]);
+		spos[0] = x2 + data->uc[p2][0];
+		spos[1] = y2 + data->uc[p2][1];
+		spos[2] = z2 + data->uc[p2][2];
+		MP_KMCRealPos(data, spos, srpos);
+		epos[0] = x1 + data->uc[p1][0] + ox;
+		epos[1] = y1 + data->uc[p1][1] + oy;
+		epos[2] = z1 + data->uc[p1][2] + oz;
+		MP_KMCRealPos(data, epos, erpos);
+		dx = erpos[0] - srpos[0];
+		dy = erpos[1] - srpos[1];
+		dz = erpos[2] - srpos[2];
+		//dx = (x1 + data->uc[p1][0] + ox) - (x2 + data->uc[p2][0]);
+		//dy = (y1 + data->uc[p1][1] + oy) - (y2 + data->uc[p2][1]);
+		//dz = (z1 + data->uc[p1][2] + oz) - (z2 + data->uc[p2][2]);
 		return dx * dx + dy * dy + dz * dz;
 	}
 	else return 0.0;

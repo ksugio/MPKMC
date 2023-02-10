@@ -236,6 +236,27 @@ def writeQEin(types, cluster, headfile, infile, fill_ref=FCC222, fill_type=0):
             line = ' %s %3.2f %3.2f %3.2f\n' % (Symbols[n], x, y, z)
             fout.write(line)
 
+def writeQEinKMC(kmc, headfile, infile, celldm):
+    nat = 0
+    for i in range(kmc.ntot):
+        if kmc.grid_item(i)[0] > 0:
+            nat += 1
+    with open(headfile, mode='r') as fin:
+        head = fin.read()
+        head = head.replace('nat = 32', 'nat = %d' % (nat))
+        head = head.replace('celldm(1) = 15.2826', 'celldm(1) = %f' % (celldm))
+    with open(infile, mode='w') as fout:
+        fout.write(head)
+        for i in range(kmc.ntot):
+            n = kmc.grid_item(i)[0]
+            if n > 0:
+                x, y, z = kmc.index2pos(i)
+                x /= kmc.size[0]
+                y /= kmc.size[1]
+                z /= kmc.size[2]
+                line = ' %s %3.2f %3.2f %3.2f\n' % (Symbols[n], x, y, z)
+                fout.write(line)
+
 def FCCCell(type, alat, nx, ny, nz,
             nsolute_step = 1000, ntable_step = 1000,
             nevent_step = 100000, nhistory_step = 100):

@@ -240,7 +240,7 @@ double MP_KMCEventMSD(MP_KMCData *data, short type, int event_pt);
 * rw functions
 */
 int MP_KMCWriteTable(MP_KMCData *data, char *filename);
-int MP_KMCReadTable(MP_KMCData *data, char *filename);
+int MP_KMCReadTable(MP_KMCData *data, char *filename, int version);
 int MP_KMCWrite(MP_KMCData *data, char *filename, int comp);
 int MP_KMCRead(MP_KMCData *data, char *filename, int version);
 

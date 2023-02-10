@@ -843,12 +843,13 @@ static PyObject *PyKMCWriteTable(MP_KMCData *self, PyObject *args, PyObject *kwd
 static PyObject *PyKMCReadTable(MP_KMCData *self, PyObject *args, PyObject *kwds)
 {
 	char *filename;
-	static char *kwlist[] = { "filename", NULL };
+	int version = 1;
+	static char *kwlist[] = { "filename", "version", NULL};
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "s", kwlist, &filename)) {
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "s|i", kwlist, &filename, &version)) {
 		return NULL;
 	}
-	return Py_BuildValue("i", MP_KMCReadTable(self, filename));
+	return Py_BuildValue("i", MP_KMCReadTable(self, filename, version));
 }
 
 static PyObject *PyKMCWrite(MP_KMCData *self, PyObject *args, PyObject *kwds)
@@ -1046,7 +1047,7 @@ static PyMethodDef PyKMCMethods[] = {
 		"event_mcs() : return MCSs at each event" },
 	{ "event_energy", (PyCFunction)PyKMCEventEnergy, METH_NOARGS,
 		"event_energy() : return energies at each event" },
-	{ "event_msd", (PyCFunction)PyKMCEventMSD, METH_NOARGS,
+	{ "event_msd", (PyCFunction)PyKMCEventMSD, METH_VARARGS | METH_KEYWORDS,
 		"event_msd(type, event_pt) : return mean square displacement" },
 	// rw
 	{ "write_table", (PyCFunction)PyKMCWriteTable, METH_VARARGS | METH_KEYWORDS,
