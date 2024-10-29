@@ -58,6 +58,28 @@ static PyObject *PyKMCReadNew(PyTypeObject *type, PyObject *args, PyObject *kwds
 	return (PyObject *)self;
 }
 
+static PyObject* PyKMCCopyNew(PyTypeObject* type, PyObject* args, PyObject* kwds)
+{
+	MP_KMCData* kmc;
+	int copy_event = TRUE;
+	int copy_history = TRUE;
+	static char* kwlist[] = { "kmc", NULL };
+	MP_KMCData* self;
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|ii", kwlist, &kmc,
+		&copy_event, &copy_history)) {
+		return NULL;
+	}
+	self = (MP_KMCData*)type->tp_alloc(type, 0);
+	if (self != NULL) {
+		if (!MP_KMCCopy(kmc, self, copy_event, copy_history)) {
+			Py_DECREF(self);
+			return NULL;
+		}
+	}
+	return (PyObject*)self;
+}
+
 static PyMemberDef PyKMCMembers[] = {
 	{ "nuc", T_INT, offsetof(MP_KMCData, nuc), 1, "number of atoms in unit cell" },
 	{ "ntot", T_INT, offsetof(MP_KMCData, ntot), 1, "total number of atom sites" },
@@ -452,6 +474,29 @@ static PyObject* PyKMCGetMigration(MP_KMCData* self, PyObject* args, PyObject* k
 		return NULL;
 	}
 	return Py_BuildValue("d", MP_KMCGetMigration(self, type0, type1));
+}
+
+static PyObject* PyKMCShiftGrid(MP_KMCData* self, PyObject* args, PyObject* kwds)
+{
+	int shift;
+	static char* kwlist[] = { "shift", NULL};
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "i", kwlist, &shift)) {
+		return NULL;
+	}
+	return Py_BuildValue("d", MP_KMCShiftGrid(self, shift));
+}
+
+static PyObject* PyKMCChangeTypeByPlane(MP_KMCData* self, PyObject* args, PyObject* kwds)
+{
+	double a, b, c, d;
+	short type;
+	static char* kwlist[] = { "a", "b", "c", "d", "type", NULL};
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "ddddh", kwlist, &a, &b, &c, &d, &type)) {
+		return NULL;
+	}
+	return Py_BuildValue("i", MP_KMCChangeTypeByPlane(self, a, b, c, d, type));
 }
 
 /*--------------------------------------------------
@@ -899,6 +944,46 @@ static PyObject *PyKMCCalcRotIndex(MP_KMCData *self, PyObject *args, PyObject *k
 }
 
 /*--------------------------------------------------
+* fracture functions
+*/
+//static PyObject* PyKMCFractureEnergy(MP_KMCData* self, PyObject* args, PyObject* kwds)
+//{
+//	double a, b, c;
+//	double x0, y0, z0;
+//	PyObject *func;
+//	static char* kwlist[] = { "a", "b", "c", "x0", "y0", "z0", "func", NULL };
+//	double energy;
+//
+//	if (!PyArg_ParseTupleAndKeywords(args, kwds, "ddddddO", kwlist, &a, &b, &c, &x0, &y0, &z0, &func)) {
+//		return NULL;
+//	}
+//	if (func == Py_None) {
+//		energy = MP_KMCFractureEnergy(self, a, b, c, x0, y0, z0, NULL);
+//	}
+//	else {
+//		if (!PyCallable_Check(func)) {
+//			PyErr_SetString(PyExc_TypeError, "func must be callable");
+//			return NULL;
+//		}
+//		self->pyfunc = func;
+//		energy = MP_KMCFractureEnergy(self, a, b, c, x0, y0, z0, calcEnergy);
+//	}
+//	return Py_BuildValue("d", energy);
+//}
+
+//static PyObject* PyKMCFractureArea(MP_KMCData* self, PyObject* args, PyObject* kwds)
+//{
+//	double a, b, c;
+//	double x0, y0, z0;
+//	static char* kwlist[] = { "a", "b", "c", "x0", "y0", "z0", NULL };
+//
+//	if (!PyArg_ParseTupleAndKeywords(args, kwds, "dddddd", kwlist, &a, &b, &c, &x0, &y0, &z0)) {
+//		return NULL;
+//	}
+//	return Py_BuildValue("d", MP_KMCFractureArea(self, a, b, c, x0, y0, z0));
+//}
+
+/*--------------------------------------------------
 * items
 */
 static PyObject *PyKMCTableItem(MP_KMCData *self, PyObject *args, PyObject *kwds)
@@ -1006,6 +1091,10 @@ static PyMethodDef PyKMCMethods[] = {
 		"set_migration(type0, type1, energy) : set migration energy" },
 	{ "get_migration", (PyCFunction)PyKMCGetMigration, METH_VARARGS | METH_KEYWORDS,
 		"get_migration(type0, type1) : get migration energy" },
+	{ "shift_grid", (PyCFunction)PyKMCShiftGrid, METH_VARARGS | METH_KEYWORDS,
+		"shift_grid(shift) : shift grid" },
+	{ "change_type_by_plane", (PyCFunction)PyKMCChangeTypeByPlane, METH_VARARGS | METH_KEYWORDS,
+		"change_type_by_plane(a, b, c, d, type) : change type by plane" },
 	// solute
 	{ "add_solute", (PyCFunction)PyKMCAddSolute, METH_VARARGS | METH_KEYWORDS,
 		"add_solute(id, type, jump) : add a solute atom by an atom index" },
@@ -1256,6 +1345,50 @@ static PyTypeObject PyKMCReadType = {
 	PyKMCReadNew,				/* tp_new */
 };
 
+static PyTypeObject PyKMCCopyType = {
+	PyObject_HEAD_INIT(NULL)
+#ifndef PY3
+	0,							/*ob_size*/
+#endif
+	"MPKMC.copy",				/*tp_name*/
+	sizeof(MP_KMCData),		/*tp_basicsize*/
+	0,							/*tp_itemsize*/
+	(destructor)PyKMCDealloc,	/*tp_dealloc*/
+	0,							/*tp_print*/
+	0,							/*tp_getattr*/
+	0,							/*tp_setattr*/
+	0,							/*tp_compare*/
+	0,							/*tp_repr*/
+	0,							/*tp_as_number*/
+	0,							/*tp_as_sequence*/
+	0,							/*tp_as_mapping*/
+	0,							/*tp_hash */
+	0,							/*tp_call*/
+	0,							/*tp_str*/
+	0,							/*tp_getattro*/
+	0,							/*tp_setattro*/
+	0,							/*tp_as_buffer*/
+	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,	/*tp_flags*/
+	"copy(kmc, [copy_event=1, copy_history=1])",				/* tp_doc */
+	0,							/* tp_traverse */
+	0,							/* tp_clear */
+	0,							/* tp_richcompare */
+	0,							/* tp_weaklistoffset */
+	0,							/* tp_iter */
+	0,							/* tp_iternext */
+	PyKMCMethods,				/* tp_methods */
+	PyKMCMembers,				/* tp_members */
+	PyKMCGetSet,				/* tp_getset */
+	0,							/* tp_base */
+	0,							/* tp_dict */
+	0,							/* tp_descr_get */
+	0,							/* tp_descr_set */
+	0,							/* tp_dictoffset */
+	0,							/* tp_init */
+	0,							/* tp_alloc */
+	PyKMCCopyNew,				/* tp_new */
+};
+
 static PyObject *PyKMCTypes2String(MP_KMCData *self, PyObject *args, PyObject *kwds)
 {
 	PyObject *types;
@@ -1332,6 +1465,7 @@ PyMODINIT_FUNC PyInit_MPKMC(void)
 #else
 	if (PyType_Ready(&PyKMCNewType) < 0) return NULL;
 	if (PyType_Ready(&PyKMCReadType) < 0) return NULL;
+	if (PyType_Ready(&PyKMCCopyType) < 0) return NULL;
 	if (PyType_Ready(&MP_FSFCCPyType) < 0) return NULL;
 	if (PyType_Ready(&MP_MEAMPyType) < 0) return NULL;
 	m = PyModule_Create(&MPKMCPyModule);
@@ -1342,6 +1476,8 @@ PyMODINIT_FUNC PyInit_MPKMC(void)
 	PyModule_AddObject(m, "new", (PyObject *)&PyKMCNewType);
 	Py_INCREF(&PyKMCReadType);
 	PyModule_AddObject(m, "read", (PyObject *)&PyKMCReadType);
+	Py_INCREF(&PyKMCCopyType);
+	PyModule_AddObject(m, "copy", (PyObject*)&PyKMCCopyType);
 	Py_INCREF(&MP_FSFCCPyType);
 	PyModule_AddObject(m, "fsfcc", (PyObject *)&MP_FSFCCPyType);
 	Py_INCREF(&MP_MEAMPyType);

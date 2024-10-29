@@ -1,5 +1,6 @@
-//#include <MPGLKMC.h>
-/*#include <GL/freeglut.h>
+#include <MPGLKMC.h>
+#define FREEGLUT_STATIC
+#include <GL/glut.h>
 
 static MP_KMCData *Data;
 static MPGL_KMCDraw Draw;
@@ -107,7 +108,7 @@ void GlutWindow(MP_KMCData *data, int width, int height, int argc, char **argv)
 	float region[6];
 
 	glutInit(&argc, argv);
-	glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
+	//glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
 	glutInitWindowSize(width, height);
 	glutCreateWindow("MPGL_KMCWindow");
@@ -116,7 +117,7 @@ void GlutWindow(MP_KMCData *data, int width, int height, int argc, char **argv)
 	glutMouseFunc(MouseFunc);
 	glutMotionFunc(MotionFunc);
 	MPGL_KMCDrawInit(&Draw);
-	Draw.disp[0] = FALSE;
+	//Draw.disp[0] = FALSE;
 	MPGL_ColormapInit(&Colormap);
 	MPGL_SceneInit(&Scene);
 	MPGL_SceneLightAdd(&Scene, 1.0, 1.0, 1.0, 0.0);
@@ -147,4 +148,3 @@ void GlutWindow(MP_KMCData *data, int width, int height, int argc, char **argv)
 	// main loop
 	glutMainLoop();
 }
-*/

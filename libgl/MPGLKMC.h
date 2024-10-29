@@ -25,6 +25,8 @@ extern "C" {
 #ifdef MP_PYTHON_LIB
 #if PY_MAJOR_VERSION >= 3
 #define PY3
+#define PyInt_FromLong PyLong_FromLong
+#define PyInt_AsLong PyLong_AsLong
 #endif
 #endif
 

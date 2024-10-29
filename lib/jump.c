@@ -59,7 +59,7 @@ static int CompareTypes(MP_KMCData *data, short types0[], short types1[])
 	return FALSE;
 }
 
-static void CalcClusterEnergies(MP_KMCData *data, double(*func)(MP_KMCData *, short *),
+static void CalcClusterEnergies(MP_KMCData *data, double (*func)(MP_KMCData *, short *),
 	int ncluster, int ids[], double energy[], int *table_update)
 {
 	int j, k;
@@ -113,7 +113,7 @@ static void CalcClusterEnergies(MP_KMCData *data, double(*func)(MP_KMCData *, sh
 	}
 }
 
-static double ClusterEnergy(MP_KMCData *data, double(*func)(MP_KMCData *, short *),
+static double ClusterEnergy(MP_KMCData *data, double (*func)(MP_KMCData *, short *),
 	int ncluster, int ids[], double energy[], int *table_update)
 {
 	int j;
@@ -180,7 +180,7 @@ int KMCAddHistory(MP_KMCData *data, long totmcs, double temp, int ntry, int njum
 	return hid;
 }
 
-int MP_KMCGridEnergy(MP_KMCData *data, double(*func)(MP_KMCData *, short *))
+int MP_KMCGridEnergy(MP_KMCData *data, double (*func)(MP_KMCData *, short *))
 {
 	int j;
 	int id = 0;
@@ -242,7 +242,7 @@ int KMCSwapSolute(MP_KMCData* data, int dp, int id0, int id1)
 	return dpp;
 }
 
-MP_KMCHistoryItem MP_KMCJump(MP_KMCData *data, int ntry, double temp, double(*func)(MP_KMCData *, short *))
+MP_KMCHistoryItem MP_KMCJump(MP_KMCData *data, int ntry, double temp, double (*func)(MP_KMCData *, short *))
 {
 	int j;
 	int dp, jp, dpp;
@@ -332,7 +332,7 @@ void MP_KMCGridEnergy2(MP_KMCData* data, void (*func)(MP_KMCData*, int, short*, 
 	free(energy);
 }
 
-void KMCAddTransition(MP_KMCData* data, int dp, double(*func)(MP_KMCData*, short*), int *table_update)
+void KMCAddTransition(MP_KMCData* data, int dp, double (*func)(MP_KMCData*, short*), int *table_update)
 {
 	int k;
 	int id0, id1;
@@ -380,7 +380,7 @@ void KMCDeleteTransition(MP_KMCData* data, int dp)
 	}
 }
 
-int KMCUpdateTransition(MP_KMCData* data, int tid, double(*func)(MP_KMCData*, short*), int* table_update)
+int KMCUpdateTransition(MP_KMCData* data, int tid, double (*func)(MP_KMCData*, short*), int* table_update)
 {
 	int j, k;
 	int dp, dpp;
@@ -424,7 +424,7 @@ int KMCUpdateTransition(MP_KMCData* data, int tid, double(*func)(MP_KMCData*, sh
 	return TRUE;
 }
 
-int MP_KMCListTransition(MP_KMCData* data, double(*func)(MP_KMCData*, short*))
+int MP_KMCListTransition(MP_KMCData* data, double (*func)(MP_KMCData*, short*))
 {
 	int j;
 	int table_update = MP_KMCGridEnergy(data, func);
@@ -438,7 +438,7 @@ int MP_KMCListTransition(MP_KMCData* data, double(*func)(MP_KMCData*, short*))
 	return table_update;
 }
 
-MP_KMCHistoryItem MP_KMCJump2(MP_KMCData* data, int ntry, double temp, double(*func)(MP_KMCData*, short*))
+MP_KMCHistoryItem MP_KMCJump2(MP_KMCData* data, int ntry, double temp, double (*func)(MP_KMCData*, short*))
 {
 	int i, j;
 	short type0, type1;

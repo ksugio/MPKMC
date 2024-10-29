@@ -21,8 +21,8 @@ int MP_KMCAlloc(MP_KMCData *data, int nuc, int nx, int ny, int nz, int ncluster,
 	data->event = (MP_KMCEventItem *)malloc(nevent_step*sizeof(MP_KMCEventItem));
 	data->history = (MP_KMCHistoryItem *)malloc(nhistory_step*sizeof(MP_KMCHistoryItem));
 	if (data->grid == NULL || data->table == NULL || data->clusterid == NULL
-		|| data->rotid == NULL || data->solute == NULL || data->event == NULL
-		|| data->history == NULL) return FALSE;
+		|| data->rotid == NULL || data->solute == NULL || data->transition == NULL 
+		|| data->event == NULL || data->history == NULL) return FALSE;
 	for (i = 0; i < nuc; i++) {
 		data->uc[i][0] = 0.0, data->uc[i][1] = 0.0, data->uc[i][2] = 0.0;
 		data->uc_types[i] = -1;
@@ -74,6 +74,7 @@ void MP_KMCFree(MP_KMCData *data)
 	free(data->clusterid);
 	free(data->rotid);
 	free(data->solute);
+	free(data->transition);
 	free(data->event);
 	free(data->history);
 }
@@ -568,4 +569,73 @@ double MP_KMCGetMigration(MP_KMCData* data, short type0, short type1)
 		}
 	}
 	return 0.0;
+}
+
+int MP_KMCShiftGrid(MP_KMCData* data, int shift)
+{
+	int i;
+	MP_KMCGridItem* temp_grid;
+	int id;
+
+	temp_grid = (MP_KMCGridItem*)malloc(data->ntot * sizeof(MP_KMCGridItem));
+	if (temp_grid == NULL) return FALSE;
+	for (i = 0; i < data->ntot; i++) {
+		temp_grid[i].type = data->grid[i].type;
+		temp_grid[i].energy = data->grid[i].energy;
+	}
+	for (i = 0; i < data->ntot; i++) {
+		if (i + shift < data->ntot) {
+			data->grid[i + shift].type = temp_grid[i].type;
+			data->grid[i + shift].energy = temp_grid[i].energy;
+		}
+		else {
+			data->grid[i + shift - data->ntot].type = temp_grid[i].type;
+			data->grid[i + shift - data->ntot].energy = temp_grid[i].energy;
+		}
+	}
+	for (i = 0; i < data->nsolute; i++) {
+		id = data->solute[i].id + shift;
+		if (id < data->ntot) {
+			data->solute[i].id = id;
+		}
+		else {
+			data->solute[i].id = id - data->ntot;
+		}
+	}
+	for (i = 0; i < data->nevent; i++) {
+		id = data->event[i].id0 + shift;
+		if (id < data->ntot) {
+			data->event[i].id0 = id;
+		}
+		else {
+			data->event[i].id0 = id - data->ntot;
+		}
+		id = data->event[i].id1 + shift;
+		if (id < data->ntot) {
+			data->event[i].id1 = id;
+		}
+		else {
+			data->event[i].id1 = id - data->ntot;
+		}
+	}
+	free(temp_grid);
+	return TRUE;
+}
+
+int MP_KMCChangeTypeByPlane(MP_KMCData* data, double a, double b, double c, double d, short type)
+{
+	int i;
+	int count = 0;
+	double pos[3];
+	double r;
+
+	for (i = 0; i < data->ntot; i++) {
+		MP_KMCIndex2Pos(data, i, pos);
+		r = a * pos[0] + b * pos[1] + c * pos[2] + d;
+		if (r >= 0.0) {
+			MP_KMCChangeType(data, i, type);
+			count++;
+		}
+	}
+	return count;
 }

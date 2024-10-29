@@ -524,3 +524,67 @@ int MP_KMCRead(MP_KMCData *data, char *filename, int version)
 		return FALSE;
 	}
 }
+
+int MP_KMCCopy(MP_KMCData* src_data, MP_KMCData* dst_data, int copy_event, int copy_history)
+{
+	int i;
+	int sid;
+
+	if (!MP_KMCAlloc(dst_data, src_data->nuc, src_data->size[0], src_data->size[1], src_data->size[2],
+		src_data->ncluster, src_data->nsolute_step, src_data->ntable_step, src_data->nevent_step,
+		src_data->nhistory_step)) return FALSE;
+	MP_KMCSetUnitCell(dst_data, src_data->uc, src_data->uc_types, src_data->pv);
+	MP_KMCSetCluster(dst_data, src_data->cluster, src_data->jpmax);
+	for (i = 0; i < src_data->nrot * src_data->ncluster; i++) {
+		dst_data->rotid[i] = src_data->rotid[i];
+	}
+	dst_data->rand_seed = src_data->rand_seed;
+	dst_data->totmcs = src_data->totmcs;
+	dst_data->mcs = src_data->mcs;
+	dst_data->tote = src_data->tote;
+	dst_data->kb = src_data->kb;
+	dst_data->potp = src_data->potp;
+	dst_data->save_grid = src_data->save_grid;
+	for (i = 0; i < src_data->ntot; i++) {
+		dst_data->grid[i].type = src_data->grid[i].type;
+		dst_data->grid[i].energy = src_data->grid[i].energy;
+	}
+	dst_data->table_use = src_data->table_use;
+	strcpy(dst_data->htable, src_data->htable);
+	for (i = 0; i < src_data->ntable; i++) {
+		if (MP_KMCAddCluster(dst_data, src_data->table[i].types, src_data->table[i].energy, src_data->table[i].refcount) < 0) {
+			return FALSE;
+		}
+	}
+	dst_data->ngroup = src_data->ngroup;
+	for (i = 0; i < src_data->nsolute; i++) {
+		sid = MP_KMCAddSolute(dst_data, src_data->solute[i].id, src_data->solute[i].type, src_data->solute[i].jump);
+		if (sid < 0) {
+			fprintf(stderr, "Error : overlapped ID, %d.(MP_KMCCopy)\n", src_data->solute[i].id);
+			return FALSE;
+		}
+		dst_data->solute[sid].njump = src_data->solute[i].njump;
+		dst_data->solute[sid].group = src_data->solute[i].group;
+	}
+	if (copy_event) {
+		for (i = 0; i < src_data->nevent; i++) {
+			if (KMCAddEvent(dst_data, src_data->event[i].dp, src_data->event[i].dpp,
+				src_data->event[i].id0, src_data->event[i].id1, src_data->event[i].de,
+				src_data->event[i].dmcs) < 0) return FALSE;
+		}
+	}
+	if (copy_history) {
+		for (i = 0; i < src_data->nhistory; i++) {
+			if (KMCAddHistory(dst_data, src_data->history[i].totmcs, src_data->history[i].temp, src_data->history[i].ntry,
+				src_data->history[i].njump, src_data->history[i].table_update, src_data->history[i].ntable,
+				src_data->history[i].tote, src_data->history[i].tott, src_data->history[i].time) < 0) return FALSE;
+		}
+	}
+	dst_data->freq = src_data->freq;
+	dst_data->tott = src_data->tott;
+	for (i = 0; i < src_data->nmigration; i++) {
+		MP_KMCSetMigration(dst_data, src_data->migration[i].type0, src_data->migration[i].type1,
+			src_data->migration[i].e);
+	}
+	return TRUE;
+}

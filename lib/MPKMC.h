@@ -203,6 +203,8 @@ void MP_KMCResetTable(MP_KMCData *data);
 int MP_KMCSearchTable(MP_KMCData *data, char ss[], MP_KMCTableItem list[], int list_max);
 int MP_KMCSetMigration(MP_KMCData* data, short type0, short type1, double energy);
 double MP_KMCGetMigration(MP_KMCData* data, short type0, short type1);
+int MP_KMCShiftGrid(MP_KMCData* data, int shift);
+int MP_KMCChangeTypeByPlane(MP_KMCData* data, double a, double b, double c, double d, short type);
 
 /*--------------------------------------------------
 * solute functions
@@ -218,11 +220,11 @@ int MP_KMCSoluteGroupTypes(MP_KMCData *data, int group, int num, short types[]);
 /*--------------------------------------------------
 * jump functions
 */
-int MP_KMCGridEnergy(MP_KMCData *data, double(*func)(MP_KMCData *, short *));
-MP_KMCHistoryItem MP_KMCJump(MP_KMCData *data, int ntry, double temp, double(*func)(MP_KMCData *, short *));
+int MP_KMCGridEnergy(MP_KMCData *data, double (*func)(MP_KMCData *, short *));
+MP_KMCHistoryItem MP_KMCJump(MP_KMCData *data, int ntry, double temp, double (*func)(MP_KMCData *, short *));
 void MP_KMCGridEnergy2(MP_KMCData* data, void (*func)(MP_KMCData*, int, short*, double*));
-int MP_KMCListTransition(MP_KMCData* data, double(*func)(MP_KMCData*, short*));
-MP_KMCHistoryItem MP_KMCJump2(MP_KMCData* data, int ntry, double temp, double(*func)(MP_KMCData*, short*));
+int MP_KMCListTransition(MP_KMCData* data, double (*func)(MP_KMCData*, short*));
+MP_KMCHistoryItem MP_KMCJump2(MP_KMCData* data, int ntry, double temp, double (*func)(MP_KMCData*, short*));
 
 /*--------------------------------------------------
 * event functions
@@ -243,6 +245,7 @@ int MP_KMCWriteTable(MP_KMCData *data, char *filename);
 int MP_KMCReadTable(MP_KMCData *data, char *filename, int version);
 int MP_KMCWrite(MP_KMCData *data, char *filename, int comp);
 int MP_KMCRead(MP_KMCData *data, char *filename, int version);
+int MP_KMCCopy(MP_KMCData *src_data, MP_KMCData *dst_data, int copy_event, int copy_history);
 
 /*--------------------------------------------------
 * rotindex functions

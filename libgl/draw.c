@@ -127,6 +127,9 @@ static void DrawSphere(MPGL_KMCDraw *draw, MP_KMCData *data, MPGL_Colormap *colo
 				break;
 			}
 		}
+		if (j == draw->ntypes) {
+			dia = 0.1 * sf;
+		}
 		if (draw->disp[j]) {
 			glPushMatrix();
 			Index2Grid(draw, data, i, &p, &x, &y, &z);

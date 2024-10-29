@@ -24,6 +24,8 @@ EXPORTS
 	MP_KMCSearchTable
 	MP_KMCSetMigration
 	MP_KMCGetMigration
+	MP_KMCShiftGrid
+	MP_KMCChangeTypeByPlane
 	; solute
 	MP_KMCAddSolute
 	MP_KMCAddSoluteRandom
@@ -52,6 +54,7 @@ EXPORTS
 	MP_KMCReadTable
 	MP_KMCWrite
 	MP_KMCRead
+	MP_KMCCopy
 	; rotindex
 	MP_KMCAddRotIndex
 	MP_KMCCalcRotIndex

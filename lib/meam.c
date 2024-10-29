@@ -227,7 +227,9 @@ double MP_MEAMEnergy(MP_MEAM *meam, MP_KMCData *data, short types[])
 	double t1, t2, t3;
 	double rho_i, rho_0i;
 
-	if (types[0] == 0) return 0.0;
+	if (types[0] == 0) {
+		return 0.0;
+	}
 	p = GetMEAMParm(meam, types[0]);
 	if (p.type == -1) {
 		fprintf(stderr, "Error : can't find MEAM parameter for type %d (MP_MEAMEnergy)\n", types[0]);
