@@ -186,6 +186,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="event.c" />
+    <ClCompile Include="fracture.c" />
     <ClCompile Include="fsfcc.c" />
     <ClCompile Include="jump.c" />
     <ClCompile Include="meam.c" />

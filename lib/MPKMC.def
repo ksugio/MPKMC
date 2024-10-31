@@ -64,6 +64,9 @@ EXPORTS
 	; rand
 	MP_Rand
 	MP_RandGauss
+	; fracture
+	MP_KMCFractureEnergy
+	MP_KMCFractureArea
 	; fsfcc
 	MP_FSFCCInit
 	MP_FSFCCSetParm

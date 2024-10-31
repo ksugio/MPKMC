@@ -28,10 +28,15 @@ static void testFSFCC()
 	MP_KMCSetUnitCell(&data, uc, uc_types, pv);
 	MP_KMCSetCluster(&data, cluster, 19);
 	MP_KMCCalcRotIndex(&data, 5.0, 1.0e-6);
-	MP_KMCAddSoluteRandom(&data, 30, 0, TRUE);
+	//MP_KMCAddSoluteRandom(&data, 30, 0, TRUE);
 	MP_FSFCCInit(&fsfcc);
 	data.potp = &fsfcc;
-	MP_KMCChangeTypeByPlane(&data, 1, 1, -1, 0.00001, 0);
+	MP_KMCGridEnergy(&data, calcFSFCC);
+	fe = MP_KMCFractureEnergy(&data, 1, 1, 1, -19.5, 0.6, calcFSFCC, calcFSFCC);
+	fa = MP_KMCFractureArea(&data, 1, 1, 1, -19.5);
+	fprintf(stderr, "%f %f\n", fe, fa);
+
+	//MP_KMCChangeTypeByPlane(&data, 1, 1, -1, 0.00001, 0);
 	//MP_FSFCCGridEnergy(&fsfcc, &data);
 	//for (T = 1100; T > 1000; T -= 10) {
 		//ret = MP_FSFCCJump(&fsfcc, data, 10000, T);
@@ -54,14 +59,38 @@ static int count13(MP_KMCData* data)
 	return count;
 }
 
-static double calcMEAM(MP_KMCData *data, short types[])
+static double calcMEAM(MP_KMCData* data, short types[])
 {
 	return MP_MEAMEnergy(data->potp, data, types);
 }
 
-static void testMEAM(MP_KMCData *data)
+static double calcMEAM100(MP_KMCData* data, short types[])
 {
-	MP_KMCData data1, data2;
+	MP_MEAM meam;
+
+	MP_MEAMInit(&meam);
+	meam.Zd = 8;
+	meam.S1 = 8;
+	meam.S2 = 2.0 / 3.0;
+	meam.S3 = 5;
+	return MP_MEAMEnergy(&meam, data, types);
+}
+
+static double calcMEAM111(MP_KMCData* data, short types[])
+{
+	MP_MEAM meam;
+
+	MP_MEAMInit(&meam);
+	meam.Zd = 9;
+	meam.S1 = 6;
+	meam.S2 = 3.0 / 2.0;
+	meam.S3 = 15.0 / 4.0;
+	return MP_MEAMEnergy(&meam, data, types);
+}
+
+static void testMEAM()
+{
+	MP_KMCData data;
 	MP_MEAM meam;
 	MP_KMCHistoryItem ret;
 	double T;
@@ -75,20 +104,22 @@ static void testMEAM(MP_KMCData *data)
 	int ids[MP_KMC_NCLUSTER_MAX];
 	double fe;
 
-	MP_KMCAlloc(data, 4, 10, 10, 10, 13, 1000, 1000, 100000, 100);
-	data->table_use = FALSE;
-	data->event_record = FALSE;
-	MP_KMCSetUnitCell(data, uc, uc_types, pv);
-	MP_KMCSetCluster(data, cluster, 13);
-	MP_KMCCalcRotIndex(data, 5.0, 1.0e-6);
+	MP_KMCAlloc(&data, 4, 2, 2, 4, 13, 1000, 1000, 100000, 100);
+	data.table_use = FALSE;
+	data.event_record = FALSE;
+	MP_KMCSetUnitCell(&data, uc, uc_types, pv);
+	MP_KMCSetCluster(&data, cluster, 13);
+	MP_KMCCalcRotIndex(&data, 5.0, 1.0e-6);
 	//MP_KMCAddSoluteRandom(data, 20, 0, TRUE);
-	MP_KMCAddSolute(data, 0, 0, TRUE);
-	MP_MEAMInit(&meam);
-	data->potp = &meam;
+	//MP_KMCAddSolute(data, 0, 0, TRUE);
 	
-
-	fe = MP_KMCFractureEnergy(data, 0, 0, 1, 0, 0, 4.75, calcMEAM);
+	MP_MEAMInit(&meam);
+	data.potp = &meam;
+	//MP_KMCGridEnergy(&data, calcMEAM);
+	//fe = MP_KMCFractureEnergy(&data, 0, 0, 1, -1.75, 0.6, calcMEAM, calcMEAM100);
+	fe = MP_KMCFractureEnergy(&data, 1, 1, 1, -3.5, 0.6, calcMEAM, calcMEAM111);
 	fprintf(stderr, "%f\n", fe);
+	//MP_KMCChangeTypeByPlane(&data, 1, 1, 1, -3.5, 0);
 	//MP_MEAMGridEnergy(&meam, data);
 	//fprintf(stderr, "0 %f\n", data->grid[0].energy);
 	//fprintf(stderr, "%f\n", data->tote);
@@ -112,8 +143,8 @@ static void testMEAM(MP_KMCData *data)
 	//MP_KMCTranslate(data, 0, 5, 5, 5);
 	//fprintf(stderr, "%d %d\n", count13(&data1), count13(&data2));
 	//MP_MEAMGridEnergy(&meam, data);
-	GlutWindow(data, 640, 480, 0, NULL);
-	MP_KMCFree(data);
+	GlutWindow(&data, 640, 480, 0, NULL);
+	MP_KMCFree(&data);
 }
 
 static void testQE(MP_KMCData* data)
@@ -151,8 +182,6 @@ static void testQE(MP_KMCData* data)
 
 int main(int argc, char *argv[])
 {
-	//MP_KMCData data;
-
-	//testMEAM(&data);
+	//testMEAM();
 	testFSFCC();
 }

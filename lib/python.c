@@ -63,7 +63,7 @@ static PyObject* PyKMCCopyNew(PyTypeObject* type, PyObject* args, PyObject* kwds
 	MP_KMCData* kmc;
 	int copy_event = TRUE;
 	int copy_history = TRUE;
-	static char* kwlist[] = { "kmc", NULL };
+	static char* kwlist[] = { "kmc", "copy_event", "copy_history", NULL};
 	MP_KMCData* self;
 
 	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|ii", kwlist, &kmc,
@@ -946,42 +946,89 @@ static PyObject *PyKMCCalcRotIndex(MP_KMCData *self, PyObject *args, PyObject *k
 /*--------------------------------------------------
 * fracture functions
 */
-//static PyObject* PyKMCFractureEnergy(MP_KMCData* self, PyObject* args, PyObject* kwds)
-//{
-//	double a, b, c;
-//	double x0, y0, z0;
-//	PyObject *func;
-//	static char* kwlist[] = { "a", "b", "c", "x0", "y0", "z0", "func", NULL };
-//	double energy;
-//
-//	if (!PyArg_ParseTupleAndKeywords(args, kwds, "ddddddO", kwlist, &a, &b, &c, &x0, &y0, &z0, &func)) {
-//		return NULL;
-//	}
-//	if (func == Py_None) {
-//		energy = MP_KMCFractureEnergy(self, a, b, c, x0, y0, z0, NULL);
-//	}
-//	else {
-//		if (!PyCallable_Check(func)) {
-//			PyErr_SetString(PyExc_TypeError, "func must be callable");
-//			return NULL;
-//		}
-//		self->pyfunc = func;
-//		energy = MP_KMCFractureEnergy(self, a, b, c, x0, y0, z0, calcEnergy);
-//	}
-//	return Py_BuildValue("d", energy);
-//}
+static double calcPerfEnergy(MP_KMCData* data, short types[])
+{
+	int i;
+	PyObject* tps;
+	PyObject* arg;
+	PyObject* res;
+	double energy;
 
-//static PyObject* PyKMCFractureArea(MP_KMCData* self, PyObject* args, PyObject* kwds)
-//{
-//	double a, b, c;
-//	double x0, y0, z0;
-//	static char* kwlist[] = { "a", "b", "c", "x0", "y0", "z0", NULL };
-//
-//	if (!PyArg_ParseTupleAndKeywords(args, kwds, "dddddd", kwlist, &a, &b, &c, &x0, &y0, &z0)) {
-//		return NULL;
-//	}
-//	return Py_BuildValue("d", MP_KMCFractureArea(self, a, b, c, x0, y0, z0));
-//}
+	tps = PyTuple_New((Py_ssize_t)data->ncluster);
+	for (i = 0; i < data->ncluster; i++) {
+		PyTuple_SetItem(tps, (Py_ssize_t)i, PyInt_FromLong(types[i]));
+	}
+	arg = Py_BuildValue("OO", (PyObject*)data, tps);
+	res = PyObject_CallObject(data->pyfunc, arg);
+	Py_DECREF(tps);
+	Py_DECREF(arg);
+	if (res == NULL) {
+		return 0.0;
+	}
+	energy = PyFloat_AsDouble(res);
+	Py_DECREF(res);
+	return energy;
+}
+
+static double calcFracEnergy(MP_KMCData* data, short types[])
+{
+	int i;
+	PyObject* tps;
+	PyObject* arg;
+	PyObject* res;
+	double energy;
+
+	tps = PyTuple_New((Py_ssize_t)data->ncluster);
+	for (i = 0; i < data->ncluster; i++) {
+		PyTuple_SetItem(tps, (Py_ssize_t)i, PyInt_FromLong(types[i]));
+	}
+	arg = Py_BuildValue("OO", (PyObject*)data, tps);
+	res = PyObject_CallObject(data->pyfunc2, arg);
+	Py_DECREF(tps);
+	Py_DECREF(arg);
+	if (res == NULL) {
+		return 0.0;
+	}
+	energy = PyFloat_AsDouble(res);
+	Py_DECREF(res);
+	return energy;
+}
+
+static PyObject* PyKMCFractureEnergy(MP_KMCData* self, PyObject* args, PyObject* kwds)
+{
+	double a, b, c, d, width;
+	PyObject *perf_func, *frac_func;
+	static char* kwlist[] = { "a", "b", "c", "d", "width", "perf_func", "frac_func", NULL};
+	double energy;
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "dddddOO", kwlist, &a, &b, &c, &d, &width, &perf_func, &frac_func)) {
+		return NULL;
+	}
+	if (perf_func == Py_None || frac_func == Py_None) {
+		energy = MP_KMCFractureEnergy(self, a, b, c, d, width, NULL, NULL);
+	}
+	else {
+		if (!PyCallable_Check(perf_func) || !PyCallable_Check(frac_func)) {
+			PyErr_SetString(PyExc_TypeError, "func must be callable");
+			return NULL;
+		}
+		self->pyfunc = perf_func;
+		self->pyfunc2 = frac_func;
+		energy = MP_KMCFractureEnergy(self, a, b, c, d, width, calcPerfEnergy, calcFracEnergy);
+	}
+	return Py_BuildValue("d", energy);
+}
+
+static PyObject* PyKMCFractureArea(MP_KMCData* self, PyObject* args, PyObject* kwds)
+{
+	double a, b, c, d;
+	static char* kwlist[] = { "a", "b", "c", "d", NULL };
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "dddd", kwlist, &a, &b, &c, &d)) {
+		return NULL;
+	}
+	return Py_BuildValue("d", MP_KMCFractureArea(self, a, b, c, d));
+}
 
 /*--------------------------------------------------
 * items
@@ -1150,6 +1197,11 @@ static PyMethodDef PyKMCMethods[] = {
 		"add_rot_index(ids) : add rotation index" },
 	{ "calc_rot_index", (PyCFunction)PyKMCCalcRotIndex, METH_VARARGS | METH_KEYWORDS,
 		"calc_rot_index(step, tol) : calculate rotation index" },
+	// fracture
+	{ "fracture_energy", (PyCFunction)PyKMCFractureEnergy, METH_VARARGS | METH_KEYWORDS,
+	"fracture_energy(a, b, c, d, width, perf_func, frac_func) : calculate fracture energy separated by a plane" },
+	{ "fracture_area", (PyCFunction)PyKMCFractureArea, METH_VARARGS | METH_KEYWORDS,
+	"fracture_area(a, b, c, d) : calculate fracture area of a plane" },
 	// items
 	{ "table_item", (PyCFunction)PyKMCTableItem, METH_VARARGS | METH_KEYWORDS,
 		"table_item(id) : return i-th item in energy table" },

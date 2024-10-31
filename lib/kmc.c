@@ -161,7 +161,7 @@ int MP_KMCSetCluster(MP_KMCData *data, double cluster[][3], int jpmax)
 		for (j = 0; j < data->ncluster; j++) {
 			if (SearchClusterIndex(data, i, cluster[j], &np, &dx, &dy, &dz)) {
 				pt = i * (data->ncluster * 4) + j * 4;
-				data->clusterid[pt++] = np;
+ 				data->clusterid[pt++] = np;
 				data->clusterid[pt++] = dx;
 				data->clusterid[pt++] = dy;
 				data->clusterid[pt] = dz;

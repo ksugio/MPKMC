@@ -125,6 +125,7 @@ typedef struct MP_KMCData {
 #ifdef MP_PYTHON_LIB
 	PyObject_HEAD
 	PyObject *pyfunc;
+	PyObject* pyfunc2;
 #endif
 	int nuc;
 	double uc[MP_KMC_NUC_MAX][3];
@@ -264,6 +265,13 @@ int MP_KMCString2Types(char str[], short types[]);
 */
 float MP_Rand(long *rand_seed);
 float MP_RandGauss(long *rand_seed);
+
+/*--------------------------------------------------
+* fracture functions
+*/
+double MP_KMCFractureEnergy(MP_KMCData* data, double a, double b, double c, double d, double width,
+	double (*perf_func)(MP_KMCData*, short*), double (*frac_func)(MP_KMCData*, short*));
+double MP_KMCFractureArea(MP_KMCData* data, double a, double b, double c, double d);
 
 /*--------------------------------------------------
 * fsfcc typedef and functions
