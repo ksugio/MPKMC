@@ -105,21 +105,21 @@ double MP_FSFCCEnergy(MP_FSFCC *fsfcc, MP_KMCData *data, short types[])
 	return Ui;
 }
 
-static double FSFCCFunc(MP_KMCData* data, short types[])
+static double FSFCCFunc(MP_KMCData* data, short types[], short potential)
 {
-	return MP_FSFCCEnergy(data->potp, data, types);
+	return MP_FSFCCEnergy(data->potptr, data, types);
 }
 
-int MP_FSFCCGridEnergy(MP_FSFCC *fsfcc, MP_KMCData *data)
+int MP_FSFCCGridEnergy(MP_FSFCC *fsfcc, MP_KMCData *data, short potential)
 {
-	data->potp = fsfcc;
-	return MP_KMCGridEnergy(data, FSFCCFunc);
+	data->potptr = fsfcc;
+	return MP_KMCGridEnergy(data, FSFCCFunc, potential);
 }
 
-MP_KMCHistoryItem MP_FSFCCJump(MP_FSFCC *fsfcc, MP_KMCData *data, int ntry, double temp)
+MP_KMCHistoryItem MP_FSFCCJump(MP_FSFCC *fsfcc, MP_KMCData *data, int ntry, double temp, short potential)
 {
-	data->potp = fsfcc;
-	return MP_KMCJump(data, ntry, temp, FSFCCFunc);
+	data->potptr = fsfcc;
+	return MP_KMCJump(data, ntry, temp, FSFCCFunc, potential);
 }
 
 /**********************************************************

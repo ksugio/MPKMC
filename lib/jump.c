@@ -59,7 +59,7 @@ static int CompareTypes(MP_KMCData *data, short types0[], short types1[])
 	return FALSE;
 }
 
-static void CalcClusterEnergies(MP_KMCData *data, double (*func)(MP_KMCData *, short *),
+static void CalcClusterEnergies(MP_KMCData *data, double (*func)(MP_KMCData *, short *, short), short potential,
 	int ncluster, int ids[], double energy[], int *table_update)
 {
 	int j, k;
@@ -78,7 +78,7 @@ static void CalcClusterEnergies(MP_KMCData *data, double (*func)(MP_KMCData *, s
 				energy[j] = data->table[tid[j]].energy;
 			}
 			else {
-				if (func != NULL) energy[j] = (func)(data, types[j]);
+				if (func != NULL) energy[j] = (func)(data, types[j], potential);
 				else energy[j] = 0.0;
 			}
 		}
@@ -104,7 +104,7 @@ static void CalcClusterEnergies(MP_KMCData *data, double (*func)(MP_KMCData *, s
 		for (j = 0; j < ncluster; j++) {
 			MP_KMCClusterTypes(data, ids[j], types[j]);
 			if (func != NULL) {
-				energy[j] = (func)(data, types[j]);
+				energy[j] = (func)(data, types[j], potential);
 			}
 			else {
 				energy[j] = 0.0;
@@ -113,13 +113,13 @@ static void CalcClusterEnergies(MP_KMCData *data, double (*func)(MP_KMCData *, s
 	}
 }
 
-static double ClusterEnergy(MP_KMCData *data, double (*func)(MP_KMCData *, short *),
+static double ClusterEnergy(MP_KMCData *data, double (*func)(MP_KMCData *, short *, short), short potential,
 	int ncluster, int ids[], double energy[], int *table_update)
 {
 	int j;
 	double cle = 0.0;
 
-	CalcClusterEnergies(data, func, ncluster, ids, energy, table_update);
+	CalcClusterEnergies(data, func, potential, ncluster, ids, energy, table_update);
 	for (j = 0; j < ncluster; j++) {
 		cle += energy[j];
 	}
@@ -180,7 +180,7 @@ int KMCAddHistory(MP_KMCData *data, long totmcs, double temp, int ntry, int njum
 	return hid;
 }
 
-int MP_KMCGridEnergy(MP_KMCData *data, double (*func)(MP_KMCData *, short *))
+int MP_KMCGridEnergy(MP_KMCData *data, double (*func)(MP_KMCData *, short *, short), short potential)
 {
 	int j;
 	int id = 0;
@@ -194,7 +194,7 @@ int MP_KMCGridEnergy(MP_KMCData *data, double (*func)(MP_KMCData *, short *))
 	while (TRUE) {
 		ids[ncluster++] = id++;
 		if (ncluster >= step || id >= data->ntot) {
-			CalcClusterEnergies(data, func, ncluster, ids, energy, &table_update);
+			CalcClusterEnergies(data, func, potential, ncluster, ids, energy, &table_update);
 			for (j = 0; j < ncluster; j++) {
 				data->grid[ids[j]].energy = energy[j];
 				data->tote += energy[j];
@@ -242,7 +242,7 @@ int KMCSwapSolute(MP_KMCData* data, int dp, int id0, int id1)
 	return dpp;
 }
 
-MP_KMCHistoryItem MP_KMCJump(MP_KMCData *data, int ntry, double temp, double (*func)(MP_KMCData *, short *))
+MP_KMCHistoryItem MP_KMCJump(MP_KMCData *data, int ntry, double temp, double (*func)(MP_KMCData *, short *, short), short potential)
 {
 	int j;
 	int dp, jp, dpp;
@@ -277,7 +277,7 @@ MP_KMCHistoryItem MP_KMCJump(MP_KMCData *data, int ntry, double temp, double (*f
 				nncluster = KMCUniteIndexes(data->ncluster, ids0, ids1, ids2);
 				cle0 = GridClusterEnergy(data, nncluster, ids2);
 				KMCSwapType(data, id0, id1);
-				cle1 = ClusterEnergy(data, func, nncluster, ids2, energy, &table_update);
+				cle1 = ClusterEnergy(data, func, potential, nncluster, ids2, energy, &table_update);
 				clde = cle1 - cle0;
 				if (clde < 0.0 || MP_Rand(&(data->rand_seed)) < exp(-clde / kt)) {
 					for (j = 0; j < nncluster; j++) {
@@ -332,7 +332,7 @@ void MP_KMCGridEnergy2(MP_KMCData* data, void (*func)(MP_KMCData*, int, short*, 
 	free(energy);
 }
 
-void KMCAddTransition(MP_KMCData* data, int dp, double (*func)(MP_KMCData*, short*), int *table_update)
+void KMCAddTransition(MP_KMCData* data, int dp, double (*func)(MP_KMCData*, short*, short), short potential, int *table_update)
 {
 	int k;
 	int id0, id1;
@@ -352,7 +352,7 @@ void KMCAddTransition(MP_KMCData* data, int dp, double (*func)(MP_KMCData*, shor
 			nncluster = KMCUniteIndexes(data->ncluster, ids0, ids1, ids2);
 			cle0 = GridClusterEnergy(data, nncluster, ids2);
 			KMCSwapType(data, id0, id1);
-			cle1 = ClusterEnergy(data, func, nncluster, ids2, energy, table_update);
+			cle1 = ClusterEnergy(data, func, potential, nncluster, ids2, energy, table_update);
 			KMCSwapType(data, id0, id1);
 			data->transition[data->ntransition].dp = dp;
 			data->transition[data->ntransition].id0 = id0;
@@ -380,7 +380,7 @@ void KMCDeleteTransition(MP_KMCData* data, int dp)
 	}
 }
 
-int KMCUpdateTransition(MP_KMCData* data, int tid, double (*func)(MP_KMCData*, short*), int* table_update)
+int KMCUpdateTransition(MP_KMCData* data, int tid, double (*func)(MP_KMCData*, short*, short), short potential, int* table_update)
 {
 	int j, k;
 	int dp, dpp;
@@ -399,7 +399,7 @@ int KMCUpdateTransition(MP_KMCData* data, int tid, double (*func)(MP_KMCData*, s
 	MP_KMCClusterIndexes(data, id1, ids1);
 	nncluster = KMCUniteIndexes(data->ncluster, ids0, ids1, ids2);
 	KMCSwapType(data, id0, id1);
-	ClusterEnergy(data, func, nncluster, ids2, energy, table_update);
+	ClusterEnergy(data, func, potential, nncluster, ids2, energy, table_update);
 	for (j = 0; j < nncluster; j++) {
 		data->grid[ids2[j]].energy = energy[j];
 	}
@@ -412,7 +412,7 @@ int KMCUpdateTransition(MP_KMCData* data, int tid, double (*func)(MP_KMCData*, s
 			for (k = 0; k < nncluster; k++) {
 				if (data->solute[j].id == ids2[k]) {
 					KMCDeleteTransition(data, j);
-					KMCAddTransition(data, j, func, table_update);
+					KMCAddTransition(data, j, func, potential, table_update);
 					break;
 				}
 			}
@@ -424,21 +424,21 @@ int KMCUpdateTransition(MP_KMCData* data, int tid, double (*func)(MP_KMCData*, s
 	return TRUE;
 }
 
-int MP_KMCListTransition(MP_KMCData* data, double (*func)(MP_KMCData*, short*))
+int MP_KMCListTransition(MP_KMCData* data, double (*func)(MP_KMCData*, short*, short), short potential)
 {
 	int j;
-	int table_update = MP_KMCGridEnergy(data, func);
+	int table_update = MP_KMCGridEnergy(data, func, potential);
 	
 	data->ntransition = 0;
 	for (j = 0; j < data->nsolute; j++) {
 		if (data->solute[j].jump) {
-			KMCAddTransition(data, j, func, &table_update);
+			KMCAddTransition(data, j, func, potential, &table_update);
 		}
 	}
 	return table_update;
 }
 
-MP_KMCHistoryItem MP_KMCJump2(MP_KMCData* data, int ntry, double temp, double (*func)(MP_KMCData*, short*))
+MP_KMCHistoryItem MP_KMCJump2(MP_KMCData* data, int ntry, double temp, double (*func)(MP_KMCData*, short*, short), short potential)
 {
 	int i, j;
 	short type0, type1;
@@ -465,7 +465,7 @@ MP_KMCHistoryItem MP_KMCJump2(MP_KMCData* data, int ntry, double temp, double (*
 				break;
 			}
 		}
-		if (!KMCUpdateTransition(data, j, func, &table_update)) return err;
+		if (!KMCUpdateTransition(data, j, func, potential, &table_update)) return err;
 		data->totmcs++, data->mcs++;
 	}
 	hid = KMCAddHistory(data, data->totmcs, temp, ntry, ntry, table_update, data->ntable,

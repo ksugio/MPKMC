@@ -258,21 +258,21 @@ double MP_MEAMEnergy(MP_MEAM *meam, MP_KMCData *data, short types[])
 	return t1+t2-t3;
 }
 
-static double MEAMFunc(MP_KMCData* data, short types[])
+static double MEAMFunc(MP_KMCData* data, short types[], short potential)
 {
-	return MP_MEAMEnergy(data->potp, data, types);
+	return MP_MEAMEnergy(data->potptr, data, types);
 }
 
-int MP_MEAMGridEnergy(MP_MEAM *meam, MP_KMCData *data)
+int MP_MEAMGridEnergy(MP_MEAM *meam, MP_KMCData *data, short potential)
 {
-	data->potp = meam;
-	return MP_KMCGridEnergy(data, MEAMFunc);
+	data->potptr = meam;
+	return MP_KMCGridEnergy(data, MEAMFunc, potential);
 }
 
-MP_KMCHistoryItem MP_MEAMJump(MP_MEAM *meam, MP_KMCData *data, int ntry, double temp)
+MP_KMCHistoryItem MP_MEAMJump(MP_MEAM *meam, MP_KMCData *data, int ntry, double temp, short potential)
 {
-	data->potp = meam;
-	return MP_KMCJump(data, ntry, temp, MEAMFunc);
+	data->potptr = meam;
+	return MP_KMCJump(data, ntry, temp, MEAMFunc, potential);
 }
 
 /**********************************************************

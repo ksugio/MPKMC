@@ -543,7 +543,7 @@ int MP_KMCCopy(MP_KMCData* src_data, MP_KMCData* dst_data, int copy_event, int c
 	dst_data->mcs = src_data->mcs;
 	dst_data->tote = src_data->tote;
 	dst_data->kb = src_data->kb;
-	dst_data->potp = src_data->potp;
+	dst_data->potptr = src_data->potptr;
 	dst_data->save_grid = src_data->save_grid;
 	for (i = 0; i < src_data->ntot; i++) {
 		dst_data->grid[i].type = src_data->grid[i].type;

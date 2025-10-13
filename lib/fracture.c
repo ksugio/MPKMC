@@ -1,6 +1,6 @@
 #include "MPKMC.h"
 
-void ClusterIndexesCrosses(MP_KMCData* data, double a, double b, double c, double d,
+static void ClusterIndexesCrosses(MP_KMCData* data, double a, double b, double c, double d,
 	int side, int id, int ids[], int crss[])
 {
 	int i;
@@ -51,7 +51,7 @@ void ClusterIndexesCrosses(MP_KMCData* data, double a, double b, double c, doubl
 	}
 }
 
-void ClusterTypesCrosses(MP_KMCData* data, double a, double b, double c, double d,
+static void ClusterTypesCrosses(MP_KMCData* data, double a, double b, double c, double d,
 	int side, int id, short perf_types[], short frac_types[])
 {
 	int i;
@@ -70,6 +70,33 @@ void ClusterTypesCrosses(MP_KMCData* data, double a, double b, double c, double 
 	}
 }
 
+static double CalcEnergy(MP_KMCData* data, short types[], 
+	double (*func)(MP_KMCData*, short*), int table_add)
+{
+	int tid;
+	double energy = 0.0;
+
+	if (data->table_use) {
+		tid = MP_KMCSearchCluster(data, types);
+		if (tid >= 0) {
+			energy = data->table[tid].energy;
+		}
+		else if (func != NULL) {
+			energy = (func)(data, types);
+			if (tid >= 0) {
+				data->table[tid].refcount += 1;
+			}
+			else if (tid == -1 && data->table_add && table_add) {
+				MP_KMCAddCluster(data, types, energy, 1);
+			}
+		}
+	}
+	else {
+		energy = (func)(data, types);
+	}
+	return energy;
+}
+
 double MP_KMCFractureEnergy(MP_KMCData* data, double a, double b, double c, double d, double width,
 	double (*perf_func)(MP_KMCData*, short*), double (*frac_func)(MP_KMCData*, short*))
 {
@@ -86,7 +113,7 @@ double MP_KMCFractureEnergy(MP_KMCData* data, double a, double b, double c, doub
 		dis = fabs(r) / sqrt(a * a + b * b + c * c);
 		if (r >= 0.0 && dis < width / 2) {
 			ClusterTypesCrosses(data, a, b, c, d, 1, i, perf_types, frac_types);
-			eperf += (perf_func)(data, perf_types);
+			eperf += CalcEnergy(data, perf_types, perf_func, TRUE);
 			data->grid[i].energy = (frac_func)(data, frac_types);
 			efrac += data->grid[i].energy;
 		}

@@ -174,7 +174,7 @@ typedef struct MP_KMCData {
 	long mcs;
 	double tote;
 	double kb;
-	void *potp;
+	void *potptr;
 	double freq;
 	double tott;
 } MP_KMCData;
@@ -221,11 +221,11 @@ int MP_KMCSoluteGroupTypes(MP_KMCData *data, int group, int num, short types[]);
 /*--------------------------------------------------
 * jump functions
 */
-int MP_KMCGridEnergy(MP_KMCData *data, double (*func)(MP_KMCData *, short *));
-MP_KMCHistoryItem MP_KMCJump(MP_KMCData *data, int ntry, double temp, double (*func)(MP_KMCData *, short *));
+int MP_KMCGridEnergy(MP_KMCData *data, double (*func)(MP_KMCData *, short *, short), short potential);
+MP_KMCHistoryItem MP_KMCJump(MP_KMCData *data, int ntry, double temp, double (*func)(MP_KMCData *, short *, short), short potential);
 void MP_KMCGridEnergy2(MP_KMCData* data, void (*func)(MP_KMCData*, int, short*, double*));
-int MP_KMCListTransition(MP_KMCData* data, double (*func)(MP_KMCData*, short*));
-MP_KMCHistoryItem MP_KMCJump2(MP_KMCData* data, int ntry, double temp, double (*func)(MP_KMCData*, short*));
+int MP_KMCListTransition(MP_KMCData* data, double (*func)(MP_KMCData*, short*, short), short potential);
+MP_KMCHistoryItem MP_KMCJump2(MP_KMCData* data, int ntry, double temp, double (*func)(MP_KMCData*, short*, short), short potential);
 
 /*--------------------------------------------------
 * event functions
@@ -302,8 +302,8 @@ extern PyTypeObject MP_FSFCCPyType;
 void MP_FSFCCInit(MP_FSFCC *fsfcc);
 int MP_FSFCCSetParm(MP_FSFCC *fsfcc, MP_FSFCCParm parm);
 double MP_FSFCCEnergy(MP_FSFCC *fsfcc, MP_KMCData *data, short types[]);
-int MP_FSFCCGridEnergy(MP_FSFCC *fsfcc, MP_KMCData *data);
-MP_KMCHistoryItem MP_FSFCCJump(MP_FSFCC *fsfcc, MP_KMCData *data, int ntry, double temp);
+int MP_FSFCCGridEnergy(MP_FSFCC *fsfcc, MP_KMCData *data, short potential);
+MP_KMCHistoryItem MP_FSFCCJump(MP_FSFCC *fsfcc, MP_KMCData *data, int ntry, double temp, short potential);
 
 /*--------------------------------------------------
 * meam typedef and functions
@@ -337,8 +337,8 @@ extern PyTypeObject MP_MEAMPyType;
 void MP_MEAMInit(MP_MEAM *meam);
 int MP_MEAMSetParm(MP_MEAM *meam, MP_MEAMParm parm);
 double MP_MEAMEnergy(MP_MEAM *meam, MP_KMCData *data, short types[]);
-int MP_MEAMGridEnergy(MP_MEAM *meam, MP_KMCData *data);
-MP_KMCHistoryItem MP_MEAMJump(MP_MEAM *meam, MP_KMCData *data, int ntry, double temp);
+int MP_MEAMGridEnergy(MP_MEAM *meam, MP_KMCData *data, short potential);
+MP_KMCHistoryItem MP_MEAMJump(MP_MEAM *meam, MP_KMCData *data, int ntry, double temp, short potential);
 
 #ifdef __cplusplus
 }

@@ -5,7 +5,7 @@ void GlutWindow(MP_KMCData *data, int width, int height, int argc, char **argv);
 
 static double calcFSFCC(MP_KMCData* data, short types[])
 {
-	return MP_FSFCCEnergy(data->potp, data, types);
+	return MP_FSFCCEnergy(data->potptr, data, types);
 }
 
 static void testFSFCC()
@@ -30,14 +30,14 @@ static void testFSFCC()
 	MP_KMCCalcRotIndex(&data, 5.0, 1.0e-6);
 	//MP_KMCAddSoluteRandom(&data, 30, 0, TRUE);
 	MP_FSFCCInit(&fsfcc);
-	data.potp = &fsfcc;
-	MP_KMCGridEnergy(&data, calcFSFCC);
+	data.potptr = &fsfcc;
+	MP_KMCGridEnergy(&data, calcFSFCC, 0);
 	fe = MP_KMCFractureEnergy(&data, 1, 1, 1, -19.5, 0.6, calcFSFCC, calcFSFCC);
 	fa = MP_KMCFractureArea(&data, 1, 1, 1, -19.5);
 	fprintf(stderr, "%f %f\n", fe, fa);
 
 	//MP_KMCChangeTypeByPlane(&data, 1, 1, -1, 0.00001, 0);
-	//MP_FSFCCGridEnergy(&fsfcc, &data);
+	//MP_FSFCCGridEnergy(&fsfcc, &data, 0);
 	//for (T = 1100; T > 1000; T -= 10) {
 		//ret = MP_FSFCCJump(&fsfcc, data, 10000, T);
 	//	ret = MP_KMCJump(&data, 10000, T, calcFSFCC);
@@ -61,7 +61,7 @@ static int count13(MP_KMCData* data)
 
 static double calcMEAM(MP_KMCData* data, short types[])
 {
-	return MP_MEAMEnergy(data->potp, data, types);
+	return MP_MEAMEnergy(data->potptr, data, types);
 }
 
 static double calcMEAM100(MP_KMCData* data, short types[])
@@ -114,13 +114,13 @@ static void testMEAM()
 	//MP_KMCAddSolute(data, 0, 0, TRUE);
 	
 	MP_MEAMInit(&meam);
-	data.potp = &meam;
-	//MP_KMCGridEnergy(&data, calcMEAM);
+	data.potptr = &meam;
+	//MP_KMCGridEnergy(&data, calcMEAM, 0);
 	//fe = MP_KMCFractureEnergy(&data, 0, 0, 1, -1.75, 0.6, calcMEAM, calcMEAM100);
 	fe = MP_KMCFractureEnergy(&data, 1, 1, 1, -3.5, 0.6, calcMEAM, calcMEAM111);
 	fprintf(stderr, "%f\n", fe);
 	//MP_KMCChangeTypeByPlane(&data, 1, 1, 1, -3.5, 0);
-	//MP_MEAMGridEnergy(&meam, data);
+	//MP_MEAMGridEnergy(&meam, data, 0);
 	//fprintf(stderr, "0 %f\n", data->grid[0].energy);
 	//fprintf(stderr, "%f\n", data->tote);
 	//for (T = 800; T > 780; T -= 10) {
@@ -133,16 +133,16 @@ static void testMEAM()
 	//MP_KMCCopy(data, &data1, TRUE, TRUE);
 	//MP_KMCSetVaccume(&data1, 0, 0, 1, 0, 0, 5.0);
 	//MP_KMCSetVaccume(&data1, 0, 0, 1, 0, 0, 4.75);
-	//MP_MEAMGridEnergy(&meam, &data1);
+	//MP_MEAMGridEnergy(&meam, &data1, 0);
 	//fprintf(stderr, "%f\n", data1.tote);
 	//MP_KMCCopy(data, &data2, TRUE, TRUE);
 	//MP_KMCSetVaccume(&data2, 0, 0, -1, 0, 0, 4.75);
-	//MP_MEAMGridEnergy(&meam, &data2);
+	//MP_MEAMGridEnergy(&meam, &data2, 0);
 	//fprintf(stderr, "%f\n", data2.tote);
 	//fprintf(stderr, "%f\n", data1.tote + data2.tote - data->tote);
 	//MP_KMCTranslate(data, 0, 5, 5, 5);
 	//fprintf(stderr, "%d %d\n", count13(&data1), count13(&data2));
-	//MP_MEAMGridEnergy(&meam, data);
+	//MP_MEAMGridEnergy(&meam, data, 0);
 	GlutWindow(&data, 640, 480, 0, NULL);
 	MP_KMCFree(&data);
 }
@@ -169,9 +169,9 @@ static void testQE(MP_KMCData* data)
 	printf("Number of Table: %d\n", data->ntable);
 	MP_KMCSetMigration(data, 13, 14, 0.66 / Ry);
 	MP_KMCAddSoluteRandom(data, 40, 14, 1);
-	MP_KMCListTransition(data, NULL);
+	MP_KMCListTransition(data, NULL, 0);
 	for (T = 800; T >= 700; T -= 10) {
-		ret = MP_KMCJump2(data, 10000, T, NULL);
+		ret = MP_KMCJump2(data, 10000, T, NULL, 0);
 		printf("%f %d %d %e %e\n", T, ret.njump, ret.ntable, ret.tote, ret.tott);
 	}
 	MP_KMCWrite(data, "test.mpkmc", 0);
